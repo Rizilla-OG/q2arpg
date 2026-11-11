@@ -558,7 +558,24 @@ DIE(player_die) (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 
 	// q2rpg: events log
 	if (!self->deadflag && !deathmatch->integer)
-		Loot_LogEvent(self, G_Fmt("DIED to {}", attacker && attacker->classname ? attacker->classname : "world").data());
+	{
+		// q2rpg: name world hazards; monsters and triggers by classname
+		const char *cause = attacker && attacker->classname ? attacker->classname : "world";
+		switch (mod.id)
+		{
+		case MOD_LAVA: cause = "lava"; break;
+		case MOD_SLIME: cause = "slime"; break;
+		case MOD_WATER: cause = "drowning"; break;
+		case MOD_FALLING: cause = "falling"; break;
+		case MOD_CRUSH: cause = "crushed"; break;
+		case MOD_TELEFRAG: cause = "telefrag"; break;
+		case MOD_SUICIDE: cause = "suicide"; break;
+		case MOD_BARREL: cause = "barrel"; break;
+		case MOD_TARGET_LASER: cause = "laser"; break;
+		default: break;
+		}
+		Loot_LogEvent(self, G_Fmt("DIED to {}", cause).data());
+	}
 
 	if (!self->deadflag)
 	{
