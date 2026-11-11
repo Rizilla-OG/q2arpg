@@ -11,6 +11,7 @@
 cvar_t *g_loot_droprate;
 cvar_t *g_loot_rarity_bonus;
 cvar_t *g_loot_debug;
+cvar_t *g_loot_logs; // q2rpg: 0 = write no local stat files (loot_stats.csv, q2rpg_events.log)
 cvar_t *g_loot_monster_health;
 cvar_t *g_loot_elite_chance;
 cvar_t *g_loot_guard_shield;
@@ -23,6 +24,7 @@ void Loot_InitCvars()
 	g_loot_droprate = gi.cvar("g_loot_droprate", "0.35", CVAR_NOFLAGS);
 	g_loot_rarity_bonus = gi.cvar("g_loot_rarity_bonus", "0", CVAR_NOFLAGS);
 	g_loot_debug = gi.cvar("g_loot_debug", "0", CVAR_NOFLAGS);
+	g_loot_logs = gi.cvar("g_loot_logs", "1", CVAR_ARCHIVE);
 	g_loot_monster_health = gi.cvar("g_loot_monster_health", "1.5", CVAR_NOFLAGS);
 	g_loot_elite_chance = gi.cvar("g_loot_elite_chance", "0.12", CVAR_NOFLAGS);
 	g_loot_guard_shield = gi.cvar("g_loot_guard_shield", "1.0", CVAR_NOFLAGS);
@@ -3282,7 +3284,7 @@ static std::string Loot_StatsSummary()
 // "2026-11-10 21:13  fact1  L52  CHALLENGE Payday tier 4"
 void Loot_LogEvent(edict_t *ent, const std::string &text)
 {
-	if (deathmatch->integer)
+	if (deathmatch->integer || !g_loot_logs->integer)
 		return;
 
 	FILE *log = fopen("q2rpg/q2rpg_events.log", "a");
@@ -3313,6 +3315,8 @@ void Loot_StatsLogMap()
 		return;
 
 	gi.Com_Print(Loot_StatsSummary().c_str());
+	if (!g_loot_logs->integer)
+		return;
 
 	const loot_stats_t &stats = level.loot_stats;
 	const char *csv_path = "q2rpg/loot_stats.csv";
