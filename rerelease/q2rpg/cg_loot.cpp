@@ -218,7 +218,9 @@ void CG_Loot_DrawDamageNumbers(const player_state_t *ps, const vrect_t &hud_vrec
 		c.a = (uint8_t)(255.f * std::clamp(1.f - (t - 0.55f) / 0.45f, 0.f, 1.f));
 
 		const int32_t text_scale = n.kind == 1 ? scale + 1 : scale;
-		cgi.SCR_DrawFontString(G_Fmt("{}", n.value).data(), (int)sx, (int)sy, text_scale, c, true, text_align_t::CENTER);
+		// q2rpg: values from 1000 come packed as 1000 + hundreds; show them as 1.2k
+		const std::string text = n.value < 1000 ? G_Fmt("{}", n.value).data() : G_Fmt("{:.1f}k", (n.value - 1000) / 10.f).data();
+		cgi.SCR_DrawFontString(text.c_str(), (int)sx, (int)sy, text_scale, c, true, text_align_t::CENTER);
 	}
 }
 

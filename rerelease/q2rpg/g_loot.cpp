@@ -1265,8 +1265,11 @@ static void Loot_FlushDamageNumber(edict_t *ent)
 	cl->ps.stats[STAT_LOOT_DMG_Y] = (int16_t)std::clamp((int32_t)pos[1], -32767, 32767);
 	cl->ps.stats[STAT_LOOT_DMG_Z] = (int16_t)std::clamp((int32_t)pos[2], -32767, 32767);
 
+	// q2rpg: 11-bit value; under 1000 sent exact, 1000+ sent as 1000 + hundreds (shown as 1.2k, up to ~104k)
+	const int32_t dmg = cl->loot_dmg_accum;
+	const int32_t dmg_code = dmg < 1000 ? dmg : std::min(1000 + dmg / 100, 2047);
 	const int32_t seq = ++cl->loot_dmg_seq;
-	const uint16_t packed = (uint16_t)(std::min(cl->loot_dmg_accum, 2047) | ((seq & 7) << 11) | ((cl->loot_dmg_kind & 3) << 14));
+	const uint16_t packed = (uint16_t)(dmg_code | ((seq & 7) << 11) | ((cl->loot_dmg_kind & 3) << 14));
 	cl->ps.stats[STAT_LOOT_DMG_0 + (seq % 3)] = (int16_t)packed;
 
 	cl->loot_dmg_accum = 0;
