@@ -1250,6 +1250,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_omega), // q2rpg
 	FIELD_AUTO(loot_mark_end), // q2rpg
 	FIELD_AUTO(loot_death_spawned), // q2rpg
+	FIELD_AUTO(loot_revived), // q2rpg
 	FIELD_AUTO(loot_hit_crit), // q2rpg
 	FIELD_AUTO(loot_hit_arch), // q2rpg
 	FIELD_AUTO(loot_hit_elements), // q2rpg

@@ -728,6 +728,13 @@ static void Vendor_Toggle(edict_t *ent)
 	gclient_t *cl = ent->client;
 	if (cl->loot_shop_open)
 	{
+		// q2rpg: shop hidden under challenges: bring it back instead of closing
+		if (cl->loot_showchallenges)
+		{
+			cl->loot_showchallenges = false;
+			cl->loot_shop_time = 0_ms;
+			return;
+		}
 		cl->loot_shop_open = false;
 		return;
 	}
@@ -741,6 +748,7 @@ static void Vendor_Toggle(edict_t *ent)
 	Vendor_OpenCount(ent)++;
 	cl->loot_showinv = false;
 	cl->loot_showskills = false;
+	cl->loot_showchallenges = false;
 	cl->loot_shop_open = true;
 	cl->loot_shop_page = 0;
 	cl->loot_shop_time = 0_ms; // draw now
@@ -758,7 +766,7 @@ bool Vendor_ClientCommand(edict_t *ent, const char *cmd)
 		return true;
 	}
 
-	if (!Q_strcasecmp(cmd, "slot") && cl->loot_shop_open && !cl->loot_showinv && !cl->loot_showskills)
+	if (!Q_strcasecmp(cmd, "slot") && cl->loot_shop_open && !cl->loot_showinv && !cl->loot_showskills && !cl->loot_showchallenges)
 	{
 		Vendor_Buy(ent, atoi(gi.argv(1)));
 		return true;

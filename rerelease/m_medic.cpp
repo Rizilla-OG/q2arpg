@@ -986,6 +986,7 @@ void medic_cable_attack(edict_t *self)
 				self->enemy->think(self->enemy);
 			}
 			self->enemy->monsterinfo.aiflags &= ~AI_RESURRECTING;
+			self->enemy->loot_revived = true; // q2rpg: no second payout
 			self->enemy->monsterinfo.aiflags |= AI_IGNORE_SHOTS | AI_DO_NOT_COUNT;
 			// turn off flies
 			self->enemy->s.effects &= ~EF_FLIES;

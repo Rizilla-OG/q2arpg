@@ -3286,6 +3286,7 @@ struct edict_t
 	bool loot_omega;			// q2rpg: NG+ Alpha Omega (also loot_elite)
 	gtime_t loot_mark_end;		// q2rpg: Tick Tock mark (takes +25% damage)
 	bool loot_death_spawned;	// q2rpg: spawned by another monster's death; never spawns more
+	bool loot_revived;			// q2rpg: brought back by a medic; its second death pays nothing
 	bool loot_hit_crit;			// q2rpg: last player hit while alive was a headshot
 	int32_t loot_hit_arch;		// q2rpg: archetype + 1 of the gun behind the last player hit (0 = none)
 	int32_t loot_hit_elements;	// q2rpg: bit (1 << element) for each status active at the last player hit

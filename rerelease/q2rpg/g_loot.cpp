@@ -1329,11 +1329,15 @@ void Loot_RunStatus(edict_t *ent)
 {
 	loot_status_t &st = ent->loot_status;
 
-	if (!ent->inuse || ent->health <= 0 || ent->deadflag || !(ent->svflags & SVF_MONSTER))
+	if (!ent->inuse || ent->deadflag || !(ent->svflags & SVF_MONSTER))
 	{
 		Loot_ClearStatus(ent);
 		return;
 	}
+
+	// q2rpg: killed but death not processed yet: stop ticking, keep the status so on-kill skills (Chain Reaction, Spread) can read it
+	if (ent->health <= 0)
+		return;
 
 	const bool burn = st.burn_end > level.time;
 	const bool melt = st.melt_end > level.time;

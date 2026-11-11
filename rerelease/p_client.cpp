@@ -951,6 +951,9 @@ void SaveClientData()
 			continue;
 		game.clients[i].pers.health = ent->health;
 		game.clients[i].pers.max_health = ent->max_health;
+		// q2rpg: a coop player dead at map change keeps their gear; health <= 0 would wipe pers on the next spawn
+		if (coop->integer && game.clients[i].pers.health <= 0)
+			game.clients[i].pers.health = ent->max_health;
 		game.clients[i].pers.savedFlags = (ent->flags & (FL_FLASHLIGHT | FL_GODMODE | FL_NOTARGET | FL_POWER_ARMOR | FL_WANTS_POWER_ARMOR));
 		if (coop->integer)
 			game.clients[i].pers.score = ent->client->resp.score;
