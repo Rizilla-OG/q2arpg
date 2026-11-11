@@ -425,6 +425,16 @@ void NGPlus_Frame(edict_t *ent)
 	if (level.time < 2_sec)
 		return;
 
+	// q2rpg: events log, once per map visit (and again after a reload)
+	if (!level.loot_events_entered)
+	{
+		level.loot_events_entered = true;
+		const char *mod_name = NGPlus_MapModName();
+		Loot_LogEvent(ent, G_Fmt("MAP enter  NG+ {}{}{}  bank ${}", game.loot_ngplus, mod_name[0] ? "  modifier: " : "", mod_name,
+		                         ent->client->pers.loot_money)
+		                       .data());
+	}
+
 	std::string banner;
 	if (game.loot_ngplus_announce)
 	{

@@ -1186,6 +1186,7 @@ struct level_locals_t
 	int32_t loot_vendor_rerolls; // q2rpg: stock rerolls bought on this map (price climbs)
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
 	bool loot_map_mod_announced; // q2rpg: map modifier banner shown
+	bool loot_events_entered;	 // q2rpg: map entry written to the events log (not saved, so a reload logs again)
 	loot_stats_t loot_stats; // q2rpg: balance numbers for this map
 
 	// intermission state

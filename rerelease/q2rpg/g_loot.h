@@ -176,7 +176,8 @@ void Loot_DeathSpawn(edict_t *monster); // death hook: maybe spawn 1-3 more of i
 bool Loot_ShieldsAvailable();
 std::string Loot_GunBriefCompare(const loot_weapon_t &g, const loot_weapon_t *other);
 std::string Loot_ShieldBriefCompare(const loot_shield_t &sh, const loot_shield_t &other);
-void Loot_StatsLogMap(); // map end: console summary + loot_stats.csv row
+void Loot_StatsLogMap();                                   // map end: console summary + loot_stats.csv row
+void Loot_LogEvent(edict_t *ent, const std::string &text); // append a line to q2rpg/q2rpg_events.log
 edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool from_player);
 edict_t *Loot_TouchTarget(edict_t *ent);
 void Loot_SendLayout(edict_t *ent, const std::string &s);

@@ -556,6 +556,10 @@ DIE(player_die) (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 	//	self->solid = SOLID_NOT;
 	self->svflags |= SVF_DEADMONSTER;
 
+	// q2rpg: events log
+	if (!self->deadflag && !deathmatch->integer)
+		Loot_LogEvent(self, G_Fmt("DIED to {}", attacker && attacker->classname ? attacker->classname : "world").data());
+
 	if (!self->deadflag)
 	{
 		self->client->respawn_time = ( level.time + 1_sec );

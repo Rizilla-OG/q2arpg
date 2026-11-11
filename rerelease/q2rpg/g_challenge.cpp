@@ -150,9 +150,13 @@ static void Challenge_Add(edict_t *ent, challenge_kind_t kind, int32_t amount)
 			{
 				Challenge_GiveReward(ent, def);
 				gi.Center_Print(ent, G_Fmt("CHALLENGE MASTERED\n{} tier {}\n+{} XP  +${}  + Mythic reward\nBadge: {}", def.name, tier, xp, cash, def.badge).data());
+				Loot_LogEvent(ent, G_Fmt("CHALLENGE {} tier {} MASTERED, badge: {}", def.name, tier, def.badge).data());
 			}
 			else
+			{
 				gi.Center_Print(ent, G_Fmt("CHALLENGE COMPLETE\n{} tier {}\n+{} XP  +${}", def.name, tier, xp, cash).data());
+				Loot_LogEvent(ent, G_Fmt("CHALLENGE {} tier {}", def.name, tier).data());
+			}
 			Loot_GiveXP(ent, xp); // after the print, so a level-up message wins
 		}
 	}

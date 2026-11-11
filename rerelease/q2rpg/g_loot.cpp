@@ -6,6 +6,7 @@
 #include "../g_local.h"
 
 #include <random>
+#include <ctime>
 
 cvar_t *g_loot_droprate;
 cvar_t *g_loot_rarity_bonus;
@@ -418,6 +419,7 @@ bool Loot_SecondChanceSave(edict_t *targ, edict_t *attacker, const mod_t &mod)
 	cl->loot_second_chance_attacker = attacker;
 	cl->loot_second_chance_mod = mod;
 	gi.Center_Print(targ, "SECOND CHANCE!\nGet a kill!");
+	Loot_LogEvent(targ, G_Fmt("SECOND CHANCE triggered by {}", attacker->classname ? attacker->classname : "?").data());
 	gi.sound(targ, CHAN_AUTO, gi.soundindex("misc/pc_up.wav"), 1, ATTN_NORM, 0);
 	return true;
 }
@@ -432,6 +434,7 @@ void Loot_SecondChanceKill(edict_t *ent)
 	cl->loot_second_chance_attacker = nullptr;
 	ent->health = std::min(ent->max_health, ent->health + (int32_t)ceilf(ent->max_health * second_chance_heal));
 	gi.Center_Print(ent, "Back in the fight!");
+	Loot_LogEvent(ent, "SECOND CHANCE saved (got a kill)");
 	gi.sound(ent, CHAN_AUTO, gi.soundindex("items/s_health.wav"), 1, ATTN_NORM, 0);
 }
 
@@ -465,6 +468,7 @@ void Loot_SecondChanceFrame(edict_t *ent)
 	cl->loot_second_chance_end = 0_ms;
 	cl->loot_second_chance_attacker = nullptr;
 
+	Loot_LogEvent(ent, "SECOND CHANCE ran out");
 	second_chance_expiring = true;
 	T_Damage(ent, killer, killer, vec3_origin, ent->s.origin, vec3_origin, 9999, 0, DAMAGE_NO_PROTECTION, mod);
 	second_chance_expiring = false;
@@ -2296,6 +2300,7 @@ void Loot_GiveXP(edict_t *ent, int32_t xp)
 
 		gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/secret.wav"), 1, ATTN_NORM, 0);
 		gi.Center_Print(ent, G_Fmt("LEVEL UP!\nLevel {}  (+5 max health)\n[K] skill point", pers.loot_level).data());
+		Loot_LogEvent(ent, G_Fmt("LEVEL UP {}", pers.loot_level).data());
 	}
 }
 
@@ -3270,6 +3275,35 @@ static std::string Loot_StatsSummary()
 		text += G_Fmt("  {}: Lv {} XP {}/{} ${} hp {}\n", pers.netname, pers.loot_level, pers.loot_xp, Loot_XPToNext(pers.loot_level), pers.loot_money, pers.max_health).data();
 	}
 	return text;
+}
+
+// q2rpg: playtest events log. One line per event, appended and never cleared
+// (the engine's stdout.txt is wiped every launch):
+// "2026-11-10 21:13  fact1  L52  CHALLENGE Payday tier 4"
+void Loot_LogEvent(edict_t *ent, const std::string &text)
+{
+	if (deathmatch->integer)
+		return;
+
+	FILE *log = fopen("q2rpg/q2rpg_events.log", "a");
+	if (!log)
+		return;
+
+	char stamp[32] = "";
+	const time_t now = time(nullptr);
+	if (const tm *local = localtime(&now))
+		strftime(stamp, sizeof(stamp), "%Y-%m-%d %H:%M", local);
+
+	std::string who;
+	if (ent && ent->client)
+	{
+		who = G_Fmt("L{}", ent->client->pers.loot_level).data();
+		if (game.maxclients > 1)
+			who += G_Fmt(" P{}", ent->s.number).data();
+	}
+
+	fprintf(log, "%s  %s  %s  %s\n", stamp, level.mapname, who.c_str(), text.c_str());
+	fclose(log);
 }
 
 // Map end: print the summary and append one CSV row per map to q2rpg/loot_stats.csv.
