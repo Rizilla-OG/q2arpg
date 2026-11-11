@@ -498,7 +498,14 @@ inline gtime_t Weapon_AnimationTime(edict_t *ent)
 	else if (ent->client->weaponstate == WEAPON_ACTIVATING || ent->client->weaponstate == WEAPON_DROPPING)
 		loot_rate = Loot_HandlingMult(ent);
 	if (loot_rate != 1.0f)
-		ent->client->ps.gunrate = std::max(1, (int32_t) roundf(ent->client->ps.gunrate * loot_rate));
+	{
+		// q2rpg: time frames from the exact rate; the rounded gunrate only drives the client's gun animation
+		const float exact_rate = ent->client->ps.gunrate * loot_rate;
+		ent->client->ps.gunrate = std::max(1, (int32_t) roundf(exact_rate));
+		if (ent->client->ps.gunrate == 10)
+			ent->client->ps.gunrate = 0;
+		return gtime_t::from_ms((int64_t) roundf(1000.f / exact_rate));
+	}
 
 	// network optimization...
 	if (ent->client->ps.gunrate == 10)
@@ -508,6 +515,16 @@ inline gtime_t Weapon_AnimationTime(edict_t *ent)
 	}
 
 	return gtime_t::from_ms((1.f / ent->client->ps.gunrate) * 1000);
+}
+
+// q2rpg: schedule the next weapon frame from when this one was due, not from this
+// server tick, so rates that aren't a multiple of the tick keep their exact average
+inline void Weapon_ScheduleNextFrame(edict_t *ent)
+{
+	gtime_t due = ent->client->weapon_think_time;
+	if (due > level.time || due <= level.time - FRAME_TIME_S)
+		due = level.time;
+	ent->client->weapon_think_time = due + Weapon_AnimationTime(ent);
 }
 
 /*
@@ -751,7 +768,7 @@ inline bool Weapon_HandleDropping(edict_t *ent, int FRAME_DEACTIVATE_LAST)
 			}
 
 			ent->client->ps.gunframe++;
-			ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+			Weapon_ScheduleNextFrame(ent); // q2rpg
 		}
 		return true;
 	}
@@ -765,7 +782,7 @@ inline bool Weapon_HandleActivating(edict_t *ent, int FRAME_ACTIVATE_LAST, int F
 	{
 		if (ent->client->weapon_think_time <= level.time || g_instant_weapon_switch->integer)
 		{
-			ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+			Weapon_ScheduleNextFrame(ent); // q2rpg
 
 			if (ent->client->ps.gunframe == FRAME_ACTIVATE_LAST || g_instant_weapon_switch->integer)
 			{
@@ -827,7 +844,7 @@ inline bool Weapon_HandleNewWeapon(edict_t *ent, int FRAME_DEACTIVATE_FIRST, int
 				ent->client->anim_time = 0_ms;
 			}
 
-			ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+			Weapon_ScheduleNextFrame(ent); // q2rpg
 		}
 		return true;
 	}
@@ -867,7 +884,7 @@ inline weapon_ready_state_t Weapon_HandleReady(edict_t *ent, int FRAME_FIRE_FIRS
 		}
 		else if (ent->client->weapon_think_time <= level.time)
 		{
-			ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+			Weapon_ScheduleNextFrame(ent); // q2rpg
 
 			if (ent->client->ps.gunframe == FRAME_IDLE_LAST)
 			{
@@ -907,7 +924,7 @@ inline void Weapon_HandleFiring(edict_t *ent, int32_t FRAME_IDLE_FIRST, std::fun
 		ent->client->weapon_fire_buffered = false;
 	}
 
-	ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+	Weapon_ScheduleNextFrame(ent); // q2rpg
 }
 
 void Weapon_Generic(edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int FRAME_DEACTIVATE_LAST, const int *pause_frames, const int *fire_frames, void (*fire)(edict_t *ent))
@@ -1066,7 +1083,7 @@ void Throw_Generic(edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int F
 		if (ent->client->weapon_think_time <= level.time)
 		{
 			ChangeWeapon(ent);
-			ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+			Weapon_ScheduleNextFrame(ent); // q2rpg
 		}
 		return;
 	}
@@ -1080,7 +1097,7 @@ void Throw_Generic(edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int F
 				ent->client->ps.gunframe = FRAME_IDLE_FIRST;
 			else
 				ent->client->ps.gunframe = FRAME_IDLE_LAST + 1;
-			ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+			Weapon_ScheduleNextFrame(ent); // q2rpg
 			Weapon_SetFinished(ent);
 		}
 		return;
@@ -1099,7 +1116,7 @@ void Throw_Generic(edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int F
 				ent->client->ps.gunframe = 1;
 				ent->client->weaponstate = WEAPON_FIRING;
 				ent->client->grenade_time = 0_ms;
-				ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+				Weapon_ScheduleNextFrame(ent); // q2rpg
 			}
 			else
 				NoAmmoWeaponChange(ent, true);
@@ -1107,7 +1124,7 @@ void Throw_Generic(edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int F
 		}
 		else if (ent->client->weapon_think_time <= level.time)
 		{
-			ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+			Weapon_ScheduleNextFrame(ent); // q2rpg
 
 			if (ent->client->ps.gunframe >= FRAME_IDLE_LAST)
 			{
@@ -1180,7 +1197,7 @@ void Throw_Generic(edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int F
 					{
 						ent->client->ps.gunframe = FRAME_FIRE_LAST;
 						ent->client->grenade_blew_up = false;
-						ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+						Weapon_ScheduleNextFrame(ent); // q2rpg
 					}
 					else
 					{
@@ -1217,7 +1234,7 @@ void Throw_Generic(edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int F
 				}
 			}
 
-			ent->client->weapon_think_time = level.time + Weapon_AnimationTime(ent);
+			Weapon_ScheduleNextFrame(ent); // q2rpg
 
 			if ((ent->client->ps.gunframe == FRAME_FIRE_LAST) && (level.time < ent->client->grenade_finished_time))
 				return;

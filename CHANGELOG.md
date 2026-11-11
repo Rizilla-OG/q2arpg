@@ -9,6 +9,7 @@
 
 Bug fixes:
 
+- Fire Rate is now exact. Before, real fire speed snapped to a few steps (a 130% gun fired like a 100% one, and anything from 140% to 199% fired at 133%). Every percent of Fire Rate now counts.
 - Shock damage against monster shields now uses the gun that fired the shot, not the gun in your hands.
 - Spike shields only hurt monsters that hit you in melee, not ones that shoot you.
 - Weapons spawned by map triggers no longer show their rarity beam before they appear.
