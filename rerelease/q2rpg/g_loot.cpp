@@ -778,6 +778,17 @@ void Loot_SelectSlot(edict_t *ent, int32_t slot)
 // with the same base were unreachable past the first. While holding one of them,
 // selecting that weapon again (or next/prev) steps to the other slot. `wrap`
 // cycles around (wheel); without it, next/prev fall through to stock at the end.
+// q2rpg: true if a loot slot of this base weapon still has rounds in its magazine
+bool Loot_HasLoadedGun(edict_t *ent, item_id_t base)
+{
+	if (!ent || !ent->client || deathmatch->integer)
+		return false;
+	for (const loot_weapon_t &gun : ent->client->pers.loot_slots)
+		if (gun.valid && gun.base == base && gun.mag_size > 0 && gun.mag_ammo > 0)
+			return true;
+	return false;
+}
+
 bool Loot_CycleSameBase(edict_t *ent, const gitem_t *item, int32_t dir, bool wrap)
 {
 	gclient_t *cl = ent->client;
@@ -1048,6 +1059,17 @@ static bool Loot_IsStatusMod(const mod_t &mod)
 	return mod.id == MOD_LOOT_BURN || mod.id == MOD_LOOT_MELT || mod.id == MOD_LOOT_SHOCK || mod.id == MOD_LOOT_TURRET || mod.id == MOD_LOOT_SLAM;
 }
 
+// q2rpg: the gun behind a player hit: projectiles carry the gun that fired them,
+// hitscan uses the held gun; status ticks and grenade mods have no gun
+static loot_weapon_t *Loot_HitGun(edict_t *inflictor, edict_t *attacker, const mod_t &mod)
+{
+	if (!attacker || !attacker->client || Loot_IsStatusMod(mod) || mod.id == MOD_LOOT_GRENADE)
+		return nullptr;
+	if (inflictor && inflictor != attacker && inflictor->loot_shot_gun.valid)
+		return &inflictor->loot_shot_gun;
+	return Loot_Active(attacker);
+}
+
 void Loot_StatusSparks(edict_t *ent, loot_element_t element)
 {
 	static const int32_t colors[LOOT_ELEM_COUNT] = {0, 0xe0, 0x70, 0xd0};
@@ -1189,7 +1211,7 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 	}
 
 	// projectiles use the gun that fired them, not the one held now
-	loot_weapon_t *gun = (inflictor && inflictor != attacker && inflictor->loot_shot_gun.valid) ? &inflictor->loot_shot_gun : Loot_Active(attacker);
+	loot_weapon_t *gun = Loot_HitGun(inflictor, attacker, mod);
 	if (!gun)
 		return damage;
 
@@ -1435,7 +1457,7 @@ static bool Loot_ShieldBypass(const mod_t &mod)
 }
 
 // Monster shields (guards). Shock deals double damage to shields.
-static int32_t Loot_MonsterShieldAbsorb(edict_t *targ, edict_t *attacker, int32_t damage, damageflags_t dflags, const mod_t &mod)
+static int32_t Loot_MonsterShieldAbsorb(edict_t *targ, edict_t *inflictor, edict_t *attacker, int32_t damage, damageflags_t dflags, const mod_t &mod)
 {
 	if ((dflags & DAMAGE_NO_PROTECTION) || Loot_ShieldBypass(mod) || targ->health <= 0)
 		return damage;
@@ -1444,12 +1466,9 @@ static int32_t Loot_MonsterShieldAbsorb(edict_t *targ, edict_t *attacker, int32_
 	if (targ->loot_mshield <= 0)
 		return damage;
 
-	bool shock = mod.id == MOD_LOOT_SHOCK;
-	if (attacker && attacker->client)
-	{
-		const loot_weapon_t *gun = Loot_Active(attacker);
-		shock = shock || (gun && gun->element == LOOT_ELEM_SHOCK && !Loot_IsStatusMod(mod));
-	}
+	// q2rpg: shock doubles vs shields; checks the gun that fired, not the one held now
+	const loot_weapon_t *gun = Loot_HitGun(inflictor, attacker, mod);
+	const bool shock = mod.id == MOD_LOOT_SHOCK || (gun && gun->element == LOOT_ELEM_SHOCK);
 	const float mult = shock ? 2.0f : 1.0f;
 
 	const float eff = damage * mult;
@@ -1490,7 +1509,7 @@ int32_t Loot_ShieldAbsorb(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 		return damage;
 
 	if (targ->loot_mshield_max > 0 && (targ->svflags & SVF_MONSTER))
-		return Loot_MonsterShieldAbsorb(targ, attacker, damage, dflags, mod);
+		return Loot_MonsterShieldAbsorb(targ, inflictor, attacker, damage, dflags, mod);
 
 	if (!targ->client || (dflags & DAMAGE_NO_PROTECTION))
 		return damage;
@@ -1524,9 +1543,12 @@ int32_t Loot_ShieldAbsorb(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 		cl->loot_shield_snd_time = level.time + 200_ms;
 	}
 
-	// spikes: melee hits (inflictor is the monster itself) bounce back
-	if (pers.loot_shield.special == LOOT_SHIELD_SPIKE && attacker && attacker != targ && (attacker->svflags & SVF_MONSTER) &&
-	    inflictor == attacker && attacker->health > 0 && (attacker->s.origin - targ->s.origin).length() < 160.f)
+	// spikes: melee hits bounce back. Monster hitscan also passes the monster as inflictor,
+	// so q2rpg: bullets, splash, rails and beams don't count
+	const bool melee = inflictor == attacker && !(dflags & (DAMAGE_BULLET | DAMAGE_RADIUS)) && mod.id != MOD_RAILGUN &&
+	                   mod.id != MOD_HEATBEAM && mod.id != MOD_BLASTOFF;
+	if (pers.loot_shield.special == LOOT_SHIELD_SPIKE && attacker && attacker != targ && (attacker->svflags & SVF_MONSTER) && melee &&
+	    attacker->health > 0 && (attacker->s.origin - targ->s.origin).length() < 160.f)
 	{
 		const int32_t spike = std::max(5, (int32_t)(pers.loot_shield.capacity * 0.3f));
 		T_Damage(attacker, targ, targ, vec3_origin, attacker->s.origin, vec3_origin, spike, 0, DAMAGE_NO_KNOCKBACK, MOD_LOOT_SHOCK);

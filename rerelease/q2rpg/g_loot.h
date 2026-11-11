@@ -156,6 +156,7 @@ int32_t Loot_GunLevel(const loot_weapon_t &gun);
 void Loot_SetLevel(loot_weapon_t &gun, int32_t level);
 void Loot_RelevelGun(loot_weapon_t &gun, int32_t level);
 bool Loot_MenuPaused();
+bool Loot_HasLoadedGun(edict_t *ent, item_id_t base);
 void Loot_PausedFrame();
 float Loot_UpgradeMult(edict_t *ent, loot_upgrade_t upgrade, float per_rank);
 bool Loot_SecondChanceSave(edict_t *targ, edict_t *attacker, const mod_t &mod);

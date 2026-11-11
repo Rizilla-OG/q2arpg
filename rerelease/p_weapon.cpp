@@ -436,7 +436,8 @@ void NoAmmoWeaponChange(edict_t *ent, bool sound)
 		if (!ent->client->pers.inventory[item->id])
 			continue;
 
-		if (item->ammo && ent->client->pers.inventory[item->ammo] < item->quantity)
+		// q2rpg: a gun with rounds left in its magazine can still fire
+		if (item->ammo && ent->client->pers.inventory[item->ammo] < item->quantity && !Loot_HasLoadedGun(ent, item->id))
 			continue;
 
 		ent->client->newweapon = item;

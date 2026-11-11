@@ -63,6 +63,11 @@ static void LootFx_PlaceRarityBeam(edict_t *beam, const edict_t *item)
 	beam->s.origin = item->s.origin;
 	beam->s.old_origin = item->s.origin + vec3_t{0, 0, height};
 	beam->s.instance_bits = item->s.instance_bits; // coop per-player drops
+	// q2rpg: hidden while its item is (trigger-spawned map weapons)
+	if (item->svflags & SVF_NOCLIENT)
+		beam->svflags |= SVF_NOCLIENT;
+	else
+		beam->svflags &= ~SVF_NOCLIENT;
 	gi.linkentity(beam);
 }
 
