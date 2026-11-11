@@ -1160,6 +1160,7 @@ struct game_locals_t
 	char loot_start_map[MAX_QPATH]; // first map of this campaign; NG+ restarts here
 	bool loot_ngplus_announce;		 // show the NG+ banner on the next map
 	int32_t loot_last_map_mod;		 // modifier the previous new map rolled (no repeats)
+	uint32_t loot_map_mod_seed;		 // q2rpg: per-save seed so a map always rolls the same modifier (no reroll by reloading)
 };
 
 constexpr size_t MAX_HEALTH_BARS = 2;

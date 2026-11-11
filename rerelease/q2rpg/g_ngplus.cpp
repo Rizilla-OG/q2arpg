@@ -7,6 +7,7 @@
 #include "../g_local.h"
 
 #include <vector>
+#include <random>
 
 static void NGPlus_SpawnBounty();
 
@@ -106,9 +107,18 @@ void NGPlus_RollMapMod()
 		return;
 	}
 
+	// q2rpg: roll from the save's seed + NG+ cycle + map name, so reloading an
+	// autosave from before the roll gives the same modifier (no rerolling)
+	if (!game.loot_map_mod_seed)
+		game.loot_map_mod_seed = (uint32_t)irandom(1, INT32_MAX);
+	uint32_t map_hash = 2166136261u; // FNV-1a
+	for (const char *c = level.mapname; *c; c++)
+		map_hash = (map_hash ^ (uint8_t)*c) * 16777619u;
+	std::mt19937 map_rng(game.loot_map_mod_seed ^ map_hash ^ ((uint32_t)game.loot_ngplus * 0x9e3779b9u));
+
 	int32_t mod;
 	do
-		mod = 1 + irandom(LOOT_MAPMOD_COUNT - 1);
+		mod = 1 + (int32_t)(map_rng() % (LOOT_MAPMOD_COUNT - 1));
 	while (mod == game.loot_last_map_mod);
 	level.loot_map_mod = mod;
 	game.loot_last_map_mod = mod;
