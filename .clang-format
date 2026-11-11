@@ -1,0 +1,14 @@
+# Matches id Software rerelease style: tabs, Allman braces.
+# Applied only to mod files under rerelease/q2rpg/ (see .githooks/pre-commit).
+BasedOnStyle: Microsoft
+UseTab: ForIndentation
+IndentWidth: 4
+TabWidth: 4
+BreakBeforeBraces: Allman
+ColumnLimit: 0
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+PointerAlignment: Right
+SortIncludes: Never
+IndentCaseLabels: true
+NamespaceIndentation: None

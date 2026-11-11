@@ -1,0 +1,12 @@
+#!/bin/sh
+# Format staged mod C++ files with clang-format and re-stage them.
+# Only rerelease/q2rpg/ is formatted so stock id files keep their diffs small.
+files=$(git diff --cached --name-only --diff-filter=ACM -- 'rerelease/q2rpg/*.cpp' 'rerelease/q2rpg/*.h')
+[ -z "$files" ] && exit 0
+if ! command -v clang-format >/dev/null 2>&1; then
+	echo "pre-commit: clang-format not found" >&2
+	exit 1
+fi
+echo "$files" | while IFS= read -r f; do
+	clang-format -i "$f" && git add "$f"
+done
