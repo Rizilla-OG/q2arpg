@@ -109,11 +109,18 @@ void NGPlus_RollMapMod()
 
 	// q2rpg: roll from the save's seed + NG+ cycle + map name, so reloading an
 	// autosave from before the roll gives the same modifier (no rerolling)
+	auto fnv1a = [](const char *text)
+	{
+		uint32_t hash = 2166136261u;
+		for (const char *c = text; *c; c++)
+			hash = (hash ^ (uint8_t)*c) * 16777619u;
+		return hash;
+	};
+	// q2rpg: a brand-new game gets a random seed; a save made before seeds existed
+	// gets one from its start map, so every reload of it rolls the same
 	if (!game.loot_map_mod_seed)
-		game.loot_map_mod_seed = (uint32_t)irandom(1, INT32_MAX);
-	uint32_t map_hash = 2166136261u; // FNV-1a
-	for (const char *c = level.mapname; *c; c++)
-		map_hash = (map_hash ^ (uint8_t)*c) * 16777619u;
+		game.loot_map_mod_seed = game.loot_start_map[0] ? (fnv1a(game.loot_start_map) | 1u) : (uint32_t)irandom(1, INT32_MAX);
+	uint32_t map_hash = fnv1a(level.mapname);
 	std::mt19937 map_rng(game.loot_map_mod_seed ^ map_hash ^ ((uint32_t)game.loot_ngplus * 0x9e3779b9u));
 
 	int32_t mod;
