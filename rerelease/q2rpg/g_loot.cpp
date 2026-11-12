@@ -3013,7 +3013,8 @@ static void Loot_SetBarStats(edict_t *ent)
 	cl->ps.stats[STAT_LOOT_BAR_Z] = (int16_t)std::clamp((int32_t)pos[2], -32767, 32767);
 
 	const float frac = std::clamp((float)t->health / std::max(1, t->max_health), 0.f, 1.f);
-	const uint16_t info = 0x8000 | ((uint16_t)(frac * 127.f) << 8) | (t->loot_elite ? 0x80 : 0) | (uint16_t)std::clamp(t->loot_mlevel, 1, 127);
+	// bits: 15 bar shown, 14 Omega, 8-13 health 0-63, 7 Alpha, 0-6 level
+	const uint16_t info = 0x8000 | (t->loot_omega ? 0x4000 : 0) | ((uint16_t)(frac * 63.f) << 8) | (t->loot_elite ? 0x80 : 0) | (uint16_t)std::clamp(t->loot_mlevel, 1, 127);
 	cl->ps.stats[STAT_LOOT_BAR_INFO] = (int16_t)info;
 }
 

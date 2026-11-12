@@ -67,7 +67,8 @@ void CG_Loot_DrawHealthBar(const player_state_t *ps, const vrect_t &hud_vrect, i
 	if (!(info & 0x8000))
 		return;
 
-	const float frac = ((info >> 8) & 0x7f) / 127.f;
+	const float frac = ((info >> 8) & 0x3f) / 63.f;
+	const bool omega = (info & 0x4000) != 0;
 	const int32_t level = info & 0x7f;
 	const bool elite = (info & 0x80) != 0;
 	const vec3_t pos = {(float)ps->stats[STAT_LOOT_BAR_X], (float)ps->stats[STAT_LOOT_BAR_Y], (float)ps->stats[STAT_LOOT_BAR_Z]};
@@ -100,8 +101,11 @@ void CG_Loot_DrawHealthBar(const player_state_t *ps, const vrect_t &hud_vrect, i
 		label_y = sy2;
 	}
 
-	const char *label = elite ? G_Fmt("Lv {} Alpha", level).data() : G_Fmt("Lv {}", level).data();
-	cgi.SCR_DrawFontString(label, (int)sx, (int)(label_y - cgi.SCR_FontLineHeight(scale) - scale), scale, elite ? rgba_t{255, 150, 30, 255} : rgba_white, true, text_align_t::CENTER);
+	const char *label = omega ? G_Fmt("Lv {} Omega", level).data() : elite ? G_Fmt("Lv {} Alpha", level).data()
+	                                                                       : G_Fmt("Lv {}", level).data();
+	const rgba_t label_color = omega ? rgba_t{255, 60, 60, 255} : elite ? rgba_t{255, 150, 30, 255}
+	                                                                    : rgba_white; // Omega red, like the target line
+	cgi.SCR_DrawFontString(label, (int)sx, (int)(label_y - cgi.SCR_FontLineHeight(scale) - scale), scale, label_color, true, text_align_t::CENTER);
 }
 
 // Shield bar above the health number (statusbar health is at xv 0, yb -24).
