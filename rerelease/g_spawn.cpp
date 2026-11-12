@@ -808,6 +808,7 @@ static const std::initializer_list<temp_field_t> temp_fields = {
 	FIELD_AUTO(loot_rarity),     // q2rpg
 	FIELD_AUTO(loot_weapon),     // q2rpg
 	FIELD_AUTO(loot_nomodifier), // q2rpg
+	FIELD_AUTO(loot_novendor),   // q2rpg
 	FIELD_AUTO(lip),
 	FIELD_AUTO(distance),
 	FIELD_AUTO(height),
@@ -1447,6 +1448,7 @@ void SP_worldspawn(edict_t *ent)
 
 	if (st.loot_nomodifier)
 		NGPlus_ClearMapMod(); // q2rpg: mapper opted this map out of modifiers
+	level.loot_novendor = st.loot_novendor != 0; // q2rpg
 
 	if (st.hub_map)
 	{

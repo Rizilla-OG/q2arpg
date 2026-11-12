@@ -192,6 +192,13 @@ Mappers can also use these keys:
 | `item_loot_gun` (point entity) | `loot_rarity` | `0` Common, `1` Uncommon, `2` Rare, `3` Epic, `4` Legendary, `5` Mythic (New Game+ only, else Legendary); leave out for random |
 | `item_loot_gun` | `loot_weapon` | archetype name (`Rocket Launcher`, `Rail Rifle`...) or weapon classname (`weapon_railgun`); leave out for random |
 | `worldspawn` | `loot_nomodifier` | `1` = no New Game+ map modifier on this map |
+| `worldspawn` | `loot_novendor` | `1` = the vendor won't open on this map (selling with `X` still works) |
+
+**TrenchBroom:** the release zip has an `fgd` folder with a Quake 2 game
+config that knows these keys (dropdowns on monsters and worldspawn, and
+`item_loot_gun` in the entity list). Copy it to `~/.TrenchBroom/games/Quake2-Q2ARPG/`
+on Linux or `%AppData%\TrenchBroom\games\Quake2-Q2ARPG\` on Windows, restart
+TrenchBroom and pick **Quake 2 (Q2ARPG)**. A test map is in `mapsrc/` in the repo.
 
 `item_loot_gun` places a rolled gun at the party's level, for example a
 Legendary in a secret. `loot_boss` doesn't change a monster's health; use the

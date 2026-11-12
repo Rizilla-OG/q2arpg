@@ -740,6 +740,11 @@ static void Vendor_Toggle(edict_t *ent)
 	}
 	if (ent->health <= 0 || level.intermissiontime)
 		return;
+	if (level.loot_novendor)
+	{
+		gi.Center_Print(ent, "No vendor on this map");
+		return;
+	}
 
 	const int32_t price = Vendor_OpenPrice(ent);
 	if (price > 0 && !Vendor_Pay(ent, price))

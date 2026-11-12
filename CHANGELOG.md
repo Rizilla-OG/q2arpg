@@ -2,7 +2,7 @@
 
 ## Unreleased (next update)
 
-- Mapper keys: `loot_elite` and `loot_boss` on any monster, an `item_loot_gun` entity for guaranteed drops, and `loot_nomodifier` on worldspawn. See "For modders" in the README.
+- Mapper keys: `loot_elite` and `loot_boss` on any monster, an `item_loot_gun` entity for guaranteed drops, and `loot_nomodifier` and `loot_novendor` on worldspawn, and a TrenchBroom game config (`fgd` folder in the zip). See "For modders" in the README.
 - README: the logo is now an image, so it shows correctly on GitHub.
 
 ## 0.9.2 (first public alpha)

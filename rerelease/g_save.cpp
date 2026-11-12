@@ -811,6 +811,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_vendor_grenade), // q2rpg
 	FIELD_AUTO(loot_vendor_rerolls), // q2rpg
 	FIELD_AUTO(loot_map_mod), // q2rpg
+	FIELD_AUTO(loot_novendor), // q2rpg
 	FIELD_AUTO(loot_map_mod_announced), // q2rpg
 	FIELD_AUTO(loot_stats), // q2rpg
 

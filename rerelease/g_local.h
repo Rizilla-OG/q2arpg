@@ -1186,6 +1186,7 @@ struct level_locals_t
 	loot_grenade_t loot_vendor_grenade; // q2rpg
 	int32_t loot_vendor_rerolls; // q2rpg: stock rerolls bought on this map (price climbs)
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
+	bool loot_novendor;			 // q2rpg: worldspawn loot_novendor 1, the shop won't open on this map
 	bool loot_map_mod_announced; // q2rpg: map modifier banner shown
 	bool loot_events_entered;	 // q2rpg: map entry written to the events log (not saved, so a reload logs again)
 	loot_stats_t loot_stats; // q2rpg: balance numbers for this map
@@ -1341,6 +1342,7 @@ struct spawn_temp_t
 	int32_t loot_rarity = -1;	// item_loot_gun: 0 Common .. 5 Mythic (-1 random)
 	const char *loot_weapon;	// item_loot_gun: archetype name or weapon classname (blank random)
 	int32_t loot_nomodifier;	// worldspawn: 1 = no New Game+ map modifier
+	int32_t loot_novendor;		// worldspawn: 1 = vendor closed on this map
 	const char *noise_start, *noise_middle, *noise_end; // [Paril-KEX]
 	int32_t loop_count; // [Paril-KEX]
 
