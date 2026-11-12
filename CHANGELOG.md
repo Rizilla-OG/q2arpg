@@ -4,6 +4,7 @@
 
 - Data file for modders: `loot_data.json` in the mod folder can change gun stats, manufacturers, rarities and vendor prices without touching C++. `loot_data.example.json` lists every built-in value; see MODDING.md.
 - Example map for mappers: `map q2rpg_example` walks through every mapper feature, one room each; its source ships in the `fgd` folder.
+- Gun, shield and grenade cards: stat values and changes now line up in neat columns.
 - Mapper fixes:
   - `loot_start_level` above the level cap no longer heals players every frame (it made them unkillable).
   - Monsters and placed loot now roll at the map's `loot_start_level`, not the player's old level.

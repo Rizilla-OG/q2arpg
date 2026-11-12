@@ -2855,18 +2855,19 @@ static const char *Loot_CompareColor(float value, float other, bool have_other, 
 	return (lower_better ? diff < 0 : diff > 0) ? "^g" : "^r";
 }
 
+// one card row: "label|value|change", aligned by the card's LOOT_CARD_TABS
 std::string Loot_StatLine(const char *label, float value, float other, bool have_other, bool lower_better, const char *fmt_kind)
 {
-	std::string line = G_Fmt("{:<10}{}", label, Loot_CompareColor(value, other, have_other, lower_better)).data();
+	std::string line = G_Fmt("{}|{}", label, Loot_CompareColor(value, other, have_other, lower_better)).data();
 
 	if (!strcmp(fmt_kind, "pct"))
-		line += G_Fmt("{:>5.0f}%", value * 100.f).data();
+		line += G_Fmt("{:.0f}%", value * 100.f).data();
 	else if (!strcmp(fmt_kind, "sec"))
-		line += G_Fmt("{:>5.1f}s", value).data();
+		line += G_Fmt("{:.1f}s", value).data();
 	else if (!strcmp(fmt_kind, "x"))
-		line += G_Fmt("{:>5.2f}x", value).data();
+		line += G_Fmt("{:.2f}x", value).data();
 	else
-		line += G_Fmt("{:>5.0f} ", value).data();
+		line += G_Fmt("{:.0f}", value).data();
 
 	if (have_other)
 	{
@@ -2876,11 +2877,11 @@ std::string Loot_StatLine(const char *label, float value, float other, bool have
 		if (fabsf(diff) > 0.005f)
 		{
 			if (!strcmp(fmt_kind, "pct"))
-				line += G_Fmt("  {}{:.0f}", better ? "+" : "-", fabsf(diff) * 100.f).data();
+				line += G_Fmt("|{}{:.0f}", better ? "+" : "-", fabsf(diff) * 100.f).data();
 			else if (!strcmp(fmt_kind, "sec") || !strcmp(fmt_kind, "x"))
-				line += G_Fmt("  {}{:.1f}", better ? "+" : "-", fabsf(diff)).data();
+				line += G_Fmt("|{}{:.1f}", better ? "+" : "-", fabsf(diff)).data();
 			else
-				line += G_Fmt("  {}{:.0f}", better ? "+" : "-", fabsf(diff)).data();
+				line += G_Fmt("|{}{:.0f}", better ? "+" : "-", fabsf(diff)).data();
 		}
 	}
 
@@ -2942,6 +2943,7 @@ static void Loot_SendShieldCard(edict_t *ent, const loot_shield_t &sh)
 		y += 10;
 	};
 
+	s += LOOT_CARD_TABS;
 	add(Loot_StatLine("Capacity", sh.capacity, o.capacity, cmp, false, "num"));
 	add(Loot_StatLine("Delay", sh.delay, o.delay, cmp, true, "sec"));
 	add(Loot_StatLine("Recharge", sh.rate, o.rate, cmp, false, "num"));
@@ -2981,17 +2983,18 @@ static void Loot_SendCard(edict_t *ent, const loot_weapon_t &gun)
 		y += 10;
 	};
 
+	s += LOOT_CARD_TABS;
 	add(Loot_StatLine("Damage", gun.dmg_mult, o.dmg_mult, cmp, false, "pct"));
 	add(Loot_StatLine("Fire Rate", gun.rate_mult, o.rate_mult, cmp, false, "pct"));
 	add(Loot_StatLine("Accuracy", 1.0f / gun.spread_mult, cmp ? 1.0f / o.spread_mult : 0, cmp, false, "pct"));
 	if (gun.mag_size > 0)
 		add(Loot_StatLine("Magazine", (float)gun.mag_size, (float)o.mag_size, cmp && o.mag_size > 0, false, "num"));
 	if (gun.pellets_bonus)
-		add(G_Fmt("{:<10}{:>5}", "Pellets", G_Fmt("+{}", gun.pellets_bonus).data()).data());
+		add(G_Fmt("Pellets|+{}", gun.pellets_bonus).data());
 	if (gun.element)
-		add(G_Fmt("{:<10}{} {:.0f}%", "Element", Loot_ElementName(gun.element), Loot_ElemChance(gun) * 100.f).data());
+		add(G_Fmt("Element|{} {:.0f}%", Loot_ElementName(gun.element), Loot_ElemChance(gun) * 100.f).data());
 	if (gun.burst)
-		add(G_Fmt("{:<10}{}-round burst", "Trigger", gun.burst).data());
+		add(G_Fmt("Trigger|{}-round burst", gun.burst).data());
 	if (gun.unique)
 		add(G_Fmt("UNIQUE: {}", Unique_Desc(gun.unique)).data());
 	if (const char *tribute = Unique_Tribute(gun.unique))

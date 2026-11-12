@@ -224,6 +224,7 @@ void Grenade_SendCard(edict_t *ent, const loot_grenade_t &grenade)
 		s += G_Fmt("xv 24 yv {} loot_str \"{}\" ", y, line).data();
 		y += 10;
 	};
+	s += LOOT_CARD_TABS;
 	add(Loot_StatLine("Damage", grenade.damage, other.damage, cmp, false, "num"));
 	add(Loot_StatLine("Radius", grenade.radius, other.radius, cmp, false, "num"));
 	add(Loot_StatLine("Fuse", grenade.fuse, other.fuse, cmp, true, "sec"));

@@ -217,6 +217,8 @@ void LootFx_ClientEffects(edict_t *player);                                   //
 float Loot_RarityDamage(loot_rarity_t rarity);
 renderfx_t Loot_RarityShell(loot_rarity_t rarity);
 const char *Loot_MakerShortName(loot_maker_t maker);
+// q2rpg: tab stops for floor card rows: value column, change column
+constexpr const char *LOOT_CARD_TABS = "loot_tabs \"88 136\" ";
 std::string Loot_StatLine(const char *label, float value, float other, bool have_other, bool lower_better, const char *fmt_kind);
 
 // unique legendaries (g_unique.cpp)
