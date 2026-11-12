@@ -332,7 +332,6 @@
 
 // Q2ARPG: ends the campaign and starts New Game+ when triggered
 @PointClass base(EditorFlags, Targetable) color(232 80 42) size(-8 -8 -8, 8 8 8) = target_ngplus : "Q2ARPG: end the campaign, start New Game+" []
-]
 @PointClass base(Weapons) model({ "path": ":models/weapons/g_hyperb/tris.md2" }) = weapon_hyperblaster : "Hyperblaster" []
 @PointClass base(Weapons) model({ "path": ":models/weapons/g_rail/tris.md2" }) = weapon_railgun : "Rail gun" []
 @PointClass base(Weapons) model({ "path": ":models/weapons/g_bfg/tris.md2" }) = weapon_bfg : "Big Freakin Gun!" []
