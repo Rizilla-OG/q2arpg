@@ -4,6 +4,7 @@
 
 - Data file for modders: `loot_data.json` in the mod folder can change gun stats, manufacturers, rarities and vendor prices without touching C++. `loot_data.example.json` lists every built-in value; see MODDING.md.
 - Example map for mappers: `map q2rpg_example` walks through every mapper feature, one room each; its source ships in the `fgd` folder.
+- Mastery: once your skill tree is full, every spare skill point adds +1% to the tree's main stat (Gunner gun damage, Juggernaut less damage taken, Elementalist status damage), with no cap. Shown at the top of the skills screen. Before, points past level 53 went to waste.
 - Gun, shield and grenade cards: stat values and changes now line up in neat columns.
 - Mapper fixes:
   - `loot_start_level` above the level cap no longer heals players every frame (it made them unkillable).

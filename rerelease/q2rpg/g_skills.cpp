@@ -210,11 +210,45 @@ static int32_t Skill_Spent(edict_t *ent)
 	return n;
 }
 
-int32_t Skill_Unspent(edict_t *ent)
+// points earned (one per level after the first) minus points in skills
+static int32_t Skill_SparePoints(edict_t *ent)
 {
 	if (deathmatch->integer || !ent->client)
 		return 0;
 	return std::max(0, std::max(1, ent->client->pers.loot_level) - 1 - Skill_Spent(ent));
+}
+
+// every skill in the chosen tree is at its max rank (tier 4 counts only once NG+ opens it)
+static bool Skill_TreeFull(edict_t *ent)
+{
+	const loot_tree_t tree = Skill_Tree(ent);
+	if (!tree)
+		return false;
+	for (int32_t i = 0; i < LOOT_NUM_SKILLS; i++)
+		if (ent->client->pers.loot_skill_ranks[i] < Skill_MaxRank(tree_defs[tree].skills[i], i))
+			return false;
+	return true;
+}
+
+// points that can still go into skills
+int32_t Skill_Unspent(edict_t *ent)
+{
+	return Skill_TreeFull(ent) ? 0 : Skill_SparePoints(ent);
+}
+
+// Mastery: once the tree is full, every spare point adds MASTERY_PER_POINT to the
+// tree's main stat, with no cap (high levels never run out of things to earn)
+constexpr float MASTERY_PER_POINT = 0.01f;
+static const char *const tree_mastery_text[LOOT_TREE_COUNT] = {"", "gun damage", "less damage taken", "status damage"};
+
+static int32_t Skill_Mastery(edict_t *ent)
+{
+	return Skill_TreeFull(ent) ? Skill_SparePoints(ent) : 0;
+}
+
+static float Skill_MasteryBonus(edict_t *ent, loot_tree_t tree)
+{
+	return Skill_Tree(ent) == tree ? MASTERY_PER_POINT * Skill_Mastery(ent) : 0.f;
 }
 
 static int32_t Skill_TierRequirement(int32_t skill)
@@ -256,7 +290,7 @@ float Skill_ReloadMult(edict_t *ent)
 
 float Skill_GunDamageMult(edict_t *ent)
 {
-	return 1.0f + 0.05f * RANK(LOOT_TREE_GUNNER, SK_HOLLOW);
+	return 1.0f + 0.05f * RANK(LOOT_TREE_GUNNER, SK_HOLLOW) + Skill_MasteryBonus(ent, LOOT_TREE_GUNNER);
 }
 
 float Skill_MagMult(edict_t *ent)
@@ -287,7 +321,7 @@ float Skill_ShieldDelayMult(edict_t *ent)
 
 float Skill_DamageTakenMult(edict_t *ent)
 {
-	float m = 1.0f - 0.04f * RANK(LOOT_TREE_JUGGERNAUT, SK_BRUISER);
+	float m = (1.0f - 0.04f * RANK(LOOT_TREE_JUGGERNAUT, SK_BRUISER)) * (1.0f - Skill_MasteryBonus(ent, LOOT_TREE_JUGGERNAUT));
 
 	// Iron Will: low health
 	const int32_t iron = RANK(LOOT_TREE_JUGGERNAUT, SK_IRONWILL);
@@ -360,7 +394,7 @@ float Skill_ProcChanceBonus(edict_t *ent)
 
 float Skill_DotMult(edict_t *ent)
 {
-	return 1.0f + 0.10f * RANK(LOOT_TREE_ELEMENTALIST, SK_KINDLING);
+	return 1.0f + 0.10f * RANK(LOOT_TREE_ELEMENTALIST, SK_KINDLING) + Skill_MasteryBonus(ent, LOOT_TREE_ELEMENTALIST);
 }
 
 float Skill_DurationMult(edict_t *ent)
@@ -954,7 +988,10 @@ static void Skill_SendScreen(edict_t *ent)
 
 	const tree_def_t &d = tree_defs[tree];
 	const int32_t spent = Skill_Spent(ent);
-	line("string2", G_Fmt("{} - {} points to spend", d.name, unspent).data());
+	if (Skill_TreeFull(ent))
+		line("string2", G_Fmt("{} - MASTERY {}: +{}% {}", d.name, Skill_Mastery(ent), Skill_Mastery(ent), tree_mastery_text[tree]).data());
+	else
+		line("string2", G_Fmt("{} - {} points to spend", d.name, unspent).data());
 	line("string", G_Fmt("Action [F]: {} ({:.0f}s)   Spent: {}", d.action, d.cooldown, spent).data());
 	line("string", tree_grenade_text[tree]);
 	y += 4;
