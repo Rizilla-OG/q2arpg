@@ -745,7 +745,9 @@ SAVE_STRUCT_START
 	FIELD_AUTO(grenade_mod_drops),
 	FIELD_AUTO(grenades_thrown),
 	FIELD_AUTO(grenade_kills),
-	FIELD_AUTO(grenade_damage)
+	FIELD_AUTO(grenade_damage),
+	FIELD_AUTO(ttk_total_ms),
+	FIELD_AUTO(ttk_kills)
 SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT
 
@@ -1269,6 +1271,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_hit_arch), // q2rpg
 	FIELD_AUTO(loot_hit_elements), // q2rpg
 	FIELD_AUTO(loot_hit_grenade), // q2rpg
+	FIELD_AUTO(loot_first_hit_time), // q2rpg
 	FIELD_AUTO(loot_elite_fire), // q2rpg
 	FIELD_AUTO(loot_elite_next), // q2rpg
 	FIELD_AUTO(loot_alpha_traits), // q2rpg

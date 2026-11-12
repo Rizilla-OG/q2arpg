@@ -3320,6 +3320,7 @@ struct edict_t
 	int32_t loot_hit_arch;		// q2rpg: archetype + 1 of the gun behind the last player hit (0 = none)
 	int32_t loot_hit_elements;	// q2rpg: bit (1 << element) for each status active at the last player hit
 	int32_t loot_hit_grenade;	// q2rpg: grenade type + 1 of the last grenade blast that hit it (0 = none)
+	gtime_t loot_first_hit_time; // q2rpg: when a player first damaged it (time-to-kill stat); 0 = never
 	int32_t loot_elite_fire;	// q2rpg: loot_elite_fire_t alternate attack
 	gtime_t loot_elite_next;	// q2rpg: alternate attack cooldown
 	int32_t loot_alpha_traits;	// q2rpg: loot_alpha_trait_t bits (NG+ Alphas)

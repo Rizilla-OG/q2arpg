@@ -1601,6 +1601,9 @@ void Loot_RecordDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, int
 	if (damage <= 0 || deathmatch->integer || !attacker || !attacker->client || targ == attacker || !(targ->svflags & SVF_MONSTER))
 		return;
 
+	if (!targ->loot_first_hit_time)
+		targ->loot_first_hit_time = level.time; // time-to-kill stat starts here
+
 	gclient_t *cl = attacker->client;
 	if (cl->loot_dmg_ent && cl->loot_dmg_ent != targ)
 		Loot_FlushDamageNumber(attacker); // different monster this frame
@@ -2825,6 +2828,14 @@ void Loot_AwardXP(edict_t *monster, edict_t *attacker)
 	stats.kills++;
 	if (monster->loot_elite)
 		stats.elite_kills++;
+	if (monster->loot_first_hit_time)
+	{
+		const int32_t kind = Loot_IsBossTier(monster) ? LOOT_TTK_BOSS : monster->loot_omega ? LOOT_TTK_OMEGA
+		                                                            : monster->loot_elite   ? LOOT_TTK_ALPHA
+		                                                                                    : LOOT_TTK_NORMAL;
+		stats.ttk_total_ms[kind] += (int32_t)(level.time - monster->loot_first_hit_time).milliseconds();
+		stats.ttk_kills[kind]++;
+	}
 	if (Loot_IsBossTier(monster))
 		stats.boss_kills++;
 	if (monster->monsterinfo.damage_mod.id == MOD_LOOT_GRENADE && monster->loot_hit_grenade > 0 && monster->loot_hit_grenade <= LOOT_GRENADE_TYPE_COUNT)
@@ -3762,6 +3773,12 @@ static std::string Loot_StatsRarityCounts(const std::array<int32_t, LOOT_RARITY_
 	return text;
 }
 
+// average seconds from first hit to death for one LOOT_TTK_* kind; 0 when none died
+static float Loot_StatsAverageTTK(const loot_stats_t &stats, int32_t kind)
+{
+	return stats.ttk_kills[kind] ? stats.ttk_total_ms[kind] / 1000.f / stats.ttk_kills[kind] : 0.f;
+}
+
 // Human-readable summary of this map's numbers (several lines).
 static std::string Loot_StatsSummary()
 {
@@ -3769,6 +3786,9 @@ static std::string Loot_StatsSummary()
 	const char *map_mod = NGPlus_MapModName();
 	std::string text = G_Fmt("loot_stats {} ({:.0f}s){}{}\n", level.mapname, level.time.seconds(), map_mod[0] ? "  modifier: " : "", map_mod).data();
 	text += G_Fmt("  kills {} (elite {}, boss {})  xp {}\n", stats.kills, stats.elite_kills, stats.boss_kills, stats.xp).data();
+	text += G_Fmt("  time to kill (avg s): normal {:.1f}  alpha {:.1f}  omega {:.1f}  boss {:.1f}\n", Loot_StatsAverageTTK(stats, LOOT_TTK_NORMAL),
+	              Loot_StatsAverageTTK(stats, LOOT_TTK_ALPHA), Loot_StatsAverageTTK(stats, LOOT_TTK_OMEGA), Loot_StatsAverageTTK(stats, LOOT_TTK_BOSS))
+	            .data();
 	text += "  guns: " + Loot_StatsRarityCounts(stats.gun_drops) + "\n";
 	text += "  shields: " + Loot_StatsRarityCounts(stats.shield_drops) + "\n";
 	text += G_Fmt("  cash dropped ${} taken ${}  spent ${}  sold ${}\n", stats.cash_dropped, stats.cash_taken, stats.money_spent, stats.money_sold).data();
@@ -3825,6 +3845,25 @@ void Loot_StatsLogMap()
 
 	const loot_stats_t &stats = level.loot_stats;
 	const char *csv_path = "q2rpg/loot_stats.csv";
+	// a CSV from before the time-to-kill columns gets renamed (kept), so the new header starts a fresh file
+	if (FILE *old_csv = fopen(csv_path, "r"))
+	{
+		char first_line[1024] = {};
+		const bool has_header = fgets(first_line, sizeof(first_line), old_csv) != nullptr;
+		fclose(old_csv);
+		if (has_header && !strstr(first_line, "ttk_normal"))
+			for (int32_t n = 1; n < 100; n++)
+			{
+				const std::string kept_path = G_Fmt("q2rpg/loot_stats_before_ttk{}.csv", n).data();
+				if (FILE *taken = fopen(kept_path.c_str(), "r"))
+				{
+					fclose(taken);
+					continue;
+				}
+				rename(csv_path, kept_path.c_str());
+				break;
+			}
+	}
 	FILE *csv = fopen(csv_path, "a");
 	if (!csv)
 	{
@@ -3840,7 +3879,8 @@ void Loot_StatsLogMap()
 		                     "shields_common,shields_uncommon,shields_rare,shields_epic,shields_legendary,shields_mythic,"
 		                     "xp,cash_dropped,cash_taken,money_spent,money_sold,"
 		                     "player_level,player_xp,player_money,player_max_health,"
-		                     "grenade_mod_drops,grenade_damage";
+		                     "grenade_mod_drops,grenade_damage,"
+		                     "ttk_normal,ttk_alpha,ttk_omega,ttk_boss,ttk_normal_kills,ttk_alpha_kills,ttk_omega_kills,ttk_boss_kills";
 		// thrown_<type> and kills_<type> columns follow the grenade type table
 		for (const char *prefix : {"thrown_", "kills_"})
 			for (int32_t t = 0; t < LOOT_GRENADE_TYPE_COUNT; t++)
@@ -3872,6 +3912,10 @@ void Loot_StatsLogMap()
 		row += G_Fmt(",{}", count).data();
 	row += G_Fmt(",{},{},{},{},{},{},{},{},{}", stats.xp, stats.cash_dropped, stats.cash_taken, stats.money_spent, stats.money_sold, player_level, player_xp, player_money, player_max_health).data();
 	row += G_Fmt(",{},{}", stats.grenade_mod_drops, stats.grenade_damage).data();
+	for (int32_t kind = 0; kind < LOOT_TTK_KIND_COUNT; kind++)
+		row += G_Fmt(",{:.1f}", Loot_StatsAverageTTK(stats, kind)).data();
+	for (int32_t count : stats.ttk_kills)
+		row += G_Fmt(",{}", count).data();
 	for (int32_t count : stats.grenades_thrown)
 		row += G_Fmt(",{}", count).data();
 	for (int32_t count : stats.grenade_kills)

@@ -295,6 +295,16 @@ struct loot_weapon_t
 	char name[48];
 };
 
+// time-to-kill stat buckets (loot_stats_t::ttk_*)
+enum loot_ttk_kind_t : int32_t
+{
+	LOOT_TTK_NORMAL,
+	LOOT_TTK_ALPHA,
+	LOOT_TTK_OMEGA,
+	LOOT_TTK_BOSS,
+	LOOT_TTK_KIND_COUNT
+};
+
 // Per-map balance numbers for the loot_stats command and loot_stats.csv.
 // Lives in level_locals_t, so it resets each map and rewinds with savegames.
 struct loot_stats_t
@@ -313,4 +323,7 @@ struct loot_stats_t
 	std::array<int32_t, LOOT_GRENADE_TYPE_COUNT> grenades_thrown; // by type (cluster bomblets count as cluster)
 	std::array<int32_t, LOOT_GRENADE_TYPE_COUNT> grenade_kills;   // by type
 	int32_t grenade_damage;                                       // grenade damage dealt to monsters
+	// time to kill: first player hit to death, summed per kind (LOOT_TTK_*), in milliseconds
+	std::array<int32_t, LOOT_TTK_KIND_COUNT> ttk_total_ms;
+	std::array<int32_t, LOOT_TTK_KIND_COUNT> ttk_kills;
 };
