@@ -5,6 +5,10 @@
 "sky" "unit1_"
 "loot_nomodifier" "1"
 "loot_novendor" "1"
+"loot_start_level" "10"
+"loot_level_bonus" "2"
+"loot_droprate" "2"
+"loot_modifier" "Gold Rush"
 {
 ( -640 -640 -16 ) ( -640 -639 -16 ) ( -640 -640 -15 ) e1u1/floor1_3 0 0 0 1 1 0 0 0
 ( -640 -640 -16 ) ( -640 -640 -15 ) ( -639 -640 -16 ) e1u1/floor1_3 0 0 0 1 1 0 0 0
@@ -143,6 +147,7 @@
 "origin" "300 360 24"
 "angle" "180"
 "loot_boss" "2"
+"loot_boss_weapons" "Annihilator;Pistol"
 "health_multiplier" "3"
 }
 {

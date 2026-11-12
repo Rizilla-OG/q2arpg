@@ -181,9 +181,11 @@ The setting is saved. Use `g_loot_logs 1` to turn logging back on.
 Q2ARPG works with custom maps and campaigns: put your `.bsp` files in the
 `q2rpg/maps/` folder and loot, XP, cash, elites, challenges and map modifiers
 apply automatically. Mappers can also tag monsters as Alphas, Omegas or
-bosses, place guns, shields and grenade mods, drop loot from triggers, turn
-off the vendor or map modifiers per map, and end a custom campaign into New
-Game+. The zip includes a TrenchBroom game config with all of it.
+bosses (with their own signature guns), place guns, shields and grenade mods,
+drop loot from triggers, tune each map (monster levels, drop rate, Alpha
+chance, a forced modifier, a starting level), turn off the vendor or
+modifiers, and end a custom campaign into New Game+. The zip includes a
+TrenchBroom game config with all of it.
 
 See [MODDING.md](MODDING.md) for every key, the TrenchBroom setup and how to
 compile. Later, guns, rarities and prices will move into data files so they

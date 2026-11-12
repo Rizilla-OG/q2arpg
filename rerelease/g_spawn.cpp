@@ -687,6 +687,7 @@ static const std::initializer_list<field_t> entity_fields = {
 	FIELD_AUTO_NAMED("loot_elite", loot_map_elite), // q2rpg
 	FIELD_AUTO_NAMED("loot_boss", loot_map_boss),   // q2rpg
 	FIELD_AUTO_NAMED("loot_nodrop", loot_map_nodrop), // q2rpg
+	FIELD_AUTO_NAMED("loot_boss_weapons", loot_map_boss_weapons), // q2rpg
 	FIELD_AUTO(model),
 	FIELD_AUTO(spawnflags),
 	FIELD_AUTO(speed),
@@ -820,6 +821,11 @@ static const std::initializer_list<temp_field_t> temp_fields = {
 	FIELD_AUTO(loot_grenade),    // q2rpg
 	FIELD_AUTO(loot_nomodifier), // q2rpg
 	FIELD_AUTO(loot_novendor),   // q2rpg
+	FIELD_AUTO(loot_level_bonus), // q2rpg
+	FIELD_AUTO(loot_droprate),    // q2rpg
+	FIELD_AUTO(loot_elite_chance), // q2rpg
+	FIELD_AUTO(loot_modifier),    // q2rpg
+	FIELD_AUTO(loot_start_level), // q2rpg
 	FIELD_AUTO(lip),
 	FIELD_AUTO(distance),
 	FIELD_AUTO(height),
@@ -1460,6 +1466,13 @@ void SP_worldspawn(edict_t *ent)
 	if (st.loot_nomodifier)
 		NGPlus_ClearMapMod(); // q2rpg: mapper opted this map out of modifiers
 	level.loot_novendor = st.loot_novendor != 0; // q2rpg
+	// q2rpg: mapper tuning
+	level.loot_level_bonus = st.loot_level_bonus;
+	level.loot_droprate_mult = st.loot_droprate;
+	level.loot_elite_mult = st.loot_elite_chance;
+	level.loot_start_level = st.loot_start_level;
+	if (st.loot_modifier && *st.loot_modifier)
+		NGPlus_ForceMapMod(st.loot_modifier);
 
 	if (st.hub_map)
 	{

@@ -660,6 +660,23 @@ static void Loot_SyncPers(client_persistant_t &pers)
 		pers.inventory[IT_WEAPON_BLASTER] = 1;
 }
 
+// Lifts a player to at least this level with what level-ups give (health, starting cash);
+// skill points follow the level. Level 1 guns (the starter pistol) are leveled up too.
+void Loot_RaiseToLevel(client_persistant_t &pers, int32_t target)
+{
+	target = std::min(target, Loot_LevelCap());
+	if (pers.loot_level >= target)
+		return;
+	pers.max_health += 5 * (target - pers.loot_level); // same as the level-up bonus
+	pers.health = pers.max_health;
+	pers.loot_level = target;
+	pers.loot_xp = 0;
+	pers.loot_money = std::max(pers.loot_money, LOOT_START_MONEY * target);
+	for (auto &gun : pers.loot_slots)
+		if (gun.valid && gun.level <= 1)
+			Loot_SetLevel(gun, target);
+}
+
 void Loot_InitClient(gclient_t *client)
 {
 	for (auto &slot : client->pers.loot_slots)
@@ -685,12 +702,8 @@ void Loot_InitClient(gclient_t *client)
 
 		if (party_level > 1)
 		{
-			client->pers.loot_level = party_level;
-			client->pers.max_health += 5 * (party_level - 1); // same as the level-up bonus
-			client->pers.health = client->pers.max_health;
-			client->pers.loot_money = LOOT_START_MONEY * party_level;
+			Loot_RaiseToLevel(client->pers, party_level);
 			client->pers.loot_shields_unlocked = true;
-			Loot_SetLevel(client->pers.loot_slots[0], party_level);
 		}
 	}
 	client->loot_pending_slot = -1;
@@ -1888,11 +1901,40 @@ bool Loot_IsBoss(const edict_t *monster)
 	return Loot_BossInfo(monster) != nullptr;
 }
 
+static int32_t Loot_ArchetypeByName(const char *name);
+
+// the boss's signature gun: one of the mapper's loot_boss_weapons ("Rail Rifle;Rocket Launcher"), else its favorites
+static loot_archetype_t Loot_BossSignatureArch(const edict_t *monster, const loot_boss_info_t &boss)
+{
+	if (monster->loot_map_boss_weapons && *monster->loot_map_boss_weapons)
+	{
+		std::vector<loot_archetype_t> archs;
+		const std::string list = monster->loot_map_boss_weapons;
+		size_t start = 0;
+		while (start <= list.size())
+		{
+			size_t end = list.find_first_of(";,", start);
+			if (end == std::string::npos)
+				end = list.size();
+			std::string name = list.substr(start, end - start);
+			name.erase(0, name.find_first_not_of(' '));
+			name.erase(name.find_last_not_of(' ') + 1);
+			const int32_t arch = Loot_ArchetypeByName(name.c_str());
+			if (arch >= 0)
+				archs.push_back((loot_archetype_t)arch);
+			start = end + 1;
+		}
+		if (!archs.empty())
+			return archs[irandom((int32_t)archs.size())];
+	}
+	return boss.favored[irandom(2)];
+}
+
 static void Loot_BossDrop(edict_t *monster, const loot_boss_info_t &boss, float luck)
 {
 	// signature gun: a favored archetype, maybe its unique
 	{
-		const loot_archetype_t arch = boss.favored[irandom(2)];
+		const loot_archetype_t arch = Loot_BossSignatureArch(monster, boss);
 		const bool unique = frandom() < boss.unique_chance;
 		loot_rarity_t rarity = unique ? LOOT_RARITY_LEGENDARY : std::max({Loot_RollRarity(luck), boss.favored_min, loot_archs[arch].min_rarity});
 		if (game.loot_ngplus > 0)
@@ -1958,7 +2000,8 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		if ((monster->monsterinfo.aiflags & AI_SPAWNED_MASK) || monster->loot_death_spawned)
 			chance *= 0.5f;
 
-		chance *= NGPlus_DropMult(); // Bounty
+		chance *= NGPlus_DropMult();                      // Bounty
+		chance *= Loot_MapMult(level.loot_droprate_mult); // mapper's worldspawn loot_droprate
 
 		count = (int32_t)chance;
 		if (frandom() < chance - count)
@@ -2081,6 +2124,12 @@ edict_t *Loot_TouchTarget(edict_t *ent)
 // Highest player level; drives monster and map-loot levels.
 // Ignores pers.connected: SpawnEntities clears it before monsters spawn
 // on a map change, while pers (and the level) carries over.
+// mapper multipliers: 0 means the key wasn't set
+float Loot_MapMult(float value)
+{
+	return value > 0 ? value : 1.f;
+}
+
 int32_t Loot_ZoneLevel()
 {
 	int32_t level = 1;
@@ -2341,11 +2390,12 @@ void Loot_ScaleMonster(edict_t *monster)
 	const bool boss = monster->health >= 1000 || monster->loot_map_boss > 0;
 	if (boss)
 		level += 2;
+	level += ::level.loot_level_bonus; // mapper's worldspawn loot_level_bonus
 
 	// badass variant
 	vec3_t elite_origin;
 	const bool force_omega = loot_force_omega || monster->loot_map_elite >= 2; // loot_spawnmonster ... omega, or mapper loot_elite 2
-	if (!boss && !monster->s.scale && (force_omega || monster->loot_map_elite == 1 || frandom() < g_loot_elite_chance->value * Loot_EliteLevelMult() * NGPlus_EliteChanceMult()) &&
+	if (!boss && !monster->s.scale && (force_omega || monster->loot_map_elite == 1 || frandom() < g_loot_elite_chance->value * Loot_EliteLevelMult() * NGPlus_EliteChanceMult() * Loot_MapMult(::level.loot_elite_mult)) &&
 	    Loot_EliteFits(monster, elite_origin))
 	{
 		// Alpha Omega: NG+ only, 10% of Alphas; +2 more levels, 3 traits, x4 health, guaranteed Legendary
@@ -3026,6 +3076,14 @@ void Loot_SetStats(edict_t *ent)
 	// loot stats alias the CTF slots; in deathmatch they belong to CTF
 	if (deathmatch->integer)
 		return;
+
+	// mapper's worldspawn loot_start_level: lift players who come in below it
+	if (level.loot_start_level > cl->pers.loot_level && ent->health > 0)
+	{
+		Loot_RaiseToLevel(cl->pers, level.loot_start_level);
+		ent->max_health = cl->pers.max_health;
+		ent->health = ent->max_health;
+	}
 
 	Loot_ShieldFrame(ent);
 	Skill_Frame(ent);

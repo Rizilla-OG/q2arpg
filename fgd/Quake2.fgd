@@ -30,6 +30,23 @@
         0 : "Open (normal)"
         1 : "Closed on this map"
     ]
+    loot_modifier(Choices) : "Q2ARPG: force a map modifier (any game, overrides loot_nomodifier)" : "" =
+    [
+        "" : "None forced"
+        "Alpha Surge" : "Alpha Surge"
+        "Gold Rush" : "Gold Rush"
+        "Loot Frenzy" : "Loot Frenzy"
+        "Glass Cannon" : "Glass Cannon"
+        "Reinforcements" : "Reinforcements"
+        "Elemental Storm" : "Elemental Storm"
+        "Bounty" : "Bounty"
+        "Fortified" : "Fortified"
+        "Bloodthirsty" : "Bloodthirsty"
+    ]
+    loot_level_bonus(integer) : "Q2ARPG: monster levels + N on this map" : 0
+    loot_droprate(float) : "Q2ARPG: loot drop multiplier (e.g. 2 = double)" : "1"
+    loot_elite_chance(float) : "Q2ARPG: Alpha chance multiplier" : "1"
+    loot_start_level(integer) : "Q2ARPG: players below this level are raised to it" : 0
     sounds(integer) : "CD Track Number" : 1
     gravity(integer) : "Gravity" : 800
     instantitems(integer) : "Instant Item Use" : 0
@@ -839,6 +856,7 @@ misc_satellite_dish : "Satellite Dish"
         0 : "Normal"
         1 : "None (no XP, cash, loot or challenge credit)"
     ]
+    loot_boss_weapons(string) : "Q2ARPG: boss signature guns, e.g. Rail Rifle;Rocket Launcher (bosses only)"
 ]
 
 @PointClass base(Monsters) color(255 128 0) size(-16 -16 -24, 16 16 32) model({{

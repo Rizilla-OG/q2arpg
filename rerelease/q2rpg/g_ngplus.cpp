@@ -125,6 +125,19 @@ void NGPlus_ClearMapMod()
 	level.loot_map_mod = 0;
 }
 
+// q2rpg: a mapper forced a modifier by name; works outside New Game+ too
+void NGPlus_ForceMapMod(const char *name)
+{
+	for (int32_t i = LOOT_MAPMOD_NONE + 1; i < LOOT_MAPMOD_COUNT; i++)
+		if (!Q_strcasecmp(name, map_mods[i].name))
+		{
+			level.loot_map_mod = i;
+			game.loot_last_map_mod = i;
+			return;
+		}
+	gi.Com_PrintFmt("loot_modifier: unknown \"{}\"\n", name);
+}
+
 void NGPlus_RollMapMod()
 {
 	if (deathmatch->integer || game.loot_ngplus <= 0)

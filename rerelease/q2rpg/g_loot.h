@@ -70,9 +70,10 @@ void NGPlus_OnGameLoaded();
 void NGPlus_OnMapSpawn();
 bool NGPlus_TryRestart(const char *changemap); // true if the campaign end became NG+
 void NGPlus_Frame(edict_t *ent);
-void NGPlus_RemixMonster(edict_t *ent); // ED_CallSpawn, map load only
-void NGPlus_ClearMapMod();              // worldspawn loot_nomodifier 1
-void NGPlus_RollMapMod();               // start of SpawnEntities, before monsters spawn
+void NGPlus_RemixMonster(edict_t *ent);    // ED_CallSpawn, map load only
+void NGPlus_ClearMapMod();                 // worldspawn loot_nomodifier 1
+void NGPlus_ForceMapMod(const char *name); // worldspawn loot_modifier "<name>"
+void NGPlus_RollMapMod();                  // start of SpawnEntities, before monsters spawn
 float NGPlus_EliteChanceMult();
 float NGPlus_CashMult();
 float NGPlus_LuckBonus();
@@ -173,6 +174,8 @@ constexpr int32_t LOOT_PISTOL_DAMAGE = 35;
 constexpr float LOOT_PISTOL_CRIT_BONUS = 0.75f;
 float Loot_CritMult(const loot_weapon_t &gun); // headshot multiplier incl. the pistol bonus
 float Loot_MonsterBaseHealth(const edict_t *monster);
+float Loot_MapMult(float value); // a worldspawn multiplier key, 1 when unset
+void Loot_RaiseToLevel(client_persistant_t &pers, int32_t target);
 bool Loot_IsBossTier(const edict_t *monster); // 1000+ base health, or a mapper loot_boss key
 void Loot_DeathSpawn(edict_t *monster);       // death hook: maybe spawn 1-3 more of its kind
 bool Loot_ShieldsAvailable();

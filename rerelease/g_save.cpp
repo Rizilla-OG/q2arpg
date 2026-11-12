@@ -812,6 +812,10 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_vendor_rerolls), // q2rpg
 	FIELD_AUTO(loot_map_mod), // q2rpg
 	FIELD_AUTO(loot_novendor), // q2rpg
+	FIELD_AUTO(loot_level_bonus), // q2rpg
+	FIELD_AUTO(loot_droprate_mult), // q2rpg
+	FIELD_AUTO(loot_elite_mult), // q2rpg
+	FIELD_AUTO(loot_start_level), // q2rpg
 	FIELD_AUTO(loot_map_mod_announced), // q2rpg
 	FIELD_AUTO(loot_stats), // q2rpg
 
@@ -1253,6 +1257,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_map_elite), // q2rpg
 	FIELD_AUTO(loot_map_boss), // q2rpg
 	FIELD_AUTO(loot_map_nodrop), // q2rpg
+	FIELD_LEVEL_STRING(loot_map_boss_weapons), // q2rpg
 	FIELD_AUTO(loot_mark_end), // q2rpg
 	FIELD_AUTO(loot_death_spawned), // q2rpg
 	FIELD_AUTO(loot_revived), // q2rpg
