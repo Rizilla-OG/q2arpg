@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modding Q2ARPG</title>
+<meta name="description" content="Build maps and campaigns for Q2ARPG: mapper keys, loot entities, a data file for guns and prices, a TrenchBroom config and an example map.">
+<meta property="og:title" content="Modding Q2ARPG">
+<meta property="og:description" content="Mapper keys, loot entities, a loot data file, a TrenchBroom config and an example map.">
+<meta property="og:image" content="https://rizilla-og.github.io/q2arpg/assets/mod-example-hall.jpg">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <nav class="topnav">
+    <a href="index.html"><img src="assets/logo.png" alt="Q2ARPG home" width="1605" height="247"></a>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/Rizilla-OG/q2arpg/blob/main/MODDING.md">Full guide</a>
+    <a href="https://github.com/Rizilla-OG/q2arpg/releases/latest">Download</a>
+  </nav>
+</div>
+
+<header class="wrap" style="padding:40px 16px 8px">
+  <h2>Modding Q2ARPG</h2>
+  <p class="lead">Custom maps and campaigns work out of the box: every monster gets a level, can roll as an Alpha, and drops XP, cash and loot. On top of that, mappers get keys and entities to tag bosses, place loot and tune each map, and a data file changes guns, makers, rarities and prices without touching C++.</p>
+</header>
+
+<section style="border-top:0;padding-top:24px">
+  <div class="wrap">
+    <h2>Quick start</h2>
+    <ol class="steps">
+      <li>Install the mod (<a href="index.html#install">steps</a>). The zip's <code>q2rpg/fgd</code> folder has a TrenchBroom game config.</li>
+      <li>Load the example map from the console: <code>map q2rpg_example</code>. Each room shows one feature and tells you which key does it.</li>
+      <li>Open <code>q2rpg/fgd/q2rpg_example.map</code> in TrenchBroom to see the keys on every entity.</li>
+      <li>Build your own map, compile it, drop the <code>.bsp</code> in <code>q2rpg/maps/</code> and run <code>map yourmap</code>.</li>
+    </ol>
+    <div class="gallery">
+      <figure><a href="assets/mod-example-hall.jpg"><img src="assets/mod-example-hall.jpg" alt="The example map's hallway with a room message on screen" loading="lazy" width="1280" height="700"></a><figcaption>The example map: one room per feature</figcaption></figure>
+      <figure><a href="assets/mod-trenchbroom.jpg"><img src="assets/mod-trenchbroom.jpg" alt="TrenchBroom with a monster selected and the Q2ARPG keys in the entity inspector" loading="lazy" width="1280" height="700"></a><figcaption>Q2ARPG keys in TrenchBroom</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Monster keys</h2>
+    <p class="lead">Add these to any <code>monster_*</code> entity.</p>
+    <table>
+      <tr><th>Key</th><th>Effect</th></tr>
+      <tr><td><code>loot_elite</code></td><td><code>1</code> always an Alpha, <code>2</code> always an Alpha Omega. Elites are bigger, tougher and drop better loot.</td></tr>
+      <tr><td><code>loot_boss</code></td><td><code>1</code> mini-boss, <code>2</code> unit boss: boss levels, cash, XP and loot. Pair it with the stock <code>health_multiplier</code>.</td></tr>
+      <tr><td><code>loot_boss_weapons</code></td><td>The boss's signature gun, e.g. <code>Rail Rifle;Rocket Launcher</code>.</td></tr>
+      <tr><td><code>loot_nodrop</code></td><td><code>1</code>: no XP, cash, loot or challenge credit. Works on a <code>target_spawner</code> too, for endless fodder.</td></tr>
+    </table>
+    <div class="gallery">
+      <figure><a href="assets/mod-boss.jpg"><img src="assets/mod-boss.jpg" alt="A Tank tagged as a unit boss with its boss health bar" loading="lazy" width="1280" height="700"></a><figcaption>Any monster can be a boss with <code>loot_boss</code></figcaption></figure>
+      <figure><a href="assets/mod-placed-loot.jpg"><img src="assets/mod-placed-loot.jpg" alt="Guns placed in a room, each with a rarity beam" loading="lazy" width="1280" height="700"></a><figcaption>Placed guns with set rarities and weapons</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Loot entities</h2>
+    <p class="lead">All loot rolls at the party's level when it appears.</p>
+    <table>
+      <tr><th>Entity</th><th>What it does</th></tr>
+      <tr><td><code>item_loot_gun</code></td><td>A gun in the map. Keys: <code>loot_rarity</code> (0 Common to 5 Mythic), <code>loot_weapon</code> (e.g. <code>Rocket Launcher</code>), <code>loot_unique</code>.</td></tr>
+      <tr><td><code>item_loot_shield</code></td><td>A shield. Key: <code>loot_rarity</code>.</td></tr>
+      <tr><td><code>item_loot_grenade</code></td><td>A grenade mod. Keys: <code>loot_rarity</code>, <code>loot_grenade</code> (Frag, Cluster, Sticky, Vortex, Leech, Hopper, Airburst).</td></tr>
+      <tr><td><code>target_loot_drop</code></td><td>Drops a gun each time it's triggered: buttons, secrets, puzzle rewards.</td></tr>
+      <tr><td><code>target_ngplus</code></td><td>Ends the campaign like beating the final boss, then starts New Game+.</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Map keys</h2>
+    <p class="lead">Set these on <code>worldspawn</code>.</p>
+    <table>
+      <tr><th>Key</th><th>Effect</th></tr>
+      <tr><td><code>loot_start_level</code></td><td>Players below this level are raised to it; monsters and loot roll at it too.</td></tr>
+      <tr><td><code>loot_level_bonus</code></td><td>Monsters are N levels higher (hard maps, secret levels).</td></tr>
+      <tr><td><code>loot_droprate</code></td><td>Drop multiplier: <code>2</code> double, <code>0</code> none.</td></tr>
+      <tr><td><code>loot_elite_chance</code></td><td>Alpha chance multiplier: <code>3</code> triple, <code>0</code> none.</td></tr>
+      <tr><td><code>loot_modifier</code></td><td>Force a map modifier, like <code>Gold Rush</code>, in any game.</td></tr>
+      <tr><td><code>loot_nomodifier</code></td><td>No New Game+ modifier on this map.</td></tr>
+      <tr><td><code>loot_novendor</code></td><td>Close the vendor (good for boss arenas).</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Loot data file</h2>
+    <p class="lead">Copy <code>q2rpg/loot_data.example.json</code> to <code>loot_data.json</code> and change what you like. Anything left out keeps its built-in value. The console reports what changed and any typos when a map starts.</p>
+    <table>
+      <tr><th>Section</th><th>What you can change</th></tr>
+      <tr><td><code>guns</code></td><td>Name, magazine, reload, how often it drops, lowest rarity.</td></tr>
+      <tr><td><code>makers</code></td><td>Names and how each maker's parts shift recoil, handling, damage, spread, pellets, fire rate, magazine, reload and crits.</td></tr>
+      <tr><td><code>rarities</code></td><td>Names, damage bonus, how often each drops.</td></tr>
+      <tr><td><code>prices</code></td><td>The vendor's price formula, elemental markup and sell share.</td></tr>
+    </table>
+<pre><code>{
+  "guns": { "Shotgun": { "drop_weight": 32 } },
+  "rarities": { "Legendary": { "damage": 1.8 } },
+  "prices": { "base": 15, "per_level": 6 }
+}</code></pre>
+  </div>
+</section>
+
+<section>
+  <div class="wrap two-col">
+    <div>
+      <h2>TrenchBroom</h2>
+      <ol class="steps">
+        <li>Copy the zip's <code>fgd</code> files to <code>~/.TrenchBroom/games/Quake2-Q2ARPG/</code> (Linux) or <code>%AppData%\TrenchBroom\games\Quake2-Q2ARPG\</code> (Windows).</li>
+        <li>Restart TrenchBroom and pick <strong>Quake 2 (Q2ARPG)</strong>.</li>
+        <li>Set <strong>Game Path</strong> to the game's <code>rerelease</code> folder.</li>
+      </ol>
+    </div>
+    <div>
+      <h2>Compiling</h2>
+      <p class="note">Any Quake 2 compiler works. With <a href="https://github.com/ericwa/ericw-tools/releases">ericw-tools 2.0</a>, keep the <code>.map</code> in a folder named <code>maps</code>:</p>
+<pre><code>qbsp  -q2bsp -basedir "&lt;game&gt;/rerelease" -gamedir baseq2 maps/mymap.map
+vis   maps/mymap.bsp
+light -basedir "&lt;game&gt;/rerelease" -gamedir baseq2 maps/mymap.bsp</code></pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Need a key that doesn't exist?</h2>
+    <p>Ask in <a href="https://github.com/Rizilla-OG/q2arpg/discussions">Discussions</a> or open an <a href="https://github.com/Rizilla-OG/q2arpg/issues">issue</a>. Built something? Post it in Show and tell.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="https://github.com/Rizilla-OG/q2arpg">GitHub</a>
+      <a href="https://github.com/Rizilla-OG/q2arpg/blob/main/MODDING.md">Full modding guide</a>
+      <a href="https://github.com/Rizilla-OG/q2arpg/blob/main/CHANGELOG.md">Changelog</a>
+    </nav>
+    <p>Quake and Quake II are trademarks of id Software / ZeniMax Media. Q2ARPG is an unofficial fan mod, not affiliated with or endorsed by them. Game code is based on id Software's Quake II rerelease game source, licensed under GPL v2.</p>
+  </div>
+</footer>
+
+</body>
+</html>
