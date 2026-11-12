@@ -2451,7 +2451,9 @@ int32_t Loot_XPToNext(int32_t level)
 }
 
 constexpr float LOOT_ELITE_SCALE = 1.3f;
-constexpr float LOOT_OMEGA_CHANCE = 0.10f; // NG+: share of Alphas that spawn as Alpha Omegas
+constexpr float LOOT_OMEGA_CHANCE = 0.15f; // NG+: share of Alphas that spawn as Alpha Omegas
+constexpr float LOOT_ALPHA_HEALTH = 3.0f;  // Alpha health multiplier
+constexpr float LOOT_OMEGA_HEALTH = 5.0f;  // Alpha Omega health multiplier
 constexpr float LOOT_ELITE_SPEED = 1.35f;
 
 gtime_t Loot_EliteFrameTime(const edict_t *monster)
@@ -2500,7 +2502,7 @@ static float Loot_MonsterHealthScale(const edict_t *monster)
 {
 	float scale = std::max(0.1f, g_loot_monster_health->value) * (1.0f + 0.12f * (std::max(1, monster->loot_mlevel) - 1)) * NGPlus_MonsterHealthMult();
 	if (monster->loot_elite)
-		scale *= monster->loot_omega ? 4.f : 2.5f;
+		scale *= monster->loot_omega ? LOOT_OMEGA_HEALTH : LOOT_ALPHA_HEALTH;
 	return scale;
 }
 
@@ -2622,11 +2624,11 @@ void Loot_SpawnAdds(edict_t *monster, int32_t count, edict_t *enemy)
 	SpawnGrow_Spawn(monster->s.origin + vec3_t{0, 0, 16}, 16.f, 64.f);
 }
 
-// Alpha chance ramps with the party level: 12% default -> 20% from L25.
+// Alpha chance ramps with the party level: 12% default -> 25% from L25.
 // Scales the cvar, so g_loot_elite_chance still tunes the curve.
 static float Loot_EliteLevelMult()
 {
-	return Loot_ZoneLevel() >= 25 ? 0.20f / 0.12f : 1.0f;
+	return Loot_ZoneLevel() >= 25 ? 0.25f / 0.12f : 1.0f;
 }
 
 static bool loot_force_omega; // set around CreateMonster by loot_spawnmonster
@@ -2694,7 +2696,7 @@ void Loot_ScaleMonster(edict_t *monster)
 	if (!boss && !monster->s.scale && (force_omega || monster->loot_map_elite == 1 || frandom() < g_loot_elite_chance->value * Loot_EliteLevelMult() * NGPlus_EliteChanceMult() * Loot_MapMult(::level.loot_elite_mult)) &&
 	    Loot_EliteFits(monster, elite_origin))
 	{
-		// Alpha Omega: NG+ only, 10% of Alphas; +2 more levels, 3 traits, x4 health, guaranteed Legendary
+		// Alpha Omega: NG+ only, 15% of Alphas; +2 more levels, 3 traits, x5 health, guaranteed Legendary
 		const bool omega = force_omega || (game.loot_ngplus > 0 && frandom() < LOOT_OMEGA_CHANCE);
 		level += Loot_MakeElite(monster, elite_origin, omega); // before monster_start scales mins/maxs
 	}

@@ -6,6 +6,7 @@
 - Example map for mappers: `map q2rpg_example` walks through every mapper feature, one room each; its source ships in the `fgd` folder.
 - Mastery: once your skill tree is full, every spare skill point adds +1% to the tree's main stat (Gunner gun damage, Juggernaut less damage taken, Elementalist status damage), with no cap. Shown at the top of the skills screen. Before, points past level 53 went to waste.
 - Map modifiers no longer change after dying and reloading the map-start autosave. (It happened when a map's first roll was skipped for repeating the previous map's modifier.)
+- Tougher, more frequent elites: Alphas have x3 health (was x2.5) and Alpha Omegas x5 (was x4); from level 25, 25% of monsters spawn as Alphas (was 20%); in New Game+, 15% of Alphas are Omegas (was 10%).
 - Gun, shield and grenade cards: stat values and changes now line up in neat columns.
 - Mapper fixes:
   - `loot_start_level` above the level cap no longer heals players every frame (it made them unkillable).
