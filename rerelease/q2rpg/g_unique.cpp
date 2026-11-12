@@ -37,7 +37,7 @@ static const unique_def_t unique_defs[LOOT_UNIQUE_COUNT] = {
     {"Executioner", "non-boss targets left under 15% health die"},
     {"Supernova", "no tendrils; bigger blast with all three elements"},
     // memorial unique: never rolls, only the Lost Station duck gives it
-    {"Ava", "Zoomies: kills give a burst of speed, chain kills to keep running"},
+    {"Ava", "Zoomies: kills give a speed burst"},
 };
 static_assert(LOOT_UNIQUE_SUPERNOVA == LOOT_ARCH_COUNT * 2, "second uniques follow the first ones in archetype order");
 
@@ -130,7 +130,8 @@ static bool Ava_DuckShowing()
 	return false;
 }
 
-static bool Ava_PlayerInZone()
+// first living player standing in front of the duck, or nullptr
+static edict_t *Ava_PlayerInZone()
 {
 	for (edict_t *player : active_players())
 	{
@@ -139,12 +140,12 @@ static bool Ava_PlayerInZone()
 		const vec3_t &pos = player->s.origin;
 		if (pos.x >= ava_zone_mins.x && pos.x <= ava_zone_maxs.x && pos.y >= ava_zone_mins.y && pos.y <= ava_zone_maxs.y &&
 		    pos.z >= ava_zone_mins.z && pos.z <= ava_zone_maxs.z)
-			return true;
+			return player;
 	}
-	return false;
+	return nullptr;
 }
 
-static void Ava_Give(edict_t *shrine)
+static void Ava_Give(edict_t *waiting_player)
 {
 	game.loot_ava_cycle = game.loot_ngplus + 1;
 
@@ -156,8 +157,11 @@ static void Ava_Give(edict_t *shrine)
 	for (edict_t *player : active_players())
 		gi.Center_Print(player, AVA_TRIBUTE);
 
-	edict_t *drop = Loot_SpawnSharedDrop(shrine, gun);
-	drop->velocity = {crandom() * 40.f, -160.f, 260.f}; // hop out of the duck toward the player
+	// drop at the player's feet: the floor in front of the duck has water in it
+	edict_t *drop = Loot_SpawnSharedDrop(waiting_player, gun);
+	drop->s.origin = waiting_player->s.origin;
+	drop->velocity = {0.f, 0.f, 200.f};
+	gi.linkentity(drop);
 }
 
 // counts time a player spends in front of the shown duck
@@ -170,13 +174,14 @@ THINK(Ava_ShrineThink)(edict_t *self)->void
 	}
 	self->nextthink = level.time + AVA_SHRINE_TICK;
 
-	if (Ava_DuckShowing() && Ava_PlayerInZone())
+	edict_t *waiting_player = Ava_DuckShowing() ? Ava_PlayerInZone() : nullptr;
+	if (waiting_player)
 	{
 		self->count++;
 		self->timestamp = level.time;
 		if (AVA_SHRINE_TICK * self->count >= AVA_STAND_TIME)
 		{
-			Ava_Give(self);
+			Ava_Give(waiting_player);
 			G_FreeEdict(self);
 		}
 	}
