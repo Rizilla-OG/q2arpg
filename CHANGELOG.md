@@ -2,6 +2,8 @@
 
 ## Unreleased (next update)
 
+- README: the logo is now an image, so it shows correctly on GitHub.
+
 ## 0.9.2 (first public alpha)
 
 - Release zip ships `README.md`, `CHANGELOG.md` and `LICENSE.txt` in the `q2rpg` folder; the playtest command list no longer prints at startup.
