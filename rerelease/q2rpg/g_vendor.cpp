@@ -260,7 +260,7 @@ void Vendor_DropCash(edict_t *monster, edict_t *attacker)
 	float amount = (5.f + base_health * 0.15f) * (1.0f + 0.1f * (mlevel - 1)) * frandom(0.75f, 1.25f);
 	if (monster->loot_elite)
 		amount *= monster->loot_omega ? 6.f : 3.f;
-	if (base_health >= 1000.f)
+	if (Loot_IsBossTier(monster))
 		amount *= 5.f;
 	amount *= NGPlus_CashMult(); // Gold Rush
 

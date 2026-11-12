@@ -1249,6 +1249,8 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_shot_gun), // q2rpg
 	FIELD_AUTO(loot_elite), // q2rpg
 	FIELD_AUTO(loot_omega), // q2rpg
+	FIELD_AUTO(loot_map_elite), // q2rpg
+	FIELD_AUTO(loot_map_boss), // q2rpg
 	FIELD_AUTO(loot_mark_end), // q2rpg
 	FIELD_AUTO(loot_death_spawned), // q2rpg
 	FIELD_AUTO(loot_revived), // q2rpg

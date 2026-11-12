@@ -350,7 +350,7 @@ static void Grenade_Detonate(edict_t *self)
 		edict_t *ent = nullptr;
 		while ((ent = findradius(ent, self->s.origin, stats.radius)) != nullptr)
 		{
-			if (!(ent->svflags & SVF_MONSTER) || ent->health <= 0 || ent->deadflag || !ent->pain || Loot_MonsterBaseHealth(ent) >= 1000)
+			if (!(ent->svflags & SVF_MONSTER) || ent->health <= 0 || ent->deadflag || !ent->pain || Loot_IsBossTier(ent))
 				continue;
 			ent->pain_debounce_time = 0_ms;
 			ent->pain(ent, attacker, 0, (int32_t)stats.damage, MOD_LOOT_GRENADE);
@@ -440,7 +440,7 @@ static void Grenade_Pull(edict_t *self)
 	const float pull_radius = self->loot_grenade.radius * (Grenade_Twist(self->loot_grenade) ? VORTEX_TWIST_RADIUS : 1.5f);
 	while ((ent = findradius(ent, self->s.origin, pull_radius)) != nullptr)
 	{
-		if (!(ent->svflags & SVF_MONSTER) || ent->health <= 0 || ent->deadflag || Loot_MonsterBaseHealth(ent) >= 1000)
+		if (!(ent->svflags & SVF_MONSTER) || ent->health <= 0 || ent->deadflag || Loot_IsBossTier(ent))
 			continue;
 		vec3_t dir = self->s.origin - ent->s.origin;
 		if (dir.length() < 24.f)

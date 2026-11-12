@@ -500,10 +500,9 @@ loot_rarity_t Loot_RollRarity(float luck)
 	return LOOT_RARITY_COMMON;
 }
 
-loot_weapon_t Loot_RollRandom(float luck)
+// a weighted random archetype that can roll at this rarity
+static loot_archetype_t Loot_RollArchetype(loot_rarity_t rarity)
 {
-	const loot_rarity_t rarity = Loot_RollRarity(luck);
-
 	int32_t total = 0;
 	for (const auto &a : loot_archs)
 		if (rarity >= a.min_rarity)
@@ -522,8 +521,13 @@ loot_weapon_t Loot_RollRandom(float luck)
 		}
 		pick -= loot_archs[i].weight;
 	}
+	return arch;
+}
 
-	return Loot_Roll(arch, rarity, (uint32_t)mt_rand());
+loot_weapon_t Loot_RollRandom(float luck)
+{
+	const loot_rarity_t rarity = Loot_RollRarity(luck);
+	return Loot_Roll(Loot_RollArchetype(rarity), rarity, (uint32_t)mt_rand());
 }
 
 //==========================================================================
@@ -1640,6 +1644,50 @@ edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_pla
 	return drop;
 }
 
+// q2rpg: mapper entity item_loot_gun, a guaranteed gun at the party's level.
+// loot_rarity 0 Common .. 5 Mythic (Mythic needs NG+, else Legendary); loot_weapon is an
+// archetype name ("Rocket Launcher") or weapon classname ("weapon_rocketlauncher"). Blank = random.
+static int32_t Loot_ArchetypeByName(const char *name)
+{
+	if (!name || !*name)
+		return -1;
+	for (int32_t i = 0; i < LOOT_ARCH_COUNT; i++)
+		if (!Q_strcasecmp(name, loot_archs[i].name) || !Q_strcasecmp(name, GetItemByIndex(loot_archs[i].base)->classname))
+			return i;
+	gi.Com_PrintFmt("item_loot_gun: unknown loot_weapon \"{}\", rolling a random gun\n", name);
+	return -1;
+}
+
+THINK(Loot_PlacedGunThink)(edict_t *self)->void
+{
+	const int32_t wanted_rarity = self->count; // -1 random
+	const int32_t wanted_arch = self->style;   // -1 random
+
+	loot_rarity_t rarity = wanted_rarity >= 0 ? (loot_rarity_t)std::min(wanted_rarity, LOOT_RARITY_COUNT - 1) : Loot_RollRarity(Loot_ZoneLuck());
+	if (rarity == LOOT_RARITY_MYTHIC && game.loot_ngplus <= 0)
+		rarity = LOOT_RARITY_LEGENDARY;
+	const loot_archetype_t arch = wanted_arch >= 0 ? (loot_archetype_t)wanted_arch : Loot_RollArchetype(rarity);
+	rarity = std::max(rarity, loot_archs[arch].min_rarity);
+
+	loot_drop_owner = nullptr; // shared, like map items
+	edict_t *drop = Loot_SpawnDrop(self, Loot_Roll(arch, rarity, (uint32_t)mt_rand()), false);
+	drop->velocity = {}; // sits where the mapper put it
+	G_FreeEdict(self);
+}
+
+void SP_item_loot_gun(edict_t *self)
+{
+	if (deathmatch->integer)
+	{
+		G_FreeEdict(self);
+		return;
+	}
+	self->count = st.loot_rarity;
+	self->style = Loot_ArchetypeByName(st.loot_weapon);
+	self->think = Loot_PlacedGunThink; // after the map and players are in, so it rolls at the party's level
+	self->nextthink = level.time + FRAME_TIME_S;
+}
+
 edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool from_player)
 {
 	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_ITEM_POWER_SCREEN));
@@ -1716,8 +1764,16 @@ static const loot_boss_info_t loot_bosses[] = {
     {"monster_makron", 4, LOOT_RARITY_EPIC, LOOT_RARITY_LEGENDARY, {LOOT_ARCH_BFG, LOOT_ARCH_PLASMA}, 0.50f, 1.f, LOOT_RARITY_EPIC},
 };
 
+// mapper loot_boss key on any monster: 1 drops like a mini-boss, 2 like a unit boss
+static const loot_boss_info_t loot_map_bosses[] = {
+    {"loot_boss 1", 2, LOOT_RARITY_UNCOMMON, LOOT_RARITY_RARE, {LOOT_ARCH_ROCKET, LOOT_ARCH_RAIL}, 0.10f, 0.35f, LOOT_RARITY_UNCOMMON},
+    {"loot_boss 2", 3, LOOT_RARITY_RARE, LOOT_RARITY_EPIC, {LOOT_ARCH_ROCKET, LOOT_ARCH_PLASMA}, 0.25f, 1.f, LOOT_RARITY_RARE},
+};
+
 static const loot_boss_info_t *Loot_BossInfo(const edict_t *monster)
 {
+	if (monster->loot_map_boss > 0)
+		return &loot_map_bosses[std::min(monster->loot_map_boss, (int32_t)q_countof(loot_map_bosses)) - 1];
 	if (!monster->classname)
 		return nullptr;
 	for (const auto &boss : loot_bosses)
@@ -1784,7 +1840,7 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		return;
 
 	const float hp = Loot_MonsterBaseHealth(monster);
-	const bool boss = hp >= 1000;
+	const bool boss = Loot_IsBossTier(monster);
 	float luck = hp / 400.f + g_loot_rarity_bonus->value + Loot_ZoneLuck() + NGPlus_LuckBonus();
 	if (monster->loot_elite)
 		luck += 1.5f;
@@ -2023,6 +2079,11 @@ float Loot_MonsterBaseHealth(const edict_t *monster)
 	return std::max(1.f, monster->max_health / Loot_MonsterHealthScale(monster));
 }
 
+bool Loot_IsBossTier(const edict_t *monster)
+{
+	return monster->loot_map_boss > 0 || Loot_MonsterBaseHealth(monster) >= 1000;
+}
+
 //==========================================================================
 // Death spawns: a dying monster may bring 1-3 more of its kind
 //==========================================================================
@@ -2093,7 +2154,7 @@ void Loot_DeathSpawn(edict_t *monster)
 		return;
 	if (!monster->classname || Q_strncasecmp(monster->classname, "monster_", 8) || !strcmp(monster->classname, "monster_turret"))
 		return;
-	if (Loot_MonsterBaseHealth(monster) >= 1000) // bosses
+	if (Loot_IsBossTier(monster)) // bosses
 		return;
 	if (frandom() >= g_loot_death_spawn->value * Loot_DeathSpawnLevelMult() * NGPlus_DeathSpawnMult())
 		return;
@@ -2184,14 +2245,14 @@ void Loot_ScaleMonster(edict_t *monster)
 	if (skill->integer >= 2)
 		level++;
 
-	const bool boss = monster->health >= 1000;
+	const bool boss = monster->health >= 1000 || monster->loot_map_boss > 0;
 	if (boss)
 		level += 2;
 
 	// badass variant
 	vec3_t elite_origin;
-	const bool force_omega = loot_force_omega; // loot_spawnmonster ... omega
-	if (!boss && !monster->s.scale && (force_omega || frandom() < g_loot_elite_chance->value * Loot_EliteLevelMult() * NGPlus_EliteChanceMult()) &&
+	const bool force_omega = loot_force_omega || monster->loot_map_elite >= 2; // loot_spawnmonster ... omega, or mapper loot_elite 2
+	if (!boss && !monster->s.scale && (force_omega || monster->loot_map_elite == 1 || frandom() < g_loot_elite_chance->value * Loot_EliteLevelMult() * NGPlus_EliteChanceMult()) &&
 	    Loot_EliteFits(monster, elite_origin))
 	{
 		// Alpha Omega: NG+ only, 10% of Alphas; +2 more levels, 3 traits, x4 health, guaranteed Legendary
@@ -2323,7 +2384,7 @@ void Loot_AwardXP(edict_t *monster, edict_t *attacker)
 	stats.kills++;
 	if (monster->loot_elite)
 		stats.elite_kills++;
-	if (Loot_MonsterBaseHealth(monster) >= 1000)
+	if (Loot_IsBossTier(monster))
 		stats.boss_kills++;
 	if (monster->monsterinfo.damage_mod.id == MOD_LOOT_GRENADE && monster->loot_hit_grenade > 0 && monster->loot_hit_grenade <= LOOT_GRENADE_TYPE_COUNT)
 	{

@@ -176,15 +176,26 @@ The setting is saved. Use `g_loot_logs 1` to turn logging back on.
   the `Saved Games\Nightdive Studios\Quake II\` folder above, and if you
   like, `loot_stats.csv` and `q2rpg_events.log` from the `q2rpg` mod folder.
 
-## For modders (planned)
+## For modders
 
-Q2ARPG already works with custom maps and campaigns: put your `.bsp` files in
-the `q2rpg/maps/` folder and loot, XP, cash, elites, challenges and map
+Q2ARPG works with custom maps and campaigns: put your `.bsp` files in the
+`q2rpg/maps/` folder and loot, XP, cash, elites, challenges and map
 modifiers apply automatically. New Game+ starts from wherever your campaign
-begins and kicks in when it ends on the standard victory screen. After the
-first release, I plan to add map entity keys so mappers can go further: place
-a vendor, put a guaranteed drop in a secret, mark a monster as Alpha, Omega or
-a boss, and opt a map out of modifiers. Later, guns, rarities and prices will
+begins and kicks in when it ends on the standard victory screen.
+
+Mappers can also use these keys:
+
+| Entity | Key | Value |
+|---|---|---|
+| any `monster_*` | `loot_elite` | `1` always an Alpha, `2` always an Alpha Omega |
+| any `monster_*` | `loot_boss` | `1` mini-boss, `2` unit boss: boss levels, cash, XP, drops and challenge credit |
+| `item_loot_gun` (point entity) | `loot_rarity` | `0` Common, `1` Uncommon, `2` Rare, `3` Epic, `4` Legendary, `5` Mythic (New Game+ only, else Legendary); leave out for random |
+| `item_loot_gun` | `loot_weapon` | archetype name (`Rocket Launcher`, `Rail Rifle`...) or weapon classname (`weapon_railgun`); leave out for random |
+| `worldspawn` | `loot_nomodifier` | `1` = no New Game+ map modifier on this map |
+
+`item_loot_gun` places a rolled gun at the party's level, for example a
+Legendary in a secret. `loot_boss` doesn't change a monster's health; use the
+stock `health_multiplier` key for that. Later, guns, rarities and prices will
 move into data files so they can be changed without touching C++. If you're
 building something with Q2ARPG, [open an issue](https://github.com/Rizilla-OG/q2arpg/issues). I'd love to see it
 and hear what tools you need.

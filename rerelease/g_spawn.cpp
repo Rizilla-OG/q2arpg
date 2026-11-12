@@ -113,6 +113,7 @@ void SP_misc_bigviper(edict_t *self);
 void SP_misc_strogg_ship(edict_t *self);
 void SP_misc_teleporter(edict_t *self);
 void SP_misc_teleporter_dest(edict_t *self);
+void SP_item_loot_gun(edict_t *self); // q2rpg
 void SP_misc_blackhole(edict_t *self);
 void SP_misc_eastertank(edict_t *self);
 void SP_misc_easterchick(edict_t *self);
@@ -324,6 +325,7 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "misc_strogg_ship", SP_misc_strogg_ship },
 	{ "misc_teleporter", SP_misc_teleporter },
 	{ "misc_teleporter_dest", SP_misc_teleporter_dest },
+	{ "item_loot_gun", SP_item_loot_gun }, // q2rpg
 	{ "misc_blackhole", SP_misc_blackhole },
 	{ "misc_eastertank", SP_misc_eastertank },
 	{ "misc_easterchick", SP_misc_easterchick },
@@ -674,6 +676,8 @@ static int32_t ED_LoadColor(const char *value)
 
 static const std::initializer_list<field_t> entity_fields = {
 	FIELD_AUTO(classname),
+	FIELD_AUTO_NAMED("loot_elite", loot_map_elite), // q2rpg
+	FIELD_AUTO_NAMED("loot_boss", loot_map_boss),   // q2rpg
 	FIELD_AUTO(model),
 	FIELD_AUTO(spawnflags),
 	FIELD_AUTO(speed),
@@ -801,6 +805,9 @@ struct temp_field_t
 // temp spawn vars -- only valid when the spawn function is called
 // (copied to `st`)
 static const std::initializer_list<temp_field_t> temp_fields = {
+	FIELD_AUTO(loot_rarity),     // q2rpg
+	FIELD_AUTO(loot_weapon),     // q2rpg
+	FIELD_AUTO(loot_nomodifier), // q2rpg
 	FIELD_AUTO(lip),
 	FIELD_AUTO(distance),
 	FIELD_AUTO(height),
@@ -1437,6 +1444,9 @@ void SP_worldspawn(edict_t *ent)
 	ent->inuse = true; // since the world doesn't use G_Spawn()
 	ent->s.modelindex = MODELINDEX_WORLD;
 	ent->gravity = 1.0f;
+
+	if (st.loot_nomodifier)
+		NGPlus_ClearMapMod(); // q2rpg: mapper opted this map out of modifiers
 
 	if (st.hub_map)
 	{

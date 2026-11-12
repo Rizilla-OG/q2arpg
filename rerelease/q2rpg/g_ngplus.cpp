@@ -99,6 +99,12 @@ static const ngplus_map_mod_info_t map_mods[LOOT_MAPMOD_COUNT] = {
 };
 
 // Never the same modifier as the map before (revisits keep their saved one).
+// q2rpg: a mapper opted this map out; the previous map's modifier still blocks a repeat on the next one
+void NGPlus_ClearMapMod()
+{
+	level.loot_map_mod = 0;
+}
+
 void NGPlus_RollMapMod()
 {
 	if (deathmatch->integer || game.loot_ngplus <= 0)

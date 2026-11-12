@@ -180,7 +180,7 @@ void Challenge_OnKill(edict_t *monster, edict_t *attacker)
 		Challenge_Add(attacker, CH_ELITE_KILLS, 1);
 	if (monster->loot_omega)
 		Challenge_Add(attacker, CH_OMEGA_KILLS, 1);
-	if (Loot_MonsterBaseHealth(monster) >= 1000)
+	if (Loot_IsBossTier(monster))
 		Challenge_Add(attacker, CH_BOSS_KILLS, 1);
 
 	const mod_id_t mod = monster->monsterinfo.damage_mod.id;
@@ -221,7 +221,7 @@ float Challenge_BadgeDamageMult(edict_t *attacker, edict_t *targ, edict_t *infli
 			mult += BADGE_BONUS;
 	};
 
-	if (Loot_MonsterBaseHealth(targ) >= 1000)
+	if (Loot_IsBossTier(targ))
 		badge(CH_BOSS_KILLS);
 
 	switch (mod.id)

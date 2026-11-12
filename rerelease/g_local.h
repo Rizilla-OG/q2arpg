@@ -1336,6 +1336,11 @@ struct spawn_temp_t
 	float health_multiplier = 1.0f;
 
 	const char *reinforcements; // [Paril-KEX]
+
+	// q2rpg: mapper keys
+	int32_t loot_rarity = -1;	// item_loot_gun: 0 Common .. 5 Mythic (-1 random)
+	const char *loot_weapon;	// item_loot_gun: archetype name or weapon classname (blank random)
+	int32_t loot_nomodifier;	// worldspawn: 1 = no New Game+ map modifier
 	const char *noise_start, *noise_middle, *noise_end; // [Paril-KEX]
 	int32_t loop_count; // [Paril-KEX]
 
@@ -3286,6 +3291,8 @@ struct edict_t
 	loot_weapon_t loot_shot_gun; // q2rpg: copy of the gun that fired this projectile (element / crit on hit)
 	bool loot_elite;			// q2rpg: badass variant
 	bool loot_omega;			// q2rpg: NG+ Alpha Omega (also loot_elite)
+	int32_t loot_map_elite;		// q2rpg: mapper key loot_elite: 1 Alpha, 2 Omega
+	int32_t loot_map_boss;		// q2rpg: mapper key loot_boss: 1 mini-boss, 2 unit boss
 	gtime_t loot_mark_end;		// q2rpg: Tick Tock mark (takes +25% damage)
 	bool loot_death_spawned;	// q2rpg: spawned by another monster's death; never spawns more
 	bool loot_revived;			// q2rpg: brought back by a medic; its second death pays nothing
