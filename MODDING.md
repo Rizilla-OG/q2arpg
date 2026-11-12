@@ -104,12 +104,22 @@ the console with the mod loaded.
 
 ## Example map
 
-`mapsrc/q2rpg_keys_test.map` in the repo uses every key and entity in this
-guide: elite and boss monsters (one with `loot_boss_weapons`), a no-reward
-monster, placed guns (including a unique), a shield, a grenade mod, an arrow
-pad that fires `target_loot_drop`, an arrow pad in the far corner that fires
-`target_ngplus`, and worldspawn tuning (start level 10, monsters +2 levels,
-double drops, Gold Rush forced, vendor closed).
+The mod comes with a walk-through map: run `map q2rpg_example` from the console.
+A hallway leads past 12 rooms, and each room shows one feature. A message
+explains the room when you walk in.
+
+| North rooms (left) | South rooms (right) |
+|---|---|
+| Placed guns: `item_loot_gun` with rarity, weapon and unique keys | Supplies, plus a note on the vendor (`V`) and skills (`K`) |
+| Loot pad: a `trigger_multiple` firing `target_loot_drop` | Stock monsters with no keys |
+| Alpha and Omega: `loot_elite` 1 and 2 | Grenade mods: `item_loot_grenade` with `loot_grenade` |
+| Mini-boss: `loot_boss 1` with `loot_boss_weapons` | Shields: `item_loot_shield` at each rarity |
+| Unit boss: a Tank with `loot_boss 2` | Uniques: `loot_unique 1` on five weapons |
+| No-reward monster, and a pad firing a `target_spawner` with `loot_nodrop` | The `target_ngplus` pad (starts New Game+) |
+
+Worldspawn sets `loot_start_level 10`. The source, `q2rpg_example.map`, is in
+the zip's `fgd` folder. Open it in TrenchBroom to see every key. The repo's
+`mapsrc/q2rpg_keys_test.map` is a smaller one-room test of the same keys.
 
 ## Questions and showing off
 

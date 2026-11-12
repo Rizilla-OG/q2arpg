@@ -185,7 +185,8 @@ bosses (with their own signature guns), place guns, shields and grenade mods,
 drop loot from triggers, tune each map (monster levels, drop rate, Alpha
 chance, a forced modifier, a starting level), turn off the vendor or
 modifiers, and end a custom campaign into New Game+. The zip includes a
-TrenchBroom game config with all of it.
+TrenchBroom game config with all of it, and an example map (`map q2rpg_example`)
+that walks through every feature, one room each.
 
 See [MODDING.md](MODDING.md) for every key, the TrenchBroom setup and how to
 compile. Later, guns, rarities and prices will move into data files so they
