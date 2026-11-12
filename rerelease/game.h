@@ -389,6 +389,7 @@ enum pmflags_t : uint16_t
     PMF_IGNORE_PLAYER_COLLISION = bit_v<9>, // don't collide with other players
     PMF_TIME_TRICK = bit_v<10>, // pm_time is trick jump time
     PMF_LOOT_CRAWL = bit_v<11>, // q2rpg: Second Chance, 25% move speed and no jump (shared so prediction matches)
+    PMF_LOOT_ZOOMIES = bit_v<12>, // q2rpg: Ava's Zoomies, faster move speed after a kill (shared so prediction matches)
 };
 
 MAKE_ENUM_BITFLAGS(pmflags_t);

@@ -1217,6 +1217,7 @@ void monster_death_use(edict_t *self)
 			Loot_DeathSpawn(self);
 		}
 		Skill_OnMonsterKilled(self, killer);
+		Unique_OnKill(killer); // q2rpg: Ava's Zoomies
 		Loot_SecondChanceKill(killer);
 		NGPlus_OnMonsterDeath(self, killer);
 	}

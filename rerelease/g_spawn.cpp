@@ -1302,6 +1302,7 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 	setup_shadow_lights();
 
 	NGPlus_OnMapSpawn(); // q2rpg: remember the campaign start map
+	Unique_AvaMapSpawn(); // q2rpg: Lost Station duck memorial
 	Vendor_RollStock(); // q2rpg: this map's vendor stock (shop opens with the vendor command)
 }
 

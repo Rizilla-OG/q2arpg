@@ -55,6 +55,7 @@ void Loot_StatusSparks(edict_t *ent, loot_element_t element);
 
 // world items
 edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_player);
+edict_t *Loot_SpawnSharedDrop(edict_t *source, const loot_weapon_t &gun); // loot fountain everyone can pick up
 void Loot_MonsterDrop(edict_t *monster);
 void Loot_OnItemSpawned(edict_t *ent);
 bool Loot_Touch(edict_t *item, edict_t *other);
@@ -221,6 +222,10 @@ std::string Loot_StatLine(const char *label, float value, float other, bool have
 // unique legendaries (g_unique.cpp)
 void Unique_Make(loot_weapon_t &gun, int32_t variant = -1); // -1 random (second only in NG+), 0 first, 1 second
 const char *Unique_Desc(int32_t unique);
+void Unique_MakeAva(loot_weapon_t &gun);
+const char *Unique_Tribute(int32_t unique); // memorial text for the gun card, or nullptr
+void Unique_OnKill(edict_t *killer);
+void Unique_AvaMapSpawn();
 void Unique_BeginFire(edict_t *ent);
 void Unique_EndFire(edict_t *ent);
 void Unique_TagSpawn(edict_t *e);

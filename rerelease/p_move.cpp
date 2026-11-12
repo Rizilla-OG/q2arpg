@@ -1578,6 +1578,16 @@ void Pmove(pmove_t *pmove)
 		pm->cmd.buttons &= ~BUTTON_JUMP;
 	}
 
+	// q2rpg: Ava's Zoomies, +35% run speed; set every move so it resets when the flag drops
+	constexpr float zoomies_speed_mult = 1.35f;
+	const bool zoomies = (pm->s.pm_flags & PMF_LOOT_ZOOMIES) != 0;
+	pm_maxspeed = zoomies ? 300.f * zoomies_speed_mult : 300.f;
+	if (zoomies)
+	{
+		pm->cmd.forwardmove *= zoomies_speed_mult;
+		pm->cmd.sidemove *= zoomies_speed_mult;
+	}
+
 	// clear results
 	pm->touch.num = 0;
 	pm->viewangles = {};

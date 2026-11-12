@@ -252,6 +252,8 @@ enum loot_unique_t : uint8_t
 	LOOT_UNIQUE_EXECUTIONER, // rail: finishes non-boss targets under 15%
 	LOOT_UNIQUE_SUPERNOVA,   // bfg: no tendrils, bigger blast, all three statuses
 
+	LOOT_UNIQUE_AVA, // pistol: memorial gun from the Lost Station duck; kills give a speed burst (Zoomies)
+
 	LOOT_UNIQUE_COUNT
 };
 

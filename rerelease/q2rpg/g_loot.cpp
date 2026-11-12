@@ -1933,6 +1933,12 @@ edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_pla
 	return drop;
 }
 
+edict_t *Loot_SpawnSharedDrop(edict_t *source, const loot_weapon_t &gun)
+{
+	loot_drop_owner = nullptr;
+	return Loot_SpawnDrop(source, gun, false);
+}
+
 // q2rpg: mapper entities that place loot. Keys (read at spawn, kept on the entity):
 // loot_rarity 0 Common .. 5 Mythic (Mythic needs NG+, else Legendary), -1 random
 // loot_weapon archetype name ("Rocket Launcher") or weapon classname ("weapon_rocketlauncher"), blank random
@@ -2988,6 +2994,14 @@ static void Loot_SendCard(edict_t *ent, const loot_weapon_t &gun)
 		add(G_Fmt("{:<10}{}-round burst", "Trigger", gun.burst).data());
 	if (gun.unique)
 		add(G_Fmt("UNIQUE: {}", Unique_Desc(gun.unique)).data());
+	if (const char *tribute = Unique_Tribute(gun.unique))
+		for (const char *line = tribute; *line;)
+		{
+			const char *end = strchr(line, '\n');
+			const size_t len = end ? (size_t)(end - line) : strlen(line);
+			add(G_Fmt("{}", std::string_view(line, len)).data());
+			line += len + (end ? 1 : 0);
+		}
 
 	y += 4;
 	if (cmp)
@@ -3133,6 +3147,12 @@ static void Loot_SendInventory(edict_t *ent)
 				row(G_Fmt("Element|{}  {:.0f}% chance per hit", Loot_ElementName(g->element), Loot_ElemChance(*g) * 100.f).data());
 			if (g->unique)
 				row(G_Fmt("Unique|{}", Unique_Desc(g->unique)).data());
+			if (const char *tribute = Unique_Tribute(g->unique))
+			{
+				std::string one_line = tribute; // the card row is a single line
+				std::replace(one_line.begin(), one_line.end(), '\n', ' ');
+				row(G_Fmt("Tribute|{}", one_line).data());
+			}
 			if (g->element || g->unique)
 				y += 3;
 
@@ -3934,15 +3954,27 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 	}
 	if (!Q_strcasecmp(cmd, "loot_unique"))
 	{
-		// loot_unique <archetype 0-9> [2]: 2 = the second (NG+) unique
+		// loot_unique <archetype 0-9> [2|3]: 2 = the second (NG+) unique, 3 = pistol memorial
 		if (Loot_CheatCheck(ent))
 		{
 			const int32_t a = std::clamp(atoi(gi.argv(1)), 0, LOOT_ARCH_COUNT - 1);
 			loot_weapon_t gun = Loot_Roll((loot_archetype_t)a, LOOT_RARITY_LEGENDARY, (uint32_t)mt_rand());
-			Unique_Make(gun, atoi(gi.argv(2)) == 2 ? 1 : 0);
+			if (a == LOOT_ARCH_PISTOL && atoi(gi.argv(2)) == 3)
+				Unique_MakeAva(gun); // dev: memorial pistol
+			else
+				Unique_Make(gun, atoi(gi.argv(2)) == 2 ? 1 : 0);
 			Loot_SetLevel(gun, std::max(1, ent->client->pers.loot_level));
 			Loot_SpawnDrop(ent, gun, true);
 		}
+		return true;
+	}
+	// dev: Lost Station, show the duck now instead of riding the tram 13 times
+	if (!Q_strcasecmp(cmd, "loot_duck"))
+	{
+		if (Loot_CheatCheck(ent))
+			for (edict_t *e = nullptr; (e = G_FindByString<&edict_t::targetname>(e, "t433"));)
+				if (e->use)
+					e->use(e, ent, ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_xp"))

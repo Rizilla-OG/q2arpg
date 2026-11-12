@@ -3283,6 +3283,11 @@ void ClientThink(edict_t *ent, usercmd_t *ucmd)
 			client->ps.pmove.pm_flags |= PMF_LOOT_CRAWL;
 		else
 			client->ps.pmove.pm_flags &= ~PMF_LOOT_CRAWL;
+		// q2rpg: Ava's Zoomies flag; Pmove reads it (server and prediction)
+		if (client->loot_zoomies_end > level.time && !Loot_SecondChanceActive(ent))
+			client->ps.pmove.pm_flags |= PMF_LOOT_ZOOMIES;
+		else
+			client->ps.pmove.pm_flags &= ~PMF_LOOT_ZOOMIES;
 
 		pm.s = client->ps.pmove;
 

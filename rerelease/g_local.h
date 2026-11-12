@@ -1161,6 +1161,7 @@ struct game_locals_t
 	bool loot_ngplus_announce;		 // show the NG+ banner on the next map
 	int32_t loot_last_map_mod;		 // modifier the previous new map rolled (no repeats)
 	uint32_t loot_map_mod_seed;		 // q2rpg: per-save seed so a map always rolls the same modifier (no reroll by reloading)
+	int32_t loot_ava_cycle;			 // q2rpg: NG+ cycle + 1 when the Ava pistol was given (0 = never); once per playthrough
 };
 
 constexpr size_t MAX_HEALTH_BARS = 2;
@@ -2923,6 +2924,7 @@ struct gclient_t
 	gtime_t loot_shield_hit_time;
 	gtime_t loot_shield_snd_time;
 	gtime_t loot_grenade_next; // q2rpg: grenade throw cooldown
+	gtime_t loot_zoomies_end;  // q2rpg: Ava pistol speed burst runs until this time
 	// q2rpg: skills (transient)
 	bool loot_showskills;
 	bool loot_showchallenges; // q2rpg: challenges screen open

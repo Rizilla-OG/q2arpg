@@ -36,6 +36,8 @@ static const unique_def_t unique_defs[LOOT_UNIQUE_COUNT] = {
     {"Pinball", "bolts bounce once off walls"},
     {"Executioner", "non-boss targets left under 15% health die"},
     {"Supernova", "no tendrils; bigger blast with all three elements"},
+    // memorial unique: never rolls, only the Lost Station duck gives it
+    {"Ava", "Zoomies: kills give a burst of speed, chain kills to keep running"},
 };
 static_assert(LOOT_UNIQUE_SUPERNOVA == LOOT_ARCH_COUNT * 2, "second uniques follow the first ones in archetype order");
 
@@ -75,6 +77,127 @@ static int32_t Unique_Active(edict_t *ent)
 {
 	const loot_weapon_t *gun = Loot_Active(ent);
 	return gun ? gun->unique : LOOT_UNIQUE_NONE;
+}
+
+//==========================================================================
+// q2rpg: Ava, a memorial Legendary pistol for a very good dog.
+// Lost Station (train): ride the tram 13 times and the rubber duck replaces the
+// station sign (func_wall "t433"). Stand in front of the duck for 10 seconds:
+// a chime plays, the tribute shows and Ava pops out. Once per playthrough.
+
+constexpr const char *AVA_MAP = "train";
+constexpr const char *AVA_DUCK_TARGETNAME = "t433";
+constexpr const char *AVA_TRIBUTE = "Run free, sweet soul.\nIn Memory of my faithful friend.";
+constexpr gtime_t AVA_STAND_TIME = 10_sec;   // how long to stand in front of the duck
+constexpr gtime_t AVA_STAND_GRACE = 1500_ms; // stepping out briefly keeps the progress
+constexpr gtime_t AVA_ZOOMIES_TIME = 3_sec;  // speed burst per kill; each kill restarts it
+constexpr gtime_t AVA_SHRINE_TICK = 100_ms;
+// generous box in front of the duck wall: from the wall back past the tram stop
+const vec3_t ava_zone_mins = {-1110.f, -830.f, -300.f};
+const vec3_t ava_zone_maxs = {-870.f, -500.f, -150.f};
+const vec3_t ava_drop_spot = {-992.f, -560.f, -230.f}; // just in front of the duck
+
+void Unique_MakeAva(loot_weapon_t &gun)
+{
+	gun.unique = LOOT_UNIQUE_AVA;
+	Q_strlcpy(gun.name, unique_defs[LOOT_UNIQUE_AVA].name, sizeof(gun.name));
+}
+
+const char *Unique_Tribute(int32_t unique)
+{
+	return unique == LOOT_UNIQUE_AVA ? AVA_TRIBUTE : nullptr;
+}
+
+// kill with Ava in hand: start (or restart) the Zoomies burst
+void Unique_OnKill(edict_t *killer)
+{
+	if (!killer || !killer->client || Unique_Active(killer) != LOOT_UNIQUE_AVA)
+		return;
+	killer->client->loot_zoomies_end = level.time + AVA_ZOOMIES_TIME;
+}
+
+static bool Ava_GivenThisPlaythrough()
+{
+	return game.loot_ava_cycle == game.loot_ngplus + 1;
+}
+
+static bool Ava_DuckShowing()
+{
+	const edict_t *duck_wall = G_FindByString<&edict_t::targetname>(nullptr, AVA_DUCK_TARGETNAME);
+	for (; duck_wall; duck_wall = G_FindByString<&edict_t::targetname>((edict_t *)duck_wall, AVA_DUCK_TARGETNAME))
+		if (!strcmp(duck_wall->classname, "func_wall"))
+			return duck_wall->solid == SOLID_BSP;
+	return false;
+}
+
+static bool Ava_PlayerInZone()
+{
+	for (edict_t *player : active_players())
+	{
+		if (player->health <= 0)
+			continue;
+		const vec3_t &pos = player->s.origin;
+		if (pos.x >= ava_zone_mins.x && pos.x <= ava_zone_maxs.x && pos.y >= ava_zone_mins.y && pos.y <= ava_zone_maxs.y &&
+		    pos.z >= ava_zone_mins.z && pos.z <= ava_zone_maxs.z)
+			return true;
+	}
+	return false;
+}
+
+static void Ava_Give(edict_t *shrine)
+{
+	game.loot_ava_cycle = game.loot_ngplus + 1;
+
+	loot_weapon_t gun = Loot_Roll(LOOT_ARCH_PISTOL, LOOT_RARITY_LEGENDARY, (uint32_t)mt_rand());
+	Unique_MakeAva(gun);
+	Loot_SetLevel(gun, Loot_ZoneLevel());
+
+	gi.positioned_sound(ava_drop_spot, world, CHAN_AUTO, gi.soundindex("misc/secret.wav"), 1.f, ATTN_NONE, 0);
+	for (edict_t *player : active_players())
+		gi.Center_Print(player, AVA_TRIBUTE);
+
+	edict_t *drop = Loot_SpawnSharedDrop(shrine, gun);
+	drop->velocity = {crandom() * 40.f, -160.f, 260.f}; // hop out of the duck toward the player
+}
+
+// counts time a player spends in front of the shown duck
+THINK(Ava_ShrineThink)(edict_t *self)->void
+{
+	if (Ava_GivenThisPlaythrough())
+	{
+		G_FreeEdict(self);
+		return;
+	}
+	self->nextthink = level.time + AVA_SHRINE_TICK;
+
+	if (Ava_DuckShowing() && Ava_PlayerInZone())
+	{
+		self->count++;
+		self->timestamp = level.time;
+		if (AVA_SHRINE_TICK * self->count >= AVA_STAND_TIME)
+		{
+			Ava_Give(self);
+			G_FreeEdict(self);
+		}
+	}
+	else if (level.time - self->timestamp > AVA_STAND_GRACE)
+		self->count = 0;
+}
+
+void Unique_AvaMapSpawn()
+{
+	if (deathmatch->integer || Q_strcasecmp(level.mapname, AVA_MAP) || Ava_GivenThisPlaythrough())
+		return;
+
+	edict_t *shrine = G_Spawn();
+	shrine->classname = "loot_ava_shrine";
+	shrine->s.origin = ava_drop_spot;
+	shrine->mins = {-8, -8, -8};
+	shrine->maxs = {8, 8, 8};
+	shrine->svflags |= SVF_NOCLIENT;
+	shrine->think = Ava_ShrineThink;
+	shrine->nextthink = level.time + AVA_SHRINE_TICK;
+	gi.linkentity(shrine); // drops spawn at the center of absmin/absmax
 }
 
 //==========================================================================
