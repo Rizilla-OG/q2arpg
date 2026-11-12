@@ -593,7 +593,7 @@ void T_Damage(edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_t
 	// q2rpg: crits, elemental bonuses and status procs
 	damage = Loot_ModifyDamage(targ, inflictor, attacker, point, damage, dflags, mod);
 	// q2rpg: floating damage numbers
-	Loot_RecordDamage(targ, attacker, damage, mod);
+	Loot_RecordDamage(targ, inflictor, attacker, damage, mod);
 	// q2rpg: player shields absorb before armor
 	damage = Loot_ShieldAbsorb(targ, inflictor, attacker, damage, dflags, mod);
 

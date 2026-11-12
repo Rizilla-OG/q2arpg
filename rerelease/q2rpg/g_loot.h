@@ -39,7 +39,7 @@ float Loot_HandlingMult(edict_t *ent);
 const char *Loot_PartName(loot_part_t part);
 int32_t Loot_Spread(edict_t *ent, int32_t spread);
 float Loot_ProjSpeed(edict_t *ent);
-void Loot_RecordDamage(edict_t *targ, edict_t *attacker, int32_t damage, const mod_t &mod);
+void Loot_RecordDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, int32_t damage, const mod_t &mod);
 int32_t Loot_Pellets(edict_t *ent, int32_t count);
 void Loot_Think(edict_t *ent);
 float Loot_ReloadDip(edict_t *ent);

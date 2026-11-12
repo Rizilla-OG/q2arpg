@@ -1178,9 +1178,7 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 	// monsters hit harder: flat g_loot_monster_damage, +8% per level above 1
 	if (damage && !deathmatch->integer && targ->client && attacker && attacker != targ && (attacker->svflags & SVF_MONSTER))
 	{
-		const int32_t scaled = (int32_t)ceilf(damage * Loot_MonsterDamageScale(attacker));
-		NGPlus_OnMonsterHitPlayer(attacker, scaled); // Bloodthirsty
-		return scaled;
+		return (int32_t)ceilf(damage * Loot_MonsterDamageScale(attacker));
 	}
 
 	if (!damage || deathmatch->integer || !(targ->svflags & SVF_MONSTER) || targ->health <= 0)
@@ -1305,7 +1303,7 @@ static void Loot_FlushDamageNumber(edict_t *ent)
 	cl->loot_dmg_ent = nullptr;
 }
 
-void Loot_RecordDamage(edict_t *targ, edict_t *attacker, int32_t damage, const mod_t &mod)
+void Loot_RecordDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, int32_t damage, const mod_t &mod)
 {
 	if (damage <= 0 || deathmatch->integer || !attacker || !attacker->client || targ == attacker || !(targ->svflags & SVF_MONSTER))
 		return;
@@ -1333,7 +1331,7 @@ void Loot_RecordDamage(edict_t *targ, edict_t *attacker, int32_t damage, const m
 			targ->loot_hit_arch = 0;
 		else if (!Loot_IsStatusMod(mod))
 		{
-			const loot_weapon_t *gun = Loot_Active(attacker);
+			const loot_weapon_t *gun = Loot_HitGun(inflictor, attacker, mod); // the gun that fired, even after a swap
 			targ->loot_hit_arch = gun ? gun->archetype + 1 : 0;
 		}
 		const loot_status_t &st = targ->loot_status;

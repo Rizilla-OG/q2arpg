@@ -420,6 +420,10 @@ void NGPlus_OnHealthLost(edict_t *targ, edict_t *attacker, int32_t take)
 	if (take <= 0 || !attacker || deathmatch->integer)
 		return;
 
+	// Bloodthirsty: heal from health the player really lost, after shields and armor
+	if (targ->client && (attacker->svflags & SVF_MONSTER))
+		NGPlus_OnMonsterHitPlayer(attacker, std::min(take, targ->health + take));
+
 	if (targ->client && (attacker->svflags & SVF_MONSTER) && (attacker->loot_alpha_traits & LOOT_TRAIT_VAMPIRIC) &&
 	    attacker->health > 0 && targ->health + take > 0)
 		attacker->health = std::min(attacker->max_health, attacker->health + take / 2);
