@@ -2,6 +2,9 @@
 
 ## Unreleased (next update)
 
+## 0.9.2 (first public alpha)
+
+- Release zip ships `README.md`, `CHANGELOG.md` and `LICENSE.txt` in the `q2rpg` folder; the playtest command list no longer prints at startup.
 - Damage numbers: hits of 1000 or more show as `1.2k`, `2.0k` and so on, instead of stopping at 2047. Hits under 1000 still show the exact number.
 - Map modifiers stick: reloading a map's autosave keeps the same modifier, so it can't be rerolled.
 - Events log: `q2rpg_events.log` in the mod folder records map entries, modifiers, level ups, challenge tiers, Second Chance and deaths (including lava, falling and other world deaths) across sessions.
@@ -17,7 +20,7 @@ Bug fixes:
 - Weapons spawned by map triggers no longer show their rarity beam before they appear.
 - When a gun runs dry, the auto-switch no longer skips a weapon type you still have a loaded loot gun for.
 
-## 0.9.1
+## 0.9.1 (private test build)
 
 Bug fixes:
 
@@ -26,6 +29,6 @@ Bug fixes:
 - Vendor: number keys no longer buy while the challenges screen covers the shop. `V` brings the shop back, and opening the shop closes challenges.
 - Elementalist: Chain Reaction and Spread now trigger on kills of burning, shocked or melting monsters (before, they almost never fired).
 
-## 0.9.0
+## 0.9.0 (private test build)
 
-First public alpha.
+First complete build: loot, skills, vendor, challenges, New Game+.

@@ -2768,27 +2768,6 @@ static void Loot_WelcomeFrame()
 	};
 	for (const char *line : lines)
 		gi.Com_PrintFmt("{}\n", line);
-
-	// TEMP for playtesting: command list. Remove before release.
-	static const char *const commands[] = {
-	    "",
-	    "Commands (keys from autoexec.cfg):",
-	    "  loot_take E   loot_drop G   loot_inv I   loot_sell X",
-	    "  vendor V   skills K   challenges J   grenade Q",
-	    "  action F   reload R   zoom: hold mouse2",
-	    "  skill_pick <1-3>   skill_add <n>",
-	    "Dev (cheats in multiplayer):",
-	    "  loot_spawn [arch rarity]   loot_unique <arch> [2]",
-	    "  loot_shield [rarity]   loot_grenade [type rarity]",
-	    "  loot_spawnmonster <classname> [omega]   loot_xp <n>   loot_money <n>",
-	    "  loot_ngplus   loot_stats   loot_dump   skill_respec",
-	    "Cvars: g_loot_droprate g_loot_rarity_bonus g_loot_monster_health",
-	    "  g_loot_elite_chance g_loot_guard_shield g_loot_debug",
-	    "  cl_loot_healthbar cl_loot_fov43 cl_loot_damagenums",
-	    "",
-	};
-	for (const char *line : commands)
-		gi.Com_PrintFmt("{}\n", line);
 }
 
 static void Loot_ZoomFrame(edict_t *ent)

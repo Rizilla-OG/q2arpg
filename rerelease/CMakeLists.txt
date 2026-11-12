@@ -76,5 +76,20 @@ add_custom_target(deploy
 	COMMAND ${CMAKE_COMMAND} -E make_directory "${Q2_GAME_DIR}/${Q2_MOD_NAME}"
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:game> "${Q2_GAME_DIR}/${Q2_MOD_NAME}/"
 	COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/../mod/${Q2_MOD_NAME}" "${Q2_GAME_DIR}/${Q2_MOD_NAME}"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../README.md" "${CMAKE_CURRENT_SOURCE_DIR}/../CHANGELOG.md" "${Q2_GAME_DIR}/${Q2_MOD_NAME}/"
 	DEPENDS game
 	COMMENT "Deploying to ${Q2_GAME_DIR}/${Q2_MOD_NAME}")
+
+# q2rpg: player zip, Q2ARPG-<version>.zip in the repo-root dist/ folder (unzip into the game's rerelease folder)
+set(Q2RPG_STAGE "${CMAKE_CURRENT_BINARY_DIR}/release")
+set(Q2RPG_ZIP "${CMAKE_CURRENT_SOURCE_DIR}/../dist/Q2ARPG-${Q2RPG_VERSION}.zip")
+add_custom_target(release
+	COMMAND ${CMAKE_COMMAND} -E rm -rf "${Q2RPG_STAGE}"
+	COMMAND ${CMAKE_COMMAND} -E make_directory "${Q2RPG_STAGE}/${Q2_MOD_NAME}" "${CMAKE_CURRENT_SOURCE_DIR}/../dist"
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:game> "${Q2RPG_STAGE}/${Q2_MOD_NAME}/"
+	COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/../mod/${Q2_MOD_NAME}" "${Q2RPG_STAGE}/${Q2_MOD_NAME}"
+	COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/../README.md" "${CMAKE_CURRENT_SOURCE_DIR}/../CHANGELOG.md" "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE.txt" "${Q2RPG_STAGE}/${Q2_MOD_NAME}/"
+	COMMAND ${CMAKE_COMMAND} -E rm -f "${Q2RPG_ZIP}"
+	COMMAND ${CMAKE_COMMAND} -E chdir "${Q2RPG_STAGE}" ${CMAKE_COMMAND} -E tar cf "${Q2RPG_ZIP}" --format=zip "${Q2_MOD_NAME}"
+	DEPENDS game
+	COMMENT "Packaging ${Q2RPG_ZIP}")
