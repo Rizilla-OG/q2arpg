@@ -26,7 +26,7 @@ Add these to any `monster_*` entity.
 |---|---|---|
 | `loot_elite` | `0` random (default), `1` always an Alpha, `2` always an Alpha Omega | Elites are bigger, tougher and drop better loot. The monster needs room to grow; in a tight spot it stays normal. |
 | `loot_boss` | `0` no (default), `1` mini-boss, `2` unit boss | Boss levels, cash, XP, boss loot and Giant Slayer credit. Health doesn't change: use the stock `health_multiplier` key. |
-| `loot_nodrop` | `0` normal (default), `1` none | No XP, cash, loot or challenge credit. Use it for cutscene monsters or endless spawner fodder so players can't farm them. |
+| `loot_nodrop` | `0` normal (default), `1` none | No XP, cash, loot or challenge credit. Use it for cutscene monsters, or put it on a `target_spawner` for endless fodder, so players can't farm them. |
 | `loot_boss_weapons` | weapon names separated by `;`, e.g. `Rail Rifle;Rocket Launcher` | The boss's signature gun is one of these. Works on any boss: a stock boss or a monster with `loot_boss`. |
 
 ## Loot entities
@@ -67,8 +67,8 @@ keys as `item_loot_gun`. To drop only once, trigger it from a `trigger_once`.
 | `worldspawn` | `loot_novendor` `1` | The vendor won't open on this map (selling with `X` still works). Good for boss arenas. |
 | `worldspawn` | `loot_modifier` | Force a map modifier by name: `Alpha Surge`, `Gold Rush`, `Loot Frenzy`, `Glass Cannon`, `Reinforcements`, `Elemental Storm`, `Bounty`, `Fortified` or `Bloodthirsty`. Works in any game, not just New Game+, and wins over `loot_nomodifier`. Good for a "loot vault" map. |
 | `worldspawn` | `loot_level_bonus` | Monsters on this map are N levels higher (for hard maps and secret levels). |
-| `worldspawn` | `loot_droprate` | Loot drop multiplier for this map, e.g. `2` for double. Doesn't affect bosses' fixed drops. |
-| `worldspawn` | `loot_elite_chance` | Alpha chance multiplier for this map, e.g. `3`. |
+| `worldspawn` | `loot_droprate` | Loot drop multiplier for this map, e.g. `2` for double, `0` for none (Alphas too). Doesn't affect bosses' fixed drops. |
+| `worldspawn` | `loot_elite_chance` | Alpha chance multiplier for this map, e.g. `3`, or `0` for no random Alphas (`loot_elite` on a monster still works). |
 | `worldspawn` | `loot_start_level` | Players below this level are raised to it when they enter: health, cash and skill points to match, and the starter pistol levels up. For standalone maps or campaigns that expect a set level. Never lowers anyone. |
 | `target_ngplus` (point) | `targetname` | When triggered, ends the campaign like beating the final boss: intermission, then New Game+ from your first map. For campaigns that don't end on a victory screen. |
 

@@ -191,7 +191,7 @@ void Loot_GiveGun(edict_t *ent, const loot_weapon_t &gun);
 void Loot_GiveShield(edict_t *ent, const loot_shield_t &sh);
 
 // grenade mods (g_grenade.cpp)
-loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed);
+loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t forced_type = -1);
 int32_t Grenade_TypeByName(const char *name); // -1 if blank or unknown
 edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool from_player);
 void Grenade_Give(edict_t *ent, const loot_grenade_t &grenade);

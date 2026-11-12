@@ -1468,8 +1468,9 @@ void SP_worldspawn(edict_t *ent)
 	level.loot_novendor = st.loot_novendor != 0; // q2rpg
 	// q2rpg: mapper tuning
 	level.loot_level_bonus = st.loot_level_bonus;
-	level.loot_droprate_mult = st.loot_droprate;
-	level.loot_elite_mult = st.loot_elite_chance;
+	// level keeps 0 = unset so older saves still read right; an explicit 0 is stored as -1 (off)
+	level.loot_droprate_mult = st.loot_droprate < 0 ? 0.f : st.loot_droprate == 0 ? -1.f : st.loot_droprate;
+	level.loot_elite_mult = st.loot_elite_chance < 0 ? 0.f : st.loot_elite_chance == 0 ? -1.f : st.loot_elite_chance;
 	level.loot_start_level = st.loot_start_level;
 	if (st.loot_modifier && *st.loot_modifier)
 		NGPlus_ForceMapMod(st.loot_modifier);

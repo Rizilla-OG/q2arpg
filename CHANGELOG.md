@@ -2,6 +2,15 @@
 
 ## Unreleased (next update)
 
+- Mapper fixes:
+  - `loot_start_level` above the level cap no longer heals players every frame (it made them unkillable).
+  - Monsters and placed loot now roll at the map's `loot_start_level`, not the player's old level.
+  - `item_loot_grenade` keeps its `loot_grenade` type at any rarity (Common used to turn it into Standard or Sticky).
+  - `loot_nodrop` on a `target_spawner` now covers the monsters it spawns, and a no-reward monster's Summoner and death-spawn adds pay nothing either.
+  - `loot_droprate 0` and `loot_elite_chance 0` now turn drops or Alphas off (they used to mean "normal").
+  - A map with `loot_nomodifier` no longer bars the next map from a modifier the player never saw.
+  - `loot_boss_weapons` is read once when the boss spawns; a typo prints one "skipped" line instead of a misleading line on every kill.
+
 ## 0.9.3
 
 - Health bars: Omegas are labeled "Omega" in red over their head (they showed "Alpha").

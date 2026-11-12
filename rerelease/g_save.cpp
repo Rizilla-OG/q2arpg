@@ -1258,6 +1258,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_map_boss), // q2rpg
 	FIELD_AUTO(loot_map_nodrop), // q2rpg
 	FIELD_LEVEL_STRING(loot_map_boss_weapons), // q2rpg
+	FIELD_AUTO(loot_map_boss_arch_mask), // q2rpg
 	FIELD_AUTO(loot_mark_end), // q2rpg
 	FIELD_AUTO(loot_death_spawned), // q2rpg
 	FIELD_AUTO(loot_revived), // q2rpg

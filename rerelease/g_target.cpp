@@ -556,6 +556,7 @@ USE(use_target_spawner) (edict_t *self, edict_t *other, edict_t *activator) -> v
 	// in case anybody else does this by accident. Don't count these monsters
 	// so they don't inflate the monster count.
 	ent->monsterinfo.aiflags |= AI_DO_NOT_COUNT;
+	ent->loot_map_nodrop = self->loot_map_nodrop; // q2rpg: loot_nodrop on the spawner covers what it spawns
 
 	ED_CallSpawn(ent);
 	gi.linkentity(ent);

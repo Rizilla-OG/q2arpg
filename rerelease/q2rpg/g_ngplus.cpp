@@ -119,9 +119,14 @@ static const ngplus_map_mod_info_t map_mods[LOOT_MAPMOD_COUNT] = {
 };
 
 // Never the same modifier as the map before (revisits keep their saved one).
-// q2rpg: a mapper opted this map out; the previous map's modifier still blocks a repeat on the next one
+// q2rpg: what loot_last_map_mod was before this map's roll, so an opt-out can undo it
+static int32_t ngplus_last_map_mod_before_roll;
+
+// q2rpg: a mapper opted this map out; undo the roll so the next map is only barred from the one the player saw
 void NGPlus_ClearMapMod()
 {
+	if (level.loot_map_mod)
+		game.loot_last_map_mod = ngplus_last_map_mod_before_roll;
 	level.loot_map_mod = 0;
 }
 
@@ -166,6 +171,7 @@ void NGPlus_RollMapMod()
 	do
 		mod = 1 + (int32_t)(map_rng() % (LOOT_MAPMOD_COUNT - 1));
 	while (mod == game.loot_last_map_mod);
+	ngplus_last_map_mod_before_roll = game.loot_last_map_mod;
 	level.loot_map_mod = mod;
 	game.loot_last_map_mod = mod;
 }

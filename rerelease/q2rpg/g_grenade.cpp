@@ -113,7 +113,7 @@ int32_t Grenade_TypeByName(const char *name)
 	return -1;
 }
 
-loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed)
+loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t forced_type)
 {
 	std::mt19937 rng(seed);
 	auto rf = [&](float lo, float hi)
@@ -145,6 +145,8 @@ loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed)
 			pick -= grenade_types[t++].weight;
 		grenade.type = (loot_grenade_type_t)t;
 	}
+	if (forced_type >= 0 && forced_type < LOOT_GRENADE_TYPE_COUNT)
+		grenade.type = (loot_grenade_type_t)forced_type; // q2rpg: mapper or dev asked for this type, any rarity
 
 	// stats: level scales damage like guns (+6% per level), rarity like everything else
 	const float damage_noise = rf(1 - noise, 1 + noise);

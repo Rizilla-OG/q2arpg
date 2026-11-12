@@ -1188,8 +1188,8 @@ struct level_locals_t
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
 	bool loot_novendor;			 // q2rpg: worldspawn loot_novendor 1, the shop won't open on this map
 	int32_t loot_level_bonus;	 // q2rpg: worldspawn loot_level_bonus, added to monster levels
-	float loot_droprate_mult;	 // q2rpg: worldspawn loot_droprate (0 = unset, treated as 1)
-	float loot_elite_mult;		 // q2rpg: worldspawn loot_elite_chance (0 = unset, treated as 1)
+	float loot_droprate_mult;	 // q2rpg: worldspawn loot_droprate (0 = unset, treated as 1; negative = off)
+	float loot_elite_mult;		 // q2rpg: worldspawn loot_elite_chance (0 = unset, treated as 1; negative = off)
 	int32_t loot_start_level;	 // q2rpg: worldspawn loot_start_level, players below it are raised to it
 	bool loot_map_mod_announced; // q2rpg: map modifier banner shown
 	bool loot_events_entered;	 // q2rpg: map entry written to the events log (not saved, so a reload logs again)
@@ -1350,8 +1350,8 @@ struct spawn_temp_t
 	int32_t loot_nomodifier;	// worldspawn: 1 = no New Game+ map modifier
 	int32_t loot_novendor;		// worldspawn: 1 = vendor closed on this map
 	int32_t loot_level_bonus;	// worldspawn: monster levels + N
-	float loot_droprate;		// worldspawn: loot drop multiplier (0 = unset)
-	float loot_elite_chance;	// worldspawn: Alpha chance multiplier (0 = unset)
+	float loot_droprate = -1;		// worldspawn: loot drop multiplier (-1 = unset, 0 = no drops)
+	float loot_elite_chance = -1;	// worldspawn: Alpha chance multiplier (-1 = unset, 0 = no Alphas)
 	const char *loot_modifier;	// worldspawn: force this map modifier by name
 	int32_t loot_start_level;	// worldspawn: raise players below this level
 	const char *noise_start, *noise_middle, *noise_end; // [Paril-KEX]
@@ -3307,6 +3307,7 @@ struct edict_t
 	int32_t loot_map_elite;		// q2rpg: mapper key loot_elite: 1 Alpha, 2 Omega
 	int32_t loot_map_boss;		// q2rpg: mapper key loot_boss: 1 mini-boss, 2 unit boss
 	int32_t loot_map_nodrop;	// q2rpg: mapper key loot_nodrop 1: no XP, cash, loot or challenge credit
+	uint32_t loot_map_boss_arch_mask; // q2rpg: loot_boss_weapons parsed once at spawn, one bit per archetype
 	const char *loot_map_boss_weapons; // q2rpg: mapper key loot_boss_weapons "Rail Rifle;Rocket Launcher"
 	gtime_t loot_mark_end;		// q2rpg: Tick Tock mark (takes +25% damage)
 	bool loot_death_spawned;	// q2rpg: spawned by another monster's death; never spawns more

@@ -1663,14 +1663,14 @@ edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_pla
 // loot_unique 1 = the archetype's unique, 2 = its second unique (NG+ only, else the first)
 // loot_grenade grenade mod type ("Vortex"), blank random
 // Everything rolls at the party's level when it appears.
-static int32_t Loot_ArchetypeByName(const char *name)
+static int32_t Loot_ArchetypeByName(const char *name, const char *key = "loot_weapon", const char *fallback = "rolling a random gun")
 {
 	if (!name || !*name)
 		return -1;
 	for (int32_t i = 0; i < LOOT_ARCH_COUNT; i++)
 		if (!Q_strcasecmp(name, loot_archs[i].name) || !Q_strcasecmp(name, GetItemByIndex(loot_archs[i].base)->classname))
 			return i;
-	gi.Com_PrintFmt("loot_weapon: unknown \"{}\", rolling a random gun\n", name);
+	gi.Com_PrintFmt("{}: unknown \"{}\", {}\n", key, name, fallback);
 	return -1;
 }
 
@@ -1708,7 +1708,8 @@ THINK(Loot_PlacedGunThink)(edict_t *self)->void
 {
 	loot_drop_owner = nullptr; // shared, like map items
 	edict_t *drop = Loot_SpawnDrop(self, Loot_RollPlacedGun(self), false);
-	drop->velocity = {}; // sits where the mapper put it
+	drop->velocity = {};   // sits where the mapper put it
+	drop->owner = nullptr; // q2rpg: self is freed next
 	G_FreeEdict(self);
 }
 
@@ -1749,6 +1750,7 @@ THINK(Loot_PlacedShieldThink)(edict_t *self)->void
 	loot_drop_owner = nullptr;
 	edict_t *drop = Loot_SpawnShieldDrop(self, Loot_RollShield(Loot_PlacedRarity(self), Loot_ZoneLevel(), (uint32_t)mt_rand()), false);
 	drop->velocity = {};
+	drop->owner = nullptr; // q2rpg: self is freed next
 	G_FreeEdict(self);
 }
 
@@ -1767,16 +1769,11 @@ void SP_item_loot_shield(edict_t *self)
 
 THINK(Loot_PlacedGrenadeThink)(edict_t *self)->void
 {
-	const loot_rarity_t rarity = Loot_PlacedRarity(self);
-	loot_grenade_t grenade;
-	for (int32_t tries = 0; tries < 200; tries++) // reroll for the asked type
-	{
-		grenade = Grenade_Roll(rarity, Loot_ZoneLevel(), (uint32_t)mt_rand());
-		if (self->style < 0 || grenade.type == self->style)
-			break;
-	}
+	loot_drop_owner = nullptr;
+	const loot_grenade_t grenade = Grenade_Roll(Loot_PlacedRarity(self), Loot_ZoneLevel(), (uint32_t)mt_rand(), self->style);
 	edict_t *drop = Grenade_SpawnDrop(self, grenade, false);
 	drop->velocity = {};
+	drop->owner = nullptr; // q2rpg: self is freed next
 	G_FreeEdict(self);
 }
 
@@ -1901,33 +1898,44 @@ bool Loot_IsBoss(const edict_t *monster)
 	return Loot_BossInfo(monster) != nullptr;
 }
 
-static int32_t Loot_ArchetypeByName(const char *name);
-
-// the boss's signature gun: one of the mapper's loot_boss_weapons ("Rail Rifle;Rocket Launcher"), else its favorites
+// the boss's signature gun: one of the mapper's loot_boss_weapons (parsed at spawn), else its favorites
 static loot_archetype_t Loot_BossSignatureArch(const edict_t *monster, const loot_boss_info_t &boss)
 {
-	if (monster->loot_map_boss_weapons && *monster->loot_map_boss_weapons)
+	if (monster->loot_map_boss_arch_mask)
 	{
-		std::vector<loot_archetype_t> archs;
-		const std::string list = monster->loot_map_boss_weapons;
-		size_t start = 0;
-		while (start <= list.size())
-		{
-			size_t end = list.find_first_of(";,", start);
-			if (end == std::string::npos)
-				end = list.size();
-			std::string name = list.substr(start, end - start);
-			name.erase(0, name.find_first_not_of(' '));
-			name.erase(name.find_last_not_of(' ') + 1);
-			const int32_t arch = Loot_ArchetypeByName(name.c_str());
-			if (arch >= 0)
-				archs.push_back((loot_archetype_t)arch);
-			start = end + 1;
-		}
-		if (!archs.empty())
-			return archs[irandom((int32_t)archs.size())];
+		loot_archetype_t archs[LOOT_ARCH_COUNT];
+		int32_t count = 0;
+		for (int32_t i = 0; i < LOOT_ARCH_COUNT; i++)
+			if (monster->loot_map_boss_arch_mask & (1u << i))
+				archs[count++] = (loot_archetype_t)i;
+		return archs[irandom(count)];
 	}
 	return boss.favored[irandom(2)];
+}
+
+// Turns loot_boss_weapons ("Rail Rifle;Rocket Launcher") into an archetype mask, once, at spawn.
+static void Loot_ParseBossWeapons(edict_t *monster)
+{
+	if (!monster->loot_map_boss_weapons || !*monster->loot_map_boss_weapons || monster->loot_map_boss_arch_mask)
+		return;
+	const std::string list = monster->loot_map_boss_weapons;
+	size_t start = 0;
+	while (start <= list.size())
+	{
+		size_t end = list.find_first_of(";,", start);
+		if (end == std::string::npos)
+			end = list.size();
+		std::string name = list.substr(start, end - start);
+		name.erase(0, name.find_first_not_of(' '));
+		name.erase(name.find_last_not_of(' ') + 1);
+		if (!name.empty())
+		{
+			const int32_t arch = Loot_ArchetypeByName(name.c_str(), "loot_boss_weapons", "skipped");
+			if (arch >= 0)
+				monster->loot_map_boss_arch_mask |= 1u << arch;
+		}
+		start = end + 1;
+	}
 }
 
 static void Loot_BossDrop(edict_t *monster, const loot_boss_info_t &boss, float luck)
@@ -2007,7 +2015,7 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		if (frandom() < chance - count)
 			count++;
 
-		if (monster->loot_elite)
+		if (monster->loot_elite && level.loot_droprate_mult >= 0) // loot_droprate 0 means none, even from Alphas
 			count = std::max(count, 1);
 	}
 
@@ -2121,18 +2129,20 @@ edict_t *Loot_TouchTarget(edict_t *ent)
 // Levels and XP
 //==========================================================================
 
+// mapper multipliers: 0 means the key wasn't set, negative means the mapper set 0 (off)
+float Loot_MapMult(float value)
+{
+	return value < 0 ? 0.f : value > 0 ? value
+	                                   : 1.f;
+}
+
 // Highest player level; drives monster and map-loot levels.
 // Ignores pers.connected: SpawnEntities clears it before monsters spawn
 // on a map change, while pers (and the level) carries over.
-// mapper multipliers: 0 means the key wasn't set
-float Loot_MapMult(float value)
-{
-	return value > 0 ? value : 1.f;
-}
-
+// The map's loot_start_level counts too, since monsters spawn before players are raised.
 int32_t Loot_ZoneLevel()
 {
-	int32_t level = 1;
+	int32_t level = std::max(1, std::min(::level.loot_start_level, Loot_LevelCap()));
 
 	for (uint32_t i = 0; i < game.maxclients; i++)
 		level = std::max(level, game.clients[i].pers.loot_level);
@@ -2255,6 +2265,7 @@ THINK(loot_death_spawner_think)(edict_t *self)->void
 		}
 
 		monster->loot_death_spawned = true;
+		monster->loot_map_nodrop = self->loot_map_nodrop;
 		spawned++;
 
 		// finish monster_start now so it can take an enemy this frame (same as medic reinforcements)
@@ -2317,6 +2328,7 @@ void Loot_SpawnAdds(edict_t *monster, int32_t count, edict_t *enemy)
 	spawner->target = monster->classname;
 	spawner->count = count;
 	spawner->activator = enemy;
+	spawner->loot_map_nodrop = monster->loot_map_nodrop; // adds of a no-reward monster pay nothing either
 	spawner->s.origin = monster->s.origin;
 	// ring clears the source's box plus an add of the same size (a living Summoner is still solid)
 	const float half_width = std::max({monster->maxs[0], monster->maxs[1], -monster->mins[0], -monster->mins[1]});
@@ -2381,6 +2393,8 @@ void Loot_ScaleMonster(edict_t *monster)
 {
 	if (deathmatch->integer)
 		return;
+
+	Loot_ParseBossWeapons(monster);
 
 	const int32_t ngplus_levels = LOOT_NGPLUS_MONSTER_LEVELS * game.loot_ngplus;
 	int32_t level = Loot_ZoneLevel() + irandom(0, 4) + ngplus_levels; // +0..+3 over the highest player, more in NG+
@@ -3078,7 +3092,7 @@ void Loot_SetStats(edict_t *ent)
 		return;
 
 	// mapper's worldspawn loot_start_level: lift players who come in below it
-	if (level.loot_start_level > cl->pers.loot_level && ent->health > 0)
+	if (std::min(level.loot_start_level, Loot_LevelCap()) > cl->pers.loot_level && ent->health > 0) // capped, or it would heal every frame
 	{
 		Loot_RaiseToLevel(cl->pers, level.loot_start_level);
 		ent->max_health = cl->pers.max_health;
@@ -3681,13 +3695,7 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 		{
 			const int32_t r = gi.argc() >= 3 ? std::clamp(atoi(gi.argv(2)), 0, LOOT_RARITY_COUNT - 1) : (int32_t)Loot_RollRarity(0.f);
 			const int32_t want_type = gi.argc() >= 2 ? std::clamp(atoi(gi.argv(1)), 0, LOOT_GRENADE_TYPE_COUNT - 1) : -1;
-			loot_grenade_t grenade;
-			for (int32_t tries = 0; tries < 200; tries++) // reroll for the asked type so the name matches
-			{
-				grenade = Grenade_Roll((loot_rarity_t)r, std::max(1, ent->client->pers.loot_level), (uint32_t)mt_rand());
-				if (want_type < 0 || grenade.type == want_type)
-					break;
-			}
+			const loot_grenade_t grenade = Grenade_Roll((loot_rarity_t)r, std::max(1, ent->client->pers.loot_level), (uint32_t)mt_rand(), want_type);
 			Grenade_SpawnDrop(ent, grenade, true);
 		}
 		return true;
