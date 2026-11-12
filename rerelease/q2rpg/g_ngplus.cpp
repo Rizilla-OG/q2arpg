@@ -167,11 +167,24 @@ void NGPlus_RollMapMod()
 	uint32_t map_hash = fnv1a(level.mapname);
 	std::mt19937 map_rng(game.loot_map_mod_seed ^ map_hash ^ ((uint32_t)game.loot_ngplus * 0x9e3779b9u));
 
+	// q2rpg: the no-repeat check uses the modifier of the map before this one. The
+	// map-start autosave already holds this map's own roll as "last", so a reload
+	// of the same map reuses the previous map's modifier saved at the first roll
+	int32_t previous_map_mod;
+	if (!Q_strcasecmp(game.loot_map_mod_map, level.mapname))
+		previous_map_mod = game.loot_map_mod_previous;
+	else
+	{
+		previous_map_mod = game.loot_last_map_mod;
+		game.loot_map_mod_previous = previous_map_mod;
+		Q_strlcpy(game.loot_map_mod_map, level.mapname, sizeof(game.loot_map_mod_map));
+	}
+
 	int32_t mod;
 	do
 		mod = 1 + (int32_t)(map_rng() % (LOOT_MAPMOD_COUNT - 1));
-	while (mod == game.loot_last_map_mod);
-	ngplus_last_map_mod_before_roll = game.loot_last_map_mod;
+	while (mod == previous_map_mod);
+	ngplus_last_map_mod_before_roll = previous_map_mod;
 	level.loot_map_mod = mod;
 	game.loot_last_map_mod = mod;
 }

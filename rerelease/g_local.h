@@ -1161,6 +1161,8 @@ struct game_locals_t
 	bool loot_ngplus_announce;		 // show the NG+ banner on the next map
 	int32_t loot_last_map_mod;		 // modifier the previous new map rolled (no repeats)
 	uint32_t loot_map_mod_seed;		 // q2rpg: per-save seed so a map always rolls the same modifier (no reroll by reloading)
+	char loot_map_mod_map[MAX_QPATH];	 // q2rpg: map the last modifier roll was for
+	int32_t loot_map_mod_previous;		 // q2rpg: modifier of the map before it (no-repeat check, kept for reloads)
 	int32_t loot_ava_cycle;			 // q2rpg: NG+ cycle + 1 when the Ava pistol was given (0 = never); once per playthrough
 };
 
