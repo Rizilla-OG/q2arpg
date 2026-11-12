@@ -72,6 +72,39 @@ keys as `item_loot_gun`. To drop only once, trigger it from a `trigger_once`.
 | `worldspawn` | `loot_start_level` | Players below this level are raised to it when they enter: health, cash and skill points to match, and the starter pistol levels up. For standalone maps or campaigns that expect a set level. Never lowers anyone. |
 | `target_ngplus` (point) | `targetname` | When triggered, ends the campaign like beating the final boss: intermission, then New Game+ from your first map. For campaigns that don't end on a victory screen. |
 
+## Data file: guns, makers, rarities and prices
+
+Gun stats, manufacturers, rarities and vendor prices can be changed without
+touching C++. The mod folder has `loot_data.example.json` with every built-in
+value. Copy it to `loot_data.json` in the same folder, change what you want and
+delete the rest: anything left out keeps its built-in value. The file is read
+when a map starts, and the console prints how many values changed and any
+problems (typos, values out of range).
+
+Entries are found by their built-in name (`"Shotgun"`, `"Hardline Arms"`,
+`"Rare"`), so they still match after you rename them. Numbers marked "x" are
+multipliers, where `1` is normal.
+
+| Section | Fields |
+|---|---|
+| `guns` | `name`, `magazine` (base size), `reload` (seconds), `drop_weight` (higher drops more often, `0` never), `min_rarity` (`Common` .. `Mythic`) |
+| `makers` | `name`, `short_name` (shown on the HUD), and x per part: `recoil` and `handling` (stock), `damage` and `barrel_spread` (barrel), `pellets` (extra shotgun pellets, a whole number), `fire_rate` (trigger), `magazine` and `reload` (magazine; reload is time, so lower is faster), `scope_spread` (scope), `crit` (added to the crit multiplier, base 1.5) |
+| `rarities` | `name`, `damage` (x), `drop_weight` (Mythic only drops in New Game+) |
+| `prices` | `rarity_value` (6 numbers, Common to Mythic), `base`, `per_level`, `per_level_squared` (price = (base + per_level x level + per_level_squared x level²) x rarity value), `element_mult` (elemental guns and grenades), `sell_fraction` (share of the price paid when selling) |
+
+Example: shotguns twice as common, Legendary hits harder, everything cheaper:
+
+```json
+{
+  "guns": { "Shotgun": { "drop_weight": 32 } },
+  "rarities": { "Legendary": { "damage": 1.8 } },
+  "prices": { "base": 15, "per_level": 6 }
+}
+```
+
+Changes apply to loot rolled after the map starts. Guns already in a save keep
+their stats.
+
 ## TrenchBroom setup
 
 The release zip has an `fgd` folder: a Quake 2 game config for TrenchBroom

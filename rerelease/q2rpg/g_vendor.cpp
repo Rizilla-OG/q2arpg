@@ -9,27 +9,29 @@
 // Prices
 //==========================================================================
 
-static const int32_t rarity_value[LOOT_RARITY_COUNT] = {1, 2, 4, 8, 16, 32};
+// q2rpg: loot_data.json "prices" can override these
+const vendor_prices_t vendor_prices_default{};
+vendor_prices_t vendor_prices = vendor_prices_default;
 
 // Level part of every price. The squared term keeps prices ahead of cash drops,
 // which grow with monster level and kill count.
 static float Vendor_LevelBase(int32_t item_level)
 {
 	const float level_f = (float)std::max(1, item_level);
-	return 25.f + 10.f * level_f + 0.6f * level_f * level_f;
+	return vendor_prices.base + vendor_prices.per_level * level_f + vendor_prices.per_level_squared * level_f * level_f;
 }
 
 static int32_t Vendor_GunValue(const loot_weapon_t &g)
 {
-	float v = Vendor_LevelBase(Loot_GunLevel(g)) * rarity_value[g.rarity < LOOT_RARITY_COUNT ? g.rarity : 0];
+	float v = Vendor_LevelBase(Loot_GunLevel(g)) * vendor_prices.rarity_value[g.rarity < LOOT_RARITY_COUNT ? g.rarity : 0];
 	if (g.element)
-		v *= 1.25f;
+		v *= vendor_prices.element_mult;
 	return std::max(1, (int32_t)v);
 }
 
 static int32_t Vendor_ShieldValue(const loot_shield_t &sh)
 {
-	float v = Vendor_LevelBase(sh.level) * rarity_value[sh.rarity < LOOT_RARITY_COUNT ? sh.rarity : 0] * 1.2f;
+	float v = Vendor_LevelBase(sh.level) * vendor_prices.rarity_value[sh.rarity < LOOT_RARITY_COUNT ? sh.rarity : 0] * 1.2f;
 	if (sh.special)
 		v *= 1.25f;
 	return std::max(1, (int32_t)v);
@@ -37,15 +39,15 @@ static int32_t Vendor_ShieldValue(const loot_shield_t &sh)
 
 static int32_t Vendor_GrenadeValue(const loot_grenade_t &grenade)
 {
-	float v = Vendor_LevelBase(grenade.level) * rarity_value[grenade.rarity < LOOT_RARITY_COUNT ? grenade.rarity : 0] * 1.1f;
+	float v = Vendor_LevelBase(grenade.level) * vendor_prices.rarity_value[grenade.rarity < LOOT_RARITY_COUNT ? grenade.rarity : 0] * 1.1f;
 	if (grenade.element)
-		v *= 1.25f;
+		v *= vendor_prices.element_mult;
 	return std::max(1, (int32_t)v);
 }
 
 static int32_t Vendor_SellPrice(int32_t value)
 {
-	return std::max(1, (int32_t)(value * 0.05f));
+	return std::max(1, (int32_t)(value * vendor_prices.sell_fraction));
 }
 
 static int32_t Vendor_PlayerLevel(edict_t *ent)

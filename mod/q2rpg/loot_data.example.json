@@ -1,0 +1,209 @@
+{
+  "_comment": "Q2ARPG loot data. Copy this file to loot_data.json (same folder) and change what you like; delete anything you don't change. Keys are the built-in names, so a renamed gun still matches. Restart the map to apply. See MODDING.md.",
+  "guns": {
+    "Pistol": {
+      "name": "Pistol",
+      "magazine": 12,
+      "reload": 1.2,
+      "drop_weight": 6,
+      "min_rarity": "Common"
+    },
+    "Shotgun": {
+      "name": "Shotgun",
+      "magazine": 8,
+      "reload": 1.8,
+      "drop_weight": 16,
+      "min_rarity": "Common"
+    },
+    "Scattergun": {
+      "name": "Scattergun",
+      "magazine": 4,
+      "reload": 2.0,
+      "drop_weight": 10,
+      "min_rarity": "Common"
+    },
+    "SMG": {
+      "name": "SMG",
+      "magazine": 30,
+      "reload": 1.5,
+      "drop_weight": 16,
+      "min_rarity": "Common"
+    },
+    "Minigun": {
+      "name": "Minigun",
+      "magazine": 100,
+      "reload": 3.0,
+      "drop_weight": 8,
+      "min_rarity": "Common"
+    },
+    "Launcher": {
+      "name": "Launcher",
+      "magazine": 6,
+      "reload": 2.2,
+      "drop_weight": 8,
+      "min_rarity": "Common"
+    },
+    "Rocket Launcher": {
+      "name": "Rocket Launcher",
+      "magazine": 4,
+      "reload": 2.4,
+      "drop_weight": 7,
+      "min_rarity": "Common"
+    },
+    "Plasma Caster": {
+      "name": "Plasma Caster",
+      "magazine": 40,
+      "reload": 2.0,
+      "drop_weight": 7,
+      "min_rarity": "Common"
+    },
+    "Rail Rifle": {
+      "name": "Rail Rifle",
+      "magazine": 4,
+      "reload": 2.6,
+      "drop_weight": 6,
+      "min_rarity": "Uncommon"
+    },
+    "Annihilator": {
+      "name": "Annihilator",
+      "magazine": 100,
+      "reload": 3.0,
+      "drop_weight": 1,
+      "min_rarity": "Epic"
+    }
+  },
+  "makers": {
+    "Hardline Arms": {
+      "name": "Hardline Arms",
+      "short_name": "Hardline",
+      "recoil": 0.85,
+      "handling": 0.9,
+      "damage": 1.2,
+      "barrel_spread": 0.95,
+      "pellets": 0,
+      "fire_rate": 0.88,
+      "magazine": 0.8,
+      "reload": 1.0,
+      "scope_spread": 0.95,
+      "crit": 0.1
+    },
+    "Vexa Dynamics": {
+      "name": "Vexa Dynamics",
+      "short_name": "Vexa",
+      "recoil": 1.15,
+      "handling": 1.2,
+      "damage": 0.92,
+      "barrel_spread": 1.25,
+      "pellets": 0,
+      "fire_rate": 1.25,
+      "magazine": 1.35,
+      "reload": 1.0,
+      "scope_spread": 1.1,
+      "crit": 0.0
+    },
+    "Brask & Sons": {
+      "name": "Brask & Sons",
+      "short_name": "Brask",
+      "recoil": 1.0,
+      "handling": 1.0,
+      "damage": 1.05,
+      "barrel_spread": 1.35,
+      "pellets": 3,
+      "fire_rate": 0.95,
+      "magazine": 1.0,
+      "reload": 1.1,
+      "scope_spread": 1.1,
+      "crit": 0.0
+    },
+    "Kessler Precision": {
+      "name": "Kessler Precision",
+      "short_name": "Kessler",
+      "recoil": 0.7,
+      "handling": 0.9,
+      "damage": 1.05,
+      "barrel_spread": 0.75,
+      "pellets": 0,
+      "fire_rate": 0.95,
+      "magazine": 0.9,
+      "reload": 1.2,
+      "scope_spread": 0.7,
+      "crit": 0.75
+    },
+    "Orbitek Supply": {
+      "name": "Orbitek Supply",
+      "short_name": "Orbitek",
+      "recoil": 1.0,
+      "handling": 1.15,
+      "damage": 0.92,
+      "barrel_spread": 1.0,
+      "pellets": 0,
+      "fire_rate": 1.05,
+      "magazine": 1.6,
+      "reload": 0.7,
+      "scope_spread": 1.0,
+      "crit": 0.0
+    },
+    "Strogg Salvage": {
+      "name": "Strogg Salvage",
+      "short_name": "Salvage",
+      "recoil": 1.0,
+      "handling": 1.0,
+      "damage": 1.0,
+      "barrel_spread": 1.0,
+      "pellets": 1,
+      "fire_rate": 1.0,
+      "magazine": 1.0,
+      "reload": 1.0,
+      "scope_spread": 1.0,
+      "crit": 0.25
+    }
+  },
+  "rarities": {
+    "Common": {
+      "name": "Common",
+      "damage": 1.0,
+      "drop_weight": 600
+    },
+    "Uncommon": {
+      "name": "Uncommon",
+      "damage": 1.1,
+      "drop_weight": 250
+    },
+    "Rare": {
+      "name": "Rare",
+      "damage": 1.22,
+      "drop_weight": 100
+    },
+    "Epic": {
+      "name": "Epic",
+      "damage": 1.36,
+      "drop_weight": 40
+    },
+    "Legendary": {
+      "name": "Legendary",
+      "damage": 1.55,
+      "drop_weight": 10
+    },
+    "Mythic": {
+      "name": "Mythic",
+      "damage": 1.8,
+      "drop_weight": 3,
+      "_comment": "Mythic only drops in New Game+"
+    }
+  },
+  "prices": {
+    "rarity_value": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "base": 25,
+    "per_level": 10,
+    "per_level_squared": 0.6,
+    "element_mult": 1.25,
+    "sell_fraction": 0.05
+  }
+}

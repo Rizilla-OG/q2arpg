@@ -188,9 +188,10 @@ modifiers, and end a custom campaign into New Game+. The zip includes a
 TrenchBroom game config with all of it, and an example map (`map q2rpg_example`)
 that walks through every feature, one room each.
 
-See [MODDING.md](MODDING.md) for every key, the TrenchBroom setup and how to
-compile. Later, guns, rarities and prices will move into data files so they
-can be changed without touching C++.
+Gun stats, manufacturers, rarities and vendor prices live in a data file
+(`loot_data.json`), so they can be changed without touching C++. See
+[MODDING.md](MODDING.md) for every key, the data file, the TrenchBroom setup and
+how to compile.
 
 ## Ideas and feedback
 

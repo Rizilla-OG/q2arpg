@@ -250,3 +250,15 @@ void Loot_SetStats(edict_t *ent);
 
 // commands
 bool Loot_ClientCommand(edict_t *ent, const char *cmd);
+
+// q2rpg: vendor price formula; loot_data.json "prices" overrides it
+struct vendor_prices_t
+{
+	float rarity_value[LOOT_RARITY_COUNT] = {1, 2, 4, 8, 16, 32};  // price multiplier per rarity
+	float base = 25.f, per_level = 10.f, per_level_squared = 0.6f; // item level part of every price
+	float element_mult = 1.25f;                                    // elemental guns and grenades
+	float sell_fraction = 0.05f;                                   // selling pays this share of the price
+};
+extern const vendor_prices_t vendor_prices_default;
+extern vendor_prices_t vendor_prices;
+void Loot_LoadData(); // reads q2rpg/loot_data.json, if any, over the built-in tables

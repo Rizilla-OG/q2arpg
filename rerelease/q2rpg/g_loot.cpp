@@ -7,6 +7,11 @@
 
 #include <random>
 #include <ctime>
+#include <array>
+#include <deque>
+#include <fstream>
+#include <sstream>
+#include "json/json.h"
 
 cvar_t *g_loot_droprate;
 cvar_t *g_loot_rarity_bonus;
@@ -31,6 +36,8 @@ void Loot_InitCvars()
 	g_loot_monster_shield = gi.cvar("g_loot_monster_shield", "0.5", CVAR_NOFLAGS); // shield for every monster, x its health
 	g_loot_death_spawn = gi.cvar("g_loot_death_spawn", "0.1", CVAR_NOFLAGS);       // chance a dying monster spawns 1-3 more
 	g_loot_monster_damage = gi.cvar("g_loot_monster_damage", "1.3", CVAR_NOFLAGS); // monster damage to players before level scaling
+
+	Loot_LoadData(); // q2rpg: modder overrides, if q2rpg/loot_data.json exists
 }
 
 //==========================================================================
@@ -48,7 +55,8 @@ struct loot_arch_info_t
 	bool shotgun;
 };
 
-static const loot_arch_info_t loot_archs[LOOT_ARCH_COUNT] = {
+// q2rpg: built-in values; loot_data.json can override the working copies below
+static const std::array<loot_arch_info_t, LOOT_ARCH_COUNT> loot_archs_default = {{
     {IT_WEAPON_BLASTER, "Pistol", 12, 1.2f, 6, LOOT_RARITY_COMMON, false}, // infinite reserve
     {IT_WEAPON_SHOTGUN, "Shotgun", 8, 1.8f, 16, LOOT_RARITY_COMMON, true},
     {IT_WEAPON_SSHOTGUN, "Scattergun", 4, 2.0f, 10, LOOT_RARITY_COMMON, true},
@@ -59,7 +67,8 @@ static const loot_arch_info_t loot_archs[LOOT_ARCH_COUNT] = {
     {IT_WEAPON_HYPERBLASTER, "Plasma Caster", 40, 2.0f, 7, LOOT_RARITY_COMMON, false},
     {IT_WEAPON_RAILGUN, "Rail Rifle", 4, 2.6f, 6, LOOT_RARITY_UNCOMMON, false},
     {IT_WEAPON_BFG, "Annihilator", 100, 3.0f, 1, LOOT_RARITY_EPIC, false},
-};
+}};
+static std::array<loot_arch_info_t, LOOT_ARCH_COUNT> loot_archs = loot_archs_default;
 
 // Fictional manufacturers. Each part a maker builds shifts the stats it governs.
 struct loot_maker_info_t
@@ -74,7 +83,7 @@ struct loot_maker_info_t
 	float scope_spread, crit; // scope
 };
 
-static const loot_maker_info_t loot_makers[LOOT_MAKER_COUNT] = {
+static const std::array<loot_maker_info_t, LOOT_MAKER_COUNT> loot_makers_default = {{
     //                                      stock         barrel             trig   magazine      scope
     {"Hardline Arms", "Hardline", 0.85f, 0.90f, 1.20f, 0.95f, 0, 0.88f, 0.80f, 1.00f, 0.95f, 0.10f},
     {"Vexa Dynamics", "Vexa", 1.15f, 1.20f, 0.92f, 1.25f, 0, 1.25f, 1.35f, 1.00f, 1.10f, 0.00f},
@@ -82,7 +91,8 @@ static const loot_maker_info_t loot_makers[LOOT_MAKER_COUNT] = {
     {"Kessler Precision", "Kessler", 0.70f, 0.90f, 1.05f, 0.75f, 0, 0.95f, 0.90f, 1.20f, 0.70f, 0.75f},
     {"Orbitek Supply", "Orbitek", 1.00f, 1.15f, 0.92f, 1.00f, 0, 1.05f, 1.60f, 0.70f, 1.00f, 0.00f},
     {"Strogg Salvage", "Salvage", 1.00f, 1.00f, 1.00f, 1.00f, 1, 1.00f, 1.00f, 1.00f, 1.00f, 0.25f},
-};
+}};
+static std::array<loot_maker_info_t, LOOT_MAKER_COUNT> loot_makers = loot_makers_default;
 
 static const char *const loot_part_names[LOOT_PART_COUNT] = {"Stock", "Barrel", "Trigger", "Magazine", "Scope"};
 
@@ -99,14 +109,15 @@ struct loot_rarity_info_t
 	renderfx_t shell;
 };
 
-static const loot_rarity_info_t loot_rarities[LOOT_RARITY_COUNT] = {
+static const std::array<loot_rarity_info_t, LOOT_RARITY_COUNT> loot_rarities_default = {{
     {"Common", 1.00f, 600, RF_NONE},
     {"Uncommon", 1.10f, 250, RF_SHELL_GREEN},
     {"Rare", 1.22f, 100, RF_SHELL_BLUE},
     {"Epic", 1.36f, 40, RF_SHELL_RED | RF_SHELL_BLUE},
     {"Legendary", 1.55f, 10, RF_SHELL_RED | RF_SHELL_GREEN},
     {"Mythic", 1.80f, 3, RF_SHELL_GREEN | RF_SHELL_BLUE}, // weight only applies in NG+ (Loot_RollRarity)
-};
+}};
+static std::array<loot_rarity_info_t, LOOT_RARITY_COUNT> loot_rarities = loot_rarities_default;
 
 // Name prefixes keyed by the gun's standout stat.
 enum loot_stat_t
@@ -148,6 +159,271 @@ float Loot_RarityDamage(loot_rarity_t rarity)
 renderfx_t Loot_RarityShell(loot_rarity_t rarity)
 {
 	return loot_rarities[rarity < LOOT_RARITY_COUNT ? rarity : 0].shell;
+}
+
+//==========================================================================
+// Data file: q2rpg/loot_data.json overrides the tables above
+//==========================================================================
+
+// Every section and field is optional; what's left out keeps its built-in value.
+// Entries are found by their built-in name, so a renamed gun still matches.
+//   "guns":     { "Shotgun": { "name", "magazine", "reload", "drop_weight", "min_rarity" } }
+//   "makers":   { "Hardline Arms": { "name", "short_name", "recoil", "handling", "damage", "barrel_spread",
+//                 "pellets", "fire_rate", "magazine", "reload", "scope_spread", "crit" } }
+//   "rarities": { "Rare": { "name", "damage", "drop_weight" } }
+//   "prices":   { "rarity_value": [6 numbers], "base", "per_level", "per_level_squared", "element_mult", "sell_fraction" }
+static std::deque<std::string> loot_data_strings; // keeps renamed names alive
+
+static const char *Loot_DataString(const Json::Value &value)
+{
+	loot_data_strings.push_back(value.asString());
+	return loot_data_strings.back().c_str();
+}
+
+struct loot_data_reader_t
+{
+	const char *section = "";
+	const char *entry = "";
+	int32_t changes = 0;
+	int32_t problems = 0;
+
+	void warn(const char *field, const char *why)
+	{
+		gi.Com_PrintFmt("loot_data.json: {} \"{}\" {}: {}\n", section, entry, field, why);
+		problems++;
+	}
+
+	// reads a number field into out, kept inside lo..hi
+	template <typename T>
+	void number(const Json::Value &obj, const char *field, T &out, double lo, double hi)
+	{
+		if (!obj.isMember(field))
+			return;
+		const Json::Value &v = obj[field];
+		if (!v.isNumeric())
+			return warn(field, "not a number, ignored");
+		double d = v.asDouble();
+		if (d < lo || d > hi)
+		{
+			warn(field, G_Fmt("out of range, kept to {}..{}", lo, hi).data());
+			d = std::clamp(d, lo, hi);
+		}
+		out = (T)d;
+		changes++;
+	}
+
+	void text(const Json::Value &obj, const char *field, const char *&out)
+	{
+		if (!obj.isMember(field))
+			return;
+		const Json::Value &v = obj[field];
+		if (!v.isString() || v.asString().empty() || v.asString().size() > 32)
+			return warn(field, "needs text, 1-32 letters; ignored");
+		if (v.asString().find('"') != std::string::npos)
+			return warn(field, "can't contain quotes; ignored");
+		out = Loot_DataString(v);
+		changes++;
+	}
+
+	void rarity(const Json::Value &obj, const char *field, loot_rarity_t &out)
+	{
+		if (!obj.isMember(field))
+			return;
+		const Json::Value &v = obj[field];
+		if (v.isNumeric() && v.asInt() >= 0 && v.asInt() < LOOT_RARITY_COUNT)
+		{
+			out = (loot_rarity_t)v.asInt();
+			changes++;
+			return;
+		}
+		if (v.isString())
+			for (int32_t i = 0; i < LOOT_RARITY_COUNT; i++)
+				if (!Q_strcasecmp(v.asCString(), loot_rarities_default[i].name))
+				{
+					out = (loot_rarity_t)i;
+					changes++;
+					return;
+				}
+		warn(field, "needs a rarity name (Common .. Mythic) or 0-5; ignored");
+	}
+
+	// warns about fields this entry doesn't have (typos)
+	void known(const Json::Value &obj, std::initializer_list<const char *> fields)
+	{
+		for (const std::string &name : obj.getMemberNames())
+		{
+			bool found = false;
+			for (const char *f : fields)
+				found |= name == f;
+			if (!found)
+				warn(name.c_str(), "unknown field, ignored");
+		}
+	}
+};
+
+// finds the entry for a JSON key by built-in name (or short name), -1 if none
+template <typename T, size_t N>
+static int32_t Loot_DataFind(const std::array<T, N> &defaults, const std::string &key, bool short_names = false)
+{
+	for (size_t i = 0; i < N; i++)
+	{
+		if (!Q_strcasecmp(key.c_str(), defaults[i].name))
+			return (int32_t)i;
+		if constexpr (std::is_same_v<T, loot_maker_info_t>)
+			if (short_names && !Q_strcasecmp(key.c_str(), defaults[i].short_name))
+				return (int32_t)i;
+	}
+	return -1;
+}
+
+void Loot_LoadData()
+{
+	// start from the built-in values every time (InitGame can run more than once per session)
+	loot_archs = loot_archs_default;
+	loot_makers = loot_makers_default;
+	loot_rarities = loot_rarities_default;
+	vendor_prices = vendor_prices_default;
+	loot_data_strings.clear();
+
+	std::ifstream file("q2rpg/loot_data.json");
+	if (!file)
+		return; // no file: built-in values
+
+	Json::CharReaderBuilder builder;
+	Json::Value root;
+	std::string errors;
+	if (!Json::parseFromStream(builder, file, &root, &errors) || !root.isObject())
+	{
+		gi.Com_PrintFmt("loot_data.json: can't read it, using built-in values.\n{}\n", errors);
+		return;
+	}
+
+	loot_data_reader_t r;
+	for (const std::string &name : root.getMemberNames())
+		if (name != "guns" && name != "makers" && name != "rarities" && name != "prices" && name[0] != '_')
+			gi.Com_PrintFmt("loot_data.json: unknown section \"{}\", ignored\n", name), r.problems++;
+
+	const auto entries = [&](const char *section, auto &&each)
+	{
+		const Json::Value &obj = root[section];
+		if (obj.isNull())
+			return;
+		if (!obj.isObject())
+		{
+			gi.Com_PrintFmt("loot_data.json: \"{}\" should be {{ ... }}, ignored\n", section);
+			r.problems++;
+			return;
+		}
+		r.section = section;
+		for (const std::string &key : obj.getMemberNames())
+		{
+			if (key[0] == '_')
+				continue; // "_comment" entries
+			r.entry = key.c_str();
+			if (!obj[key].isObject())
+			{
+				r.warn("", "should be { ... }, ignored");
+				continue;
+			}
+			each(key, obj[key]);
+		}
+	};
+
+	entries("guns", [&](const std::string &key, const Json::Value &v)
+	        {
+		const int32_t i = Loot_DataFind(loot_archs_default, key);
+		if (i < 0)
+			return r.warn("", "no gun by that name (use the built-in names, e.g. Shotgun)");
+		r.known(v, {"name", "magazine", "reload", "drop_weight", "min_rarity", "_comment"});
+		loot_arch_info_t &a = loot_archs[i];
+		r.text(v, "name", a.name);
+		r.number(v, "magazine", a.mag, 1, 500);
+		r.number(v, "reload", a.reload, 0.1, 10);
+		r.number(v, "drop_weight", a.weight, 0, 1000);
+		r.rarity(v, "min_rarity", a.min_rarity); });
+
+	entries("makers", [&](const std::string &key, const Json::Value &v)
+	        {
+		const int32_t i = Loot_DataFind(loot_makers_default, key, true);
+		if (i < 0)
+			return r.warn("", "no maker by that name (e.g. Hardline Arms)");
+		r.known(v, {"name", "short_name", "recoil", "handling", "damage", "barrel_spread", "pellets", "fire_rate",
+		            "magazine", "reload", "scope_spread", "crit", "_comment"});
+		loot_maker_info_t &m = loot_makers[i];
+		r.text(v, "name", m.name);
+		r.text(v, "short_name", m.short_name);
+		r.number(v, "recoil", m.recoil, 0.1, 5);
+		r.number(v, "handling", m.handling, 0.1, 5);
+		r.number(v, "damage", m.dmg, 0.1, 5);
+		r.number(v, "barrel_spread", m.barrel_spread, 0.1, 5);
+		r.number(v, "pellets", m.pellets, 0, 10);
+		r.number(v, "fire_rate", m.rate, 0.1, 5);
+		r.number(v, "magazine", m.mag, 0.1, 5);
+		r.number(v, "reload", m.reload, 0.1, 5);
+		r.number(v, "scope_spread", m.scope_spread, 0.1, 5);
+		r.number(v, "crit", m.crit, 0, 1); });
+
+	entries("rarities", [&](const std::string &key, const Json::Value &v)
+	        {
+		const int32_t i = Loot_DataFind(loot_rarities_default, key);
+		if (i < 0)
+			return r.warn("", "no rarity by that name (Common .. Mythic)");
+		r.known(v, {"name", "damage", "drop_weight", "_comment"});
+		loot_rarity_info_t &rar = loot_rarities[i];
+		r.text(v, "name", rar.name);
+		r.number(v, "damage", rar.dmg, 0.1, 20);
+		r.number(v, "drop_weight", rar.weight, 0, 100000); });
+
+	if (root.isMember("prices"))
+	{
+		const Json::Value &v = root["prices"];
+		r.section = "prices";
+		r.entry = "prices";
+		if (!v.isObject())
+			r.warn("", "should be { ... }, ignored");
+		else
+		{
+			r.known(v, {"rarity_value", "base", "per_level", "per_level_squared", "element_mult", "sell_fraction", "_comment"});
+			if (v.isMember("rarity_value"))
+			{
+				const Json::Value &list = v["rarity_value"];
+				if (!list.isArray() || list.size() != LOOT_RARITY_COUNT)
+					r.warn("rarity_value", "needs 6 numbers, Common to Mythic; ignored");
+				else
+					for (Json::ArrayIndex i = 0; i < LOOT_RARITY_COUNT; i++)
+						if (list[i].isNumeric() && list[i].asDouble() > 0)
+							vendor_prices.rarity_value[i] = list[i].asFloat(), r.changes++;
+						else
+							r.warn("rarity_value", "each must be a number above 0");
+			}
+			r.number(v, "base", vendor_prices.base, 0, 100000);
+			r.number(v, "per_level", vendor_prices.per_level, 0, 10000);
+			r.number(v, "per_level_squared", vendor_prices.per_level_squared, 0, 1000);
+			r.number(v, "element_mult", vendor_prices.element_mult, 0.1, 10);
+			r.number(v, "sell_fraction", vendor_prices.sell_fraction, 0, 1);
+		}
+	}
+
+	// every weight 0 would leave nothing to roll: fall back to built-in weights
+	int32_t gun_weight = 0, rarity_weight = 0;
+	for (const auto &a : loot_archs)
+		gun_weight += a.weight;
+	for (int32_t i = 0; i < LOOT_RARITY_MYTHIC; i++)
+		rarity_weight += loot_rarities[i].weight;
+	if (!gun_weight)
+	{
+		gi.Com_Print("loot_data.json: every gun has drop_weight 0, using built-in weights\n");
+		for (size_t i = 0; i < loot_archs.size(); i++)
+			loot_archs[i].weight = loot_archs_default[i].weight;
+	}
+	if (!rarity_weight)
+	{
+		gi.Com_Print("loot_data.json: Common to Legendary all have drop_weight 0, using built-in weights\n");
+		for (size_t i = 0; i < loot_rarities.size(); i++)
+			loot_rarities[i].weight = loot_rarities_default[i].weight;
+	}
+
+	gi.Com_PrintFmt("loot_data.json: {} values changed, {} problems\n", r.changes, r.problems);
 }
 
 static const char *const loot_element_names[LOOT_ELEM_COUNT] = {"None", "Fire", "Shock", "Corrosive"};
@@ -1668,7 +1944,7 @@ static int32_t Loot_ArchetypeByName(const char *name, const char *key = "loot_we
 	if (!name || !*name)
 		return -1;
 	for (int32_t i = 0; i < LOOT_ARCH_COUNT; i++)
-		if (!Q_strcasecmp(name, loot_archs[i].name) || !Q_strcasecmp(name, GetItemByIndex(loot_archs[i].base)->classname))
+		if (!Q_strcasecmp(name, loot_archs[i].name) || !Q_strcasecmp(name, loot_archs_default[i].name) || !Q_strcasecmp(name, GetItemByIndex(loot_archs[i].base)->classname))
 			return i;
 	gi.Com_PrintFmt("{}: unknown \"{}\", {}\n", key, name, fallback);
 	return -1;
