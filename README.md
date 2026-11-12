@@ -17,6 +17,7 @@ tree, shop at vendors, chase challenges, and replay the campaign in New Game+.
 
 **Version 0.9.2: first public alpha.** The version is shown in the console when
 the mod loads. See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
+Download the latest release: https://github.com/Rizilla-OG/q2arpg/releases
 
 > **Public alpha:** expect bugs and balance changes. Saves may not carry over
 > between versions.
@@ -192,14 +193,14 @@ first release, I plan to add map entity keys so mappers can go further: place
 a vendor, put a guaranteed drop in a secret, mark a monster as Alpha, Omega or
 a boss, and opt a map out of modifiers. Later, guns, rarities and prices will
 move into data files so they can be changed without touching C++. If you're
-building something with Q2ARPG, open an issue on GitHub. I'd love to see it
+building something with Q2ARPG, [open an issue](https://github.com/Rizilla-OG/q2arpg/issues). I'd love to see it
 and hear what tools you need.
 
 ## Ideas and feedback
 
 This is an alpha, and player feedback shapes where it goes next. Got an idea
 for a new gun, skill, monster twist or map modifier? Think something is too
-strong, too weak, or just not fun? Open an issue or start a discussion on
+strong, too weak, or just not fun? [Open an issue](https://github.com/Rizilla-OG/q2arpg/issues) or [start a discussion](https://github.com/Rizilla-OG/q2arpg/discussions) on
 GitHub with your ideas, recommendations and requested changes. Big or small,
 every suggestion gets read.
 
