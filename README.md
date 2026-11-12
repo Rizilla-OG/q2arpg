@@ -8,7 +8,7 @@ A looter-boomer-shooter mod for the Quake II rerelease (2023). Every gun is roll
 with a rarity, a maker, parts and sometimes an element. Level up, pick a skill
 tree, shop at vendors, chase challenges, and replay the campaign in New Game+.
 
-**Version 0.9.2: first public alpha.** The version is shown in the console when
+**Version 0.9.3 (public alpha).** The version is shown in the console when
 the mod loads. See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
 Download the latest release: https://github.com/Rizilla-OG/q2arpg/releases
 
