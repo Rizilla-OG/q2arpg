@@ -75,6 +75,26 @@ bool NGPlus_TryRestart(const char *changemap)
 	return true;
 }
 
+// q2rpg: target_ngplus, for custom campaigns that don't end on a victory screen.
+// Triggering it ends the campaign the same way boss2's exit does: intermission, then NG+.
+USE(NGPlus_TargetUse)(edict_t *self, edict_t *other, edict_t *activator)->void
+{
+	if (level.intermissiontime)
+		return;
+	BeginIntermission(CreateTargetChangeLevel("victory.pcx"));
+}
+
+void SP_target_ngplus(edict_t *self)
+{
+	if (deathmatch->integer)
+	{
+		G_FreeEdict(self);
+		return;
+	}
+	self->use = NGPlus_TargetUse;
+	self->svflags |= SVF_NOCLIENT;
+}
+
 //==========================================================================
 // Map modifiers: one per NG+ map, rolled before monsters spawn, saved with the level
 //==========================================================================

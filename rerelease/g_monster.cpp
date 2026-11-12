@@ -1206,8 +1206,9 @@ void monster_death_use(edict_t *self)
 	if (!(self->monsterinfo.aiflags & AI_GOOD_GUY))
 	{
 		edict_t *killer = NGPlus_KillCredit(self->monsterinfo.damage_attacker); // Volatile blasts credit the Alpha's killer
-		// q2rpg: a medic-revived monster already paid out once; no xp, cash, drops or challenge progress
-		if (!self->loot_revived)
+		// q2rpg: a medic-revived monster already paid out once, and a mapper's loot_nodrop monster pays nothing:
+		// no xp, cash, drops or challenge progress
+		if (!self->loot_revived && !self->loot_map_nodrop)
 		{
 			Loot_AwardXP(self, killer);
 			Challenge_OnKill(self, killer);

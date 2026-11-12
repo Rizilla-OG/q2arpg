@@ -145,3 +145,63 @@
 "loot_boss" "2"
 "health_multiplier" "3"
 }
+{
+"classname" "item_loot_gun"
+"origin" "-480 240 16"
+"loot_weapon" "Rail Rifle"
+"loot_unique" "1"
+}
+{
+"classname" "item_loot_shield"
+"origin" "-480 -240 16"
+"loot_rarity" "3"
+}
+{
+"classname" "item_loot_grenade"
+"origin" "-480 -360 16"
+"loot_rarity" "2"
+"loot_grenade" "Vortex"
+}
+{
+"classname" "trigger_once"
+"target" "reward"
+"message" "Loot drop!"
+{
+( -200 -560 0 ) ( -200 -559 0 ) ( -200 -560 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( -200 -560 0 ) ( -200 -560 1 ) ( -199 -560 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( -200 -560 0 ) ( -199 -560 0 ) ( -200 -559 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( -120 -480 96 ) ( -120 -479 96 ) ( -119 -480 96 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( -120 -480 96 ) ( -119 -480 96 ) ( -120 -480 97 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( -120 -480 96 ) ( -120 -480 97 ) ( -120 -479 96 ) e1u1/trigger 0 0 0 1 1 0 0 0
+}
+}
+{
+"classname" "target_loot_drop"
+"origin" "-160 -400 48"
+"targetname" "reward"
+"loot_rarity" "4"
+}
+{
+"classname" "monster_soldier_light"
+"origin" "100 0 24"
+"angle" "180"
+"loot_nodrop" "1"
+}
+{
+"classname" "trigger_once"
+"target" "endgame"
+"message" "Starting New Game+"
+{
+( 520 -600 0 ) ( 520 -599 0 ) ( 520 -600 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( 520 -600 0 ) ( 520 -600 1 ) ( 521 -600 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( 520 -600 0 ) ( 521 -600 0 ) ( 520 -599 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( 620 -500 96 ) ( 620 -499 96 ) ( 621 -500 96 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( 620 -500 96 ) ( 621 -500 96 ) ( 620 -500 97 ) e1u1/trigger 0 0 0 1 1 0 0 0
+( 620 -500 96 ) ( 620 -500 97 ) ( 620 -499 96 ) e1u1/trigger 0 0 0 1 1 0 0 0
+}
+}
+{
+"classname" "target_ngplus"
+"origin" "570 -550 48"
+"targetname" "endgame"
+}

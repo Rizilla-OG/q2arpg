@@ -114,6 +114,10 @@ void SP_misc_strogg_ship(edict_t *self);
 void SP_misc_teleporter(edict_t *self);
 void SP_misc_teleporter_dest(edict_t *self);
 void SP_item_loot_gun(edict_t *self); // q2rpg
+void SP_item_loot_shield(edict_t *self); // q2rpg
+void SP_item_loot_grenade(edict_t *self); // q2rpg
+void SP_target_loot_drop(edict_t *self); // q2rpg
+void SP_target_ngplus(edict_t *self); // q2rpg
 void SP_misc_blackhole(edict_t *self);
 void SP_misc_eastertank(edict_t *self);
 void SP_misc_easterchick(edict_t *self);
@@ -326,6 +330,10 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "misc_teleporter", SP_misc_teleporter },
 	{ "misc_teleporter_dest", SP_misc_teleporter_dest },
 	{ "item_loot_gun", SP_item_loot_gun }, // q2rpg
+	{ "item_loot_shield", SP_item_loot_shield }, // q2rpg
+	{ "item_loot_grenade", SP_item_loot_grenade }, // q2rpg
+	{ "target_loot_drop", SP_target_loot_drop }, // q2rpg
+	{ "target_ngplus", SP_target_ngplus }, // q2rpg
 	{ "misc_blackhole", SP_misc_blackhole },
 	{ "misc_eastertank", SP_misc_eastertank },
 	{ "misc_easterchick", SP_misc_easterchick },
@@ -678,6 +686,7 @@ static const std::initializer_list<field_t> entity_fields = {
 	FIELD_AUTO(classname),
 	FIELD_AUTO_NAMED("loot_elite", loot_map_elite), // q2rpg
 	FIELD_AUTO_NAMED("loot_boss", loot_map_boss),   // q2rpg
+	FIELD_AUTO_NAMED("loot_nodrop", loot_map_nodrop), // q2rpg
 	FIELD_AUTO(model),
 	FIELD_AUTO(spawnflags),
 	FIELD_AUTO(speed),
@@ -807,6 +816,8 @@ struct temp_field_t
 static const std::initializer_list<temp_field_t> temp_fields = {
 	FIELD_AUTO(loot_rarity),     // q2rpg
 	FIELD_AUTO(loot_weapon),     // q2rpg
+	FIELD_AUTO(loot_unique),     // q2rpg
+	FIELD_AUTO(loot_grenade),    // q2rpg
 	FIELD_AUTO(loot_nomodifier), // q2rpg
 	FIELD_AUTO(loot_novendor),   // q2rpg
 	FIELD_AUTO(lip),

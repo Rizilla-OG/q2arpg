@@ -1644,9 +1644,12 @@ edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_pla
 	return drop;
 }
 
-// q2rpg: mapper entity item_loot_gun, a guaranteed gun at the party's level.
-// loot_rarity 0 Common .. 5 Mythic (Mythic needs NG+, else Legendary); loot_weapon is an
-// archetype name ("Rocket Launcher") or weapon classname ("weapon_rocketlauncher"). Blank = random.
+// q2rpg: mapper entities that place loot. Keys (read at spawn, kept on the entity):
+// loot_rarity 0 Common .. 5 Mythic (Mythic needs NG+, else Legendary), -1 random
+// loot_weapon archetype name ("Rocket Launcher") or weapon classname ("weapon_rocketlauncher"), blank random
+// loot_unique 1 = the archetype's unique, 2 = its second unique (NG+ only, else the first)
+// loot_grenade grenade mod type ("Vortex"), blank random
+// Everything rolls at the party's level when it appears.
 static int32_t Loot_ArchetypeByName(const char *name)
 {
 	if (!name || !*name)
@@ -1654,27 +1657,48 @@ static int32_t Loot_ArchetypeByName(const char *name)
 	for (int32_t i = 0; i < LOOT_ARCH_COUNT; i++)
 		if (!Q_strcasecmp(name, loot_archs[i].name) || !Q_strcasecmp(name, GetItemByIndex(loot_archs[i].base)->classname))
 			return i;
-	gi.Com_PrintFmt("item_loot_gun: unknown loot_weapon \"{}\", rolling a random gun\n", name);
+	gi.Com_PrintFmt("loot_weapon: unknown \"{}\", rolling a random gun\n", name);
 	return -1;
+}
+
+static void Loot_ReadPlacedKeys(edict_t *self)
+{
+	self->count = st.loot_rarity;                       // rarity, -1 random
+	self->style = Loot_ArchetypeByName(st.loot_weapon); // archetype, -1 random
+	self->sounds = st.loot_unique;                      // unique variant, 0 none
+}
+
+static loot_rarity_t Loot_PlacedRarity(const edict_t *self)
+{
+	loot_rarity_t rarity = self->count >= 0 ? (loot_rarity_t)std::min(self->count, LOOT_RARITY_COUNT - 1) : Loot_RollRarity(Loot_ZoneLuck());
+	if (rarity == LOOT_RARITY_MYTHIC && game.loot_ngplus <= 0)
+		rarity = LOOT_RARITY_LEGENDARY;
+	return rarity;
+}
+
+static loot_weapon_t Loot_RollPlacedGun(const edict_t *self)
+{
+	const bool unique = self->sounds > 0;
+	loot_rarity_t rarity = unique ? LOOT_RARITY_LEGENDARY : Loot_PlacedRarity(self);
+	const loot_archetype_t arch = self->style >= 0 ? (loot_archetype_t)self->style : Loot_RollArchetype(rarity);
+	rarity = std::max(rarity, loot_archs[arch].min_rarity);
+
+	loot_weapon_t gun = Loot_Roll(arch, rarity, (uint32_t)mt_rand());
+	if (unique)
+		Unique_Make(gun, (self->sounds >= 2 && game.loot_ngplus > 0) ? 1 : 0);
+	Loot_SetLevel(gun, Loot_ZoneLevel());
+	return gun;
 }
 
 THINK(Loot_PlacedGunThink)(edict_t *self)->void
 {
-	const int32_t wanted_rarity = self->count; // -1 random
-	const int32_t wanted_arch = self->style;   // -1 random
-
-	loot_rarity_t rarity = wanted_rarity >= 0 ? (loot_rarity_t)std::min(wanted_rarity, LOOT_RARITY_COUNT - 1) : Loot_RollRarity(Loot_ZoneLuck());
-	if (rarity == LOOT_RARITY_MYTHIC && game.loot_ngplus <= 0)
-		rarity = LOOT_RARITY_LEGENDARY;
-	const loot_archetype_t arch = wanted_arch >= 0 ? (loot_archetype_t)wanted_arch : Loot_RollArchetype(rarity);
-	rarity = std::max(rarity, loot_archs[arch].min_rarity);
-
 	loot_drop_owner = nullptr; // shared, like map items
-	edict_t *drop = Loot_SpawnDrop(self, Loot_Roll(arch, rarity, (uint32_t)mt_rand()), false);
+	edict_t *drop = Loot_SpawnDrop(self, Loot_RollPlacedGun(self), false);
 	drop->velocity = {}; // sits where the mapper put it
 	G_FreeEdict(self);
 }
 
+// item_loot_gun: a gun placed in the map
 void SP_item_loot_gun(edict_t *self)
 {
 	if (deathmatch->integer)
@@ -1682,9 +1706,77 @@ void SP_item_loot_gun(edict_t *self)
 		G_FreeEdict(self);
 		return;
 	}
-	self->count = st.loot_rarity;
-	self->style = Loot_ArchetypeByName(st.loot_weapon);
+	Loot_ReadPlacedKeys(self);
 	self->think = Loot_PlacedGunThink; // after the map and players are in, so it rolls at the party's level
+	self->nextthink = level.time + FRAME_TIME_S;
+}
+
+USE(Loot_DropTargetUse)(edict_t *self, edict_t *other, edict_t *activator)->void
+{
+	loot_drop_owner = nullptr;
+	Loot_SpawnDrop(self, Loot_RollPlacedGun(self), false); // pops out like a monster drop
+}
+
+// target_loot_drop: drops a gun each time it's triggered (button, secret, puzzle reward)
+void SP_target_loot_drop(edict_t *self)
+{
+	if (deathmatch->integer)
+	{
+		G_FreeEdict(self);
+		return;
+	}
+	Loot_ReadPlacedKeys(self);
+	self->use = Loot_DropTargetUse;
+	self->svflags |= SVF_NOCLIENT;
+}
+
+THINK(Loot_PlacedShieldThink)(edict_t *self)->void
+{
+	loot_drop_owner = nullptr;
+	edict_t *drop = Loot_SpawnShieldDrop(self, Loot_RollShield(Loot_PlacedRarity(self), Loot_ZoneLevel(), (uint32_t)mt_rand()), false);
+	drop->velocity = {};
+	G_FreeEdict(self);
+}
+
+// item_loot_shield: a shield placed in the map (loot_rarity)
+void SP_item_loot_shield(edict_t *self)
+{
+	if (deathmatch->integer)
+	{
+		G_FreeEdict(self);
+		return;
+	}
+	Loot_ReadPlacedKeys(self);
+	self->think = Loot_PlacedShieldThink;
+	self->nextthink = level.time + FRAME_TIME_S;
+}
+
+THINK(Loot_PlacedGrenadeThink)(edict_t *self)->void
+{
+	const loot_rarity_t rarity = Loot_PlacedRarity(self);
+	loot_grenade_t grenade;
+	for (int32_t tries = 0; tries < 200; tries++) // reroll for the asked type
+	{
+		grenade = Grenade_Roll(rarity, Loot_ZoneLevel(), (uint32_t)mt_rand());
+		if (self->style < 0 || grenade.type == self->style)
+			break;
+	}
+	edict_t *drop = Grenade_SpawnDrop(self, grenade, false);
+	drop->velocity = {};
+	G_FreeEdict(self);
+}
+
+// item_loot_grenade: a grenade mod placed in the map (loot_rarity, loot_grenade)
+void SP_item_loot_grenade(edict_t *self)
+{
+	if (deathmatch->integer)
+	{
+		G_FreeEdict(self);
+		return;
+	}
+	Loot_ReadPlacedKeys(self);
+	self->style = Grenade_TypeByName(st.loot_grenade);
+	self->think = Loot_PlacedGrenadeThink;
 	self->nextthink = level.time + FRAME_TIME_S;
 }
 

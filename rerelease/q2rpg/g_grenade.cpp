@@ -102,6 +102,17 @@ const char *Grenade_TypeName(loot_grenade_type_t type)
 // Rolling
 //==========================================================================
 
+int32_t Grenade_TypeByName(const char *name)
+{
+	if (!name || !*name)
+		return -1;
+	for (int32_t i = 0; i < LOOT_GRENADE_TYPE_COUNT; i++)
+		if (!Q_strcasecmp(name, grenade_types[i].name))
+			return i;
+	gi.Com_PrintFmt("loot_grenade: unknown \"{}\", rolling a random grenade mod\n", name);
+	return -1;
+}
+
 loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed)
 {
 	std::mt19937 rng(seed);

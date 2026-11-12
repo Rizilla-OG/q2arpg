@@ -179,33 +179,15 @@ The setting is saved. Use `g_loot_logs 1` to turn logging back on.
 ## For modders
 
 Q2ARPG works with custom maps and campaigns: put your `.bsp` files in the
-`q2rpg/maps/` folder and loot, XP, cash, elites, challenges and map
-modifiers apply automatically. New Game+ starts from wherever your campaign
-begins and kicks in when it ends on the standard victory screen.
+`q2rpg/maps/` folder and loot, XP, cash, elites, challenges and map modifiers
+apply automatically. Mappers can also tag monsters as Alphas, Omegas or
+bosses, place guns, shields and grenade mods, drop loot from triggers, turn
+off the vendor or map modifiers per map, and end a custom campaign into New
+Game+. The zip includes a TrenchBroom game config with all of it.
 
-Mappers can also use these keys:
-
-| Entity | Key | Value |
-|---|---|---|
-| any `monster_*` | `loot_elite` | `1` always an Alpha, `2` always an Alpha Omega |
-| any `monster_*` | `loot_boss` | `1` mini-boss, `2` unit boss: boss levels, cash, XP, drops and challenge credit |
-| `item_loot_gun` (point entity) | `loot_rarity` | `0` Common, `1` Uncommon, `2` Rare, `3` Epic, `4` Legendary, `5` Mythic (New Game+ only, else Legendary); leave out for random |
-| `item_loot_gun` | `loot_weapon` | archetype name (`Rocket Launcher`, `Rail Rifle`...) or weapon classname (`weapon_railgun`); leave out for random |
-| `worldspawn` | `loot_nomodifier` | `1` = no New Game+ map modifier on this map |
-| `worldspawn` | `loot_novendor` | `1` = the vendor won't open on this map (selling with `X` still works) |
-
-**TrenchBroom:** the release zip has an `fgd` folder with a Quake 2 game
-config that knows these keys (dropdowns on monsters and worldspawn, and
-`item_loot_gun` in the entity list). Copy it to `~/.TrenchBroom/games/Quake2-Q2ARPG/`
-on Linux or `%AppData%\TrenchBroom\games\Quake2-Q2ARPG\` on Windows, restart
-TrenchBroom and pick **Quake 2 (Q2ARPG)**. A test map is in `mapsrc/` in the repo.
-
-`item_loot_gun` places a rolled gun at the party's level, for example a
-Legendary in a secret. `loot_boss` doesn't change a monster's health; use the
-stock `health_multiplier` key for that. Later, guns, rarities and prices will
-move into data files so they can be changed without touching C++. If you're
-building something with Q2ARPG, [open an issue](https://github.com/Rizilla-OG/q2arpg/issues). I'd love to see it
-and hear what tools you need.
+See [MODDING.md](MODDING.md) for every key, the TrenchBroom setup and how to
+compile. Later, guns, rarities and prices will move into data files so they
+can be changed without touching C++.
 
 ## Ideas and feedback
 

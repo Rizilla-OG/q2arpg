@@ -1341,6 +1341,8 @@ struct spawn_temp_t
 	// q2rpg: mapper keys
 	int32_t loot_rarity = -1;	// item_loot_gun: 0 Common .. 5 Mythic (-1 random)
 	const char *loot_weapon;	// item_loot_gun: archetype name or weapon classname (blank random)
+	int32_t loot_unique;		// item_loot_gun: 1 unique, 2 second unique (NG+)
+	const char *loot_grenade;	// item_loot_grenade: grenade mod type name (blank random)
 	int32_t loot_nomodifier;	// worldspawn: 1 = no New Game+ map modifier
 	int32_t loot_novendor;		// worldspawn: 1 = vendor closed on this map
 	const char *noise_start, *noise_middle, *noise_end; // [Paril-KEX]
@@ -3295,6 +3297,7 @@ struct edict_t
 	bool loot_omega;			// q2rpg: NG+ Alpha Omega (also loot_elite)
 	int32_t loot_map_elite;		// q2rpg: mapper key loot_elite: 1 Alpha, 2 Omega
 	int32_t loot_map_boss;		// q2rpg: mapper key loot_boss: 1 mini-boss, 2 unit boss
+	int32_t loot_map_nodrop;	// q2rpg: mapper key loot_nodrop 1: no XP, cash, loot or challenge credit
 	gtime_t loot_mark_end;		// q2rpg: Tick Tock mark (takes +25% damage)
 	bool loot_death_spawned;	// q2rpg: spawned by another monster's death; never spawns more
 	bool loot_revived;			// q2rpg: brought back by a medic; its second death pays nothing

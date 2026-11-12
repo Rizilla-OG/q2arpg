@@ -246,6 +246,92 @@
         "Rail Rifle" : "Rail Rifle"
         "Annihilator" : "Annihilator"
     ]
+    loot_unique(Choices) : "Unique (forces Legendary; pick a weapon)" : 0 =
+    [
+        0 : "No"
+        1 : "The weapon's unique"
+        2 : "Its second unique (New Game+ only, else the first)"
+    ]
+]
+
+// Q2ARPG: a shield, rolled at the party's level when the map loads
+@PointClass base(EditorFlags) color(232 80 42) size(-16 -16 -16, 16 16 16) model({ "path": ":models/items/armor/screen/tris.md2" }) = item_loot_shield : "Q2ARPG: guaranteed shield"
+[
+    loot_rarity(Choices) : "Rarity" : -1 =
+    [
+        -1 : "Random"
+        0 : "Common"
+        1 : "Uncommon"
+        2 : "Rare"
+        3 : "Epic"
+        4 : "Legendary"
+        5 : "Mythic (New Game+ only, else Legendary)"
+    ]
+]
+
+// Q2ARPG: a grenade mod, rolled at the party's level when the map loads
+@PointClass base(EditorFlags) color(232 80 42) size(-16 -16 -16, 16 16 16) model({ "path": ":models/items/ammo/grenades/medium/tris.md2" }) = item_loot_grenade : "Q2ARPG: guaranteed grenade mod"
+[
+    loot_rarity(Choices) : "Rarity" : -1 =
+    [
+        -1 : "Random"
+        0 : "Common"
+        1 : "Uncommon"
+        2 : "Rare"
+        3 : "Epic"
+        4 : "Legendary"
+        5 : "Mythic (New Game+ only, else Legendary)"
+    ]
+    loot_grenade(Choices) : "Type" : "" =
+    [
+        "" : "Random"
+        "Frag" : "Frag"
+        "Cluster" : "Cluster"
+        "Sticky" : "Sticky"
+        "Vortex" : "Vortex"
+        "Leech" : "Leech"
+        "Hopper" : "Hopper"
+        "Airburst" : "Airburst"
+    ]
+]
+
+// Q2ARPG: drops a gun each time it's triggered
+@PointClass base(EditorFlags, Targetable) color(232 80 42) size(-8 -8 -8, 8 8 8) = target_loot_drop : "Q2ARPG: drops a gun when triggered"
+[
+    loot_rarity(Choices) : "Rarity" : -1 =
+    [
+        -1 : "Random"
+        0 : "Common"
+        1 : "Uncommon"
+        2 : "Rare"
+        3 : "Epic"
+        4 : "Legendary"
+        5 : "Mythic (New Game+ only, else Legendary)"
+    ]
+    loot_weapon(Choices) : "Weapon" : "" =
+    [
+        "" : "Random"
+        "Pistol" : "Pistol"
+        "Shotgun" : "Shotgun"
+        "Scattergun" : "Scattergun"
+        "SMG" : "SMG"
+        "Minigun" : "Minigun"
+        "Launcher" : "Launcher"
+        "Rocket Launcher" : "Rocket Launcher"
+        "Plasma Caster" : "Plasma Caster"
+        "Rail Rifle" : "Rail Rifle"
+        "Annihilator" : "Annihilator"
+    ]
+    loot_unique(Choices) : "Unique (forces Legendary; pick a weapon)" : 0 =
+    [
+        0 : "No"
+        1 : "The weapon's unique"
+        2 : "Its second unique (New Game+ only, else the first)"
+    ]
+]
+
+// Q2ARPG: ends the campaign and starts New Game+ when triggered
+@PointClass base(EditorFlags, Targetable) color(232 80 42) size(-8 -8 -8, 8 8 8) = target_ngplus : "Q2ARPG: end the campaign, start New Game+" []
 ]
 @PointClass base(Weapons) model({ "path": ":models/weapons/g_hyperb/tris.md2" }) = weapon_hyperblaster : "Hyperblaster" []
 @PointClass base(Weapons) model({ "path": ":models/weapons/g_rail/tris.md2" }) = weapon_railgun : "Rail gun" []
@@ -748,6 +834,11 @@ misc_satellite_dish : "Satellite Dish"
         0 : "No"
         1 : "Mini-boss"
         2 : "Unit boss"
+    ]
+    loot_nodrop(Choices) : "Q2ARPG: rewards" : 0 =
+    [
+        0 : "Normal"
+        1 : "None (no XP, cash, loot or challenge credit)"
     ]
 ]
 
