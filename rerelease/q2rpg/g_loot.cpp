@@ -2678,7 +2678,8 @@ static void Loot_SetupMonsterShield(edict_t *monster)
 
 void Loot_ScaleMonster(edict_t *monster)
 {
-	if (deathmatch->integer)
+	// harmless NPCs (crazed marines, actors) keep stock stats: no level, shield or Alpha roll
+	if (deathmatch->integer || (monster->monsterinfo.aiflags & AI_GOOD_GUY))
 		return;
 
 	Loot_ParseBossWeapons(monster);
@@ -2714,7 +2715,7 @@ void Loot_ScaleMonster(edict_t *monster)
 bool Loot_PromoteToOmega(edict_t *monster)
 {
 	vec3_t elite_origin;
-	if (monster->loot_elite || monster->s.scale || !Loot_EliteFits(monster, elite_origin))
+	if (monster->loot_elite || monster->s.scale || (monster->monsterinfo.aiflags & AI_GOOD_GUY) || !Loot_EliteFits(monster, elite_origin))
 		return false;
 
 	const float old_health_scale = Loot_MonsterHealthScale(monster);
@@ -3233,7 +3234,7 @@ static void Loot_TargetLine(edict_t *ent, char (&line)[48])
 	trace_t tr = gi.traceline(start, end, ent, MASK_SHOT);
 	edict_t *t = tr.ent;
 	ent->client->loot_aim_ent = nullptr;
-	if (!t || !(t->svflags & SVF_MONSTER) || t->health <= 0 || t->deadflag)
+	if (!t || !(t->svflags & SVF_MONSTER) || (t->monsterinfo.aiflags & AI_GOOD_GUY) || t->health <= 0 || t->deadflag)
 		return;
 	ent->client->loot_aim_ent = t;
 
@@ -3360,7 +3361,7 @@ static void Loot_ShieldFrame(edict_t *ent)
 
 static bool Loot_BarValid(const edict_t *t)
 {
-	return t && t->inuse && (t->svflags & SVF_MONSTER) && t->health > 0 && !t->deadflag;
+	return t && t->inuse && (t->svflags & SVF_MONSTER) && !(t->monsterinfo.aiflags & AI_GOOD_GUY) && t->health > 0 && !t->deadflag;
 }
 
 // Packs the overhead health bar target into stats for cg_loot.cpp.

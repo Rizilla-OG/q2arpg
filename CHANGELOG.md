@@ -8,6 +8,7 @@
 - Map modifiers no longer change after dying and reloading the map-start autosave. (It happened when a map's first roll was skipped for repeating the previous map's modifier.)
 - Tougher, more frequent elites: Alphas have x3 health (was x2.5) and Alpha Omegas x5 (was x4); from level 25, 25% of monsters spawn as Alphas (was 20%); in New Game+, 15% of Alphas are Omegas (was 10%).
 - Balance stats: `loot_stats` and `loot_stats.csv` now show the average time to kill (first hit to death) for normal monsters, Alphas, Omegas and bosses. An older CSV is kept as `loot_stats_before_ttk1.csv` and a fresh one starts.
+- Harmless NPCs (the crazed marines) no longer get monster levels, shields or Alpha upgrades, and show no health bar.
 - Gun, shield and grenade cards: stat values and changes now line up in neat columns.
 - Mapper fixes:
   - `loot_start_level` above the level cap no longer heals players every frame (it made them unkillable).
