@@ -1663,6 +1663,7 @@ static int32_t Loot_ArchetypeByName(const char *name)
 
 static void Loot_ReadPlacedKeys(edict_t *self)
 {
+	gi.linkentity(self);                                // Drop_Item spawns at the center of absmin/absmax, which stay 0 0 0 until linked
 	self->count = st.loot_rarity;                       // rarity, -1 random
 	self->style = Loot_ArchetypeByName(st.loot_weapon); // archetype, -1 random
 	self->sounds = st.loot_unique;                      // unique variant, 0 none
