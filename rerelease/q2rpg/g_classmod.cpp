@@ -124,7 +124,7 @@ std::string ClassMod_BriefLine(const loot_classmod_t &mod)
 		if (mod.skills[i] < 0)
 			continue;
 		if (!line.empty())
-			line += "  ";
+			line += " ";
 		line += G_Fmt("+{} {}", mod.bonus[i], Skill_Name(mod.tree, mod.skills[i])).data();
 	}
 	return line;

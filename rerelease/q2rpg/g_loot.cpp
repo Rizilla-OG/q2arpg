@@ -3174,13 +3174,10 @@ static void Loot_SendInventory(edict_t *ent)
 			row("|" + Grenade_LoadoutLine(grenade), 13);
 		}
 
+		// one row: page 0 sits near the 1024-char layout limit
 		const loot_classmod_t &classmod = cl->pers.loot_classmod;
 		if (classmod.valid)
-		{
-			row("^aCLASS MOD", 12);
-			row(G_Fmt("|{} ({} {})", classmod.name, Loot_RarityName(classmod.rarity), Skill_TreeName(classmod.tree)).data());
-			row("|" + ClassMod_BriefLine(classmod), 13);
-		}
+			row(G_Fmt("^aCLASS^w|{}: {}", classmod.name, ClassMod_BriefLine(classmod)).data(), 13);
 
 		row("^a[1-4] equip  [G] drop  [I] gun details");
 	}
@@ -3236,8 +3233,13 @@ static void Loot_SendInventory(edict_t *ent)
 		row("^a[1-4] equip  [G] drop  [I] close");
 	}
 
-	if (s.size() > 1000) // engine layout limit is 1024
+	// engine layout limit is 1024; warn once per new size, not every refresh
+	static size_t warned_size;
+	if (s.size() > 1000 && s.size() != warned_size)
+	{
+		warned_size = s.size();
 		gi.Com_PrintFmt("loadout: layout {} chars, near limit\n", s.size());
+	}
 	Loot_SendLayout(ent, s);
 }
 
