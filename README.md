@@ -8,7 +8,7 @@ A looter-boomer-shooter mod for the Quake II rerelease (2023). Every gun is roll
 with a rarity, a maker, parts and sometimes an element. Level up, pick a skill
 tree, shop at vendors, chase challenges, and replay the campaign in New Game+.
 
-**Version 0.9.3 (public alpha).** The version is shown in the console when
+**Version 0.9.4 (public alpha).** The version is shown in the console when
 the mod loads. See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
 Download the latest release: https://github.com/Rizilla-OG/q2arpg/releases
 
@@ -93,7 +93,8 @@ Controller binds exist for split-screen but are **beta**.
   melts and makes targets take more damage. Afflicted monsters glow.
 - **Levels and skills:** kills give XP. Each level gives a skill point. Pick
   one of three trees (Gunner, Juggernaut, Elementalist); each has its own
-  action skill on `F`.
+  action skill on `F`. Once a tree is full, spare points go into Mastery
+  (+1% to the tree's main stat each).
 - **Shields** absorb damage and recharge; some have special effects.
 - **Grenade mods** change what `Q` throws (Frag, Cluster, Sticky, Vortex,
   Leech, Hopper, Airburst). Hand grenades are the ammo. Legendary mods get a
