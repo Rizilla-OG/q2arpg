@@ -206,7 +206,7 @@ constexpr int32_t LOOT_MAX_LEVEL = 50;  // player level cap (Loot_LevelCap adds 
 constexpr int32_t LOOT_NGPLUS_LEVEL_CAP_BONUS = 10;
 constexpr int32_t LOOT_REINFORCEMENT_PAY_CAP = 40;  // called-in reinforcements that pay out per map
 constexpr float LOOT_REINFORCEMENT_PAY_MULT = 0.5f; // their XP and cash
-constexpr int32_t LOOT_NUM_CHALLENGES = 13;         // g_challenge.cpp table size
+constexpr int32_t LOOT_NUM_CHALLENGES = 15;         // g_challenge.cpp table size (saved arrays grow fine; older saves start new ones at 0)
 constexpr int32_t LOOT_CHALLENGE_TIERS = 4;         // tier 4 is NG+ only
 
 // NG+ Alpha traits (bit flags on edict_t::loot_alpha_traits, g_ngplus.cpp)

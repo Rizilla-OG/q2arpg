@@ -2956,6 +2956,7 @@ struct gclient_t
 	bool loot_showskills;
 	bool loot_showchallenges; // q2rpg: challenges screen open
 	gtime_t loot_challenges_time;
+	int32_t loot_challenges_page; // q2rpg: 0 or 1 (two pages fit the 1024-char layout limit)
 	gtime_t loot_skills_time;
 	gtime_t loot_action_ready;	   // action skill usable at
 	gtime_t loot_overcharge_end;

@@ -21,6 +21,8 @@ enum challenge_kind_t
 	CH_CASH,
 	CH_GRENADE_KILLS,
 	CH_OMEGA_KILLS,
+	CH_CRYO_KILLS,      // killed while chilled or frozen
+	CH_EXPLOSIVE_KILLS, // last hit by an explosive gun or an explosive blast
 };
 
 // What tier 4 drops at the player's feet
@@ -59,6 +61,8 @@ static const challenge_def_t challenges[LOOT_NUM_CHALLENGES] = {
     {CH_CASH, "Payday", "Cash picked up", {1000, 10000, 50000, 250000}, RW_MYTHIC_GUN, -1, LOOT_ELEM_NONE, "+3% cash pickups"},
     {CH_GRENADE_KILLS, "Grenadier", "Grenade kills", {25, 100, 300, 1000}, RW_MYTHIC_GRENADE, -1, LOOT_ELEM_NONE, "+3% grenade damage"},
     {CH_OMEGA_KILLS, "Omega Hunter", "Omega kills (NG+)", {2, 8, 20, 50}, RW_MYTHIC_GUN, -1, LOOT_ELEM_NONE, "+3% XP"},
+    {CH_CRYO_KILLS, "Cold Snap", "Kills while chilled", {25, 150, 500, 2000}, RW_MYTHIC_ELEMENT, -1, LOOT_ELEM_CRYO, "+3% dmg vs chilled"},
+    {CH_EXPLOSIVE_KILLS, "Demolition", "Explosive kills", {25, 150, 500, 2000}, RW_MYTHIC_ELEMENT, -1, LOOT_ELEM_EXPLOSIVE, "+3% blast damage"},
 };
 
 constexpr float BADGE_BONUS = 0.03f;
@@ -176,6 +180,10 @@ void Challenge_OnKill(edict_t *monster, edict_t *attacker)
 		Challenge_Add(attacker, CH_SHOCK_KILLS, 1);
 	if (monster->loot_hit_elements & (1 << LOOT_ELEM_CORROSIVE))
 		Challenge_Add(attacker, CH_CORROSIVE_KILLS, 1);
+	if (monster->loot_hit_elements & (1 << LOOT_ELEM_CRYO))
+		Challenge_Add(attacker, CH_CRYO_KILLS, 1);
+	if (monster->loot_hit_elements & (1 << LOOT_ELEM_EXPLOSIVE))
+		Challenge_Add(attacker, CH_EXPLOSIVE_KILLS, 1);
 	if (monster->loot_elite)
 		Challenge_Add(attacker, CH_ELITE_KILLS, 1);
 	if (monster->loot_omega)
@@ -223,6 +231,8 @@ float Challenge_BadgeDamageMult(edict_t *attacker, edict_t *targ, edict_t *infli
 
 	if (Loot_IsBossTier(targ))
 		badge(CH_BOSS_KILLS);
+	if (targ->loot_status.active && (targ->loot_status.chill_end > level.time || targ->loot_status.freeze_end > level.time))
+		badge(CH_CRYO_KILLS);
 
 	switch (mod.id)
 	{
@@ -237,6 +247,9 @@ float Challenge_BadgeDamageMult(edict_t *attacker, edict_t *targ, edict_t *infli
 			break;
 		case MOD_LOOT_GRENADE:
 			badge(CH_GRENADE_KILLS);
+			break;
+		case MOD_LOOT_EXPLODE:
+			badge(CH_EXPLOSIVE_KILLS);
 			break;
 		case MOD_LOOT_TURRET:
 		case MOD_LOOT_SLAM:
@@ -286,10 +299,13 @@ static void Challenge_SendScreen(edict_t *ent)
 	std::string s = "loot_dim xl 16 loot_tabs \"140 300 380\" ";
 	int32_t y = 24;
 
-	s += G_Fmt("yv {} string2 \"CHALLENGES\" ", y).data();
+	// two pages: one doesn't fit the 1024-char layout limit
+	constexpr int32_t per_page = 8;
+	const int32_t page = std::clamp(ent->client->loot_challenges_page, 0, 1);
+	s += G_Fmt("yv {} string2 \"CHALLENGES  {}/2\" ", y, page + 1).data();
 	y += 16;
 
-	for (int32_t i = 0; i < LOOT_NUM_CHALLENGES; i++)
+	for (int32_t i = page * per_page; i < std::min(LOOT_NUM_CHALLENGES, (page + 1) * per_page); i++)
 	{
 		const challenge_def_t &def = challenges[i];
 		const int32_t tier = pers.loot_challenge_tier[i];
@@ -307,7 +323,7 @@ static void Challenge_SendScreen(edict_t *ent)
 	}
 
 	y += 6;
-	s += G_Fmt("yv {} string2 \"Each tier pays XP + cash   [J] close\" ", y).data();
+	s += G_Fmt("yv {} string2 \"Each tier pays XP + cash   [J] {}\" ", y, page == 0 ? "next page" : "close").data();
 	if (game.loot_ngplus > 0)
 	{
 		y += 10;
@@ -338,7 +354,16 @@ bool Challenge_ClientCommand(edict_t *ent, const char *cmd)
 		return false;
 
 	gclient_t *cl = ent->client;
-	cl->loot_showchallenges = !cl->loot_showchallenges;
+	// J: page 1 -> page 2 -> close
+	if (!cl->loot_showchallenges)
+	{
+		cl->loot_showchallenges = true;
+		cl->loot_challenges_page = 0;
+	}
+	else if (cl->loot_challenges_page == 0)
+		cl->loot_challenges_page = 1;
+	else
+		cl->loot_showchallenges = false;
 	cl->loot_showinv = false;
 	cl->loot_showskills = false;
 	cl->loot_challenges_time = 0_ms;

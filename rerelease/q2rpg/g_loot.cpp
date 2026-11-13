@@ -1756,7 +1756,11 @@ void Loot_RecordDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, int
 		targ->loot_hit_elements = (st.burn_end > level.time ? 1 << LOOT_ELEM_FIRE : 0) |
 		                          (st.shock_end > level.time ? 1 << LOOT_ELEM_SHOCK : 0) |
 		                          (st.melt_end > level.time ? 1 << LOOT_ELEM_CORROSIVE : 0) |
-		                          (st.chill_end > level.time ? 1 << LOOT_ELEM_CRYO : 0);
+		                          (st.chill_end > level.time || st.freeze_end > level.time ? 1 << LOOT_ELEM_CRYO : 0);
+		// explosive has no status: an explosive gun's hit or a blast marks it
+		const loot_weapon_t *hit_gun = Loot_HitGun(inflictor, attacker, mod);
+		if (mod.id == MOD_LOOT_EXPLODE || (hit_gun && hit_gun->element == LOOT_ELEM_EXPLOSIVE))
+			targ->loot_hit_elements |= 1 << LOOT_ELEM_EXPLOSIVE;
 	}
 
 	cl->loot_dmg_ent = targ;
