@@ -2,6 +2,8 @@
 
 ## Unreleased (next update)
 
+## 0.9.5
+
 - Fixes from a code review of the new features: rift reward loot now drops at the guardian instead of the map origin; a rift map's exit can no longer clear your inventory on the way home; the tank guardian (it could never become an Omega) was swapped for a regular tank; explosive blasts are limited to one per enemy every 0.3 s, so explosive shield novas and grenades can't chain into huge blast stacks; the cryo refreeze wait survives the chill wearing off; coop players return from a rift on free spots instead of inside walls; Conductor counts chilled and frozen enemies; the target line shows Chilled / Frozen; the loot filter's hidden drops no longer count in the drop stats; and selling your held gun cancels its reload.
 - 2 new challenges: **Cold Snap** (kills while chilled or frozen; badge: +3% damage to chilled enemies) and **Demolition** (kills with explosive guns or blasts; badge: +3% blast damage). Each tier 4 drops a Mythic gun of that element. The J screen now has 2 pages: press J again for page 2.
 - New: a loot filter. Press L to cycle through off, hide Common, hide Uncommon and below, and hide Rare and below. Filtered monster drops just don't appear. Epic and up always drop, and boss loot, map-placed loot and rift rewards are never filtered. In coop each player has their own setting, and it's saved with your character.
