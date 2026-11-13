@@ -2956,6 +2956,7 @@ struct gclient_t
 	bool loot_shop_open;
 	int32_t loot_shop_page; // q2rpg: shop page (vendor_page_t)
 	int32_t loot_stash_page; // q2rpg: page of the stash list (8 slots each)
+	bool loot_stash_only;    // q2rpg: shop opened free with B, stash pages only
 	gtime_t loot_shop_time;
 	gtime_t loot_sell_confirm_time;
 	int32_t loot_sell_confirm_id; // edict number of floor item, or -(slot + 1)

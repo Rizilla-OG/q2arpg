@@ -526,7 +526,9 @@ static void Vendor_SendStash(edict_t *ent)
 	y += 6;
 	line("string", "Empty: store floor item, else held gun. Full: take out");
 	y += 6;
-	line("string2", page + 1 < pages ? "[1-8] store / take  [9] next page  [V] close" : "[1-8] store / take  [9] back  [V] close");
+	const char *next = page + 1 < pages ? "next page" : cl->loot_stash_only ? "page 1"
+	                                                                        : "back";
+	line("string2", G_Fmt("[1-8] store / take  [9] {}  [{}] close", next, cl->loot_stash_only ? "B" : "V").data());
 	Loot_SendLayout(ent, s);
 }
 
@@ -617,12 +619,46 @@ static void Vendor_StashUse(edict_t *ent, int32_t n)
 	ent->client->loot_shop_time = 0_ms;
 }
 
-// "loot_stash" (B): send the floor item you stand on to the first free stash slot, anywhere
+// B with no loot underfoot: open the stash for free (never a paid shop view), or close it
+static void Vendor_StashView(edict_t *ent)
+{
+	gclient_t *cl = ent->client;
+	if (cl->loot_shop_open && cl->loot_stash_only)
+	{
+		cl->loot_shop_open = false;
+		return;
+	}
+	if (cl->loot_shop_open) // paid shop already up: jump to its stash page
+	{
+		cl->loot_shop_page = VENDOR_PAGE_STASH;
+		cl->loot_stash_page = 0;
+		cl->loot_shop_time = 0_ms;
+		return;
+	}
+	if (ent->health <= 0 || level.intermissiontime)
+		return;
+	cl->loot_showinv = false;
+	cl->loot_showskills = false;
+	cl->loot_showchallenges = false;
+	cl->loot_shop_open = true;
+	cl->loot_stash_only = true;
+	cl->loot_shop_page = VENDOR_PAGE_STASH;
+	cl->loot_stash_page = 0;
+	cl->loot_shop_time = 0_ms; // draw now
+}
+
+// "loot_stash" (B): send the floor item you stand on to the first free stash slot, anywhere;
+// with nothing underfoot, open / close the stash for free
 static void Vendor_StashCommand(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
 	edict_t *floor = Loot_TouchTarget(ent);
-	if (!floor || ent->health <= 0)
+	if (!floor)
+	{
+		Vendor_StashView(ent);
+		return;
+	}
+	if (ent->health <= 0)
 		return;
 	const int32_t open_slots = Vendor_StashOpenSlots(ent);
 	for (int32_t i = 0; i < open_slots; i++)
@@ -757,6 +793,12 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 	if (n == 9 && cl->loot_shop_page == VENDOR_PAGE_STASH && cl->loot_stash_page + 1 < Vendor_StashPages(ent))
 	{
 		cl->loot_stash_page++;
+		cl->loot_shop_time = 0_ms;
+		return;
+	}
+	if (n == 9 && cl->loot_stash_only) // free stash view never reaches the shop pages
+	{
+		cl->loot_stash_page = 0;
 		cl->loot_shop_time = 0_ms;
 		return;
 	}
@@ -996,6 +1038,8 @@ static bool Vendor_Pay(edict_t *ent, int32_t price);
 static void Vendor_Toggle(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
+	if (cl->loot_shop_open && cl->loot_stash_only)
+		cl->loot_shop_open = false; // V from the free stash view opens the real shop (paid as usual)
 	if (cl->loot_shop_open)
 	{
 		// q2rpg: shop hidden under challenges: bring it back instead of closing
@@ -1025,6 +1069,7 @@ static void Vendor_Toggle(edict_t *ent)
 	cl->loot_showskills = false;
 	cl->loot_showchallenges = false;
 	cl->loot_shop_open = true;
+	cl->loot_stash_only = false;
 	cl->loot_shop_page = 0;
 	cl->loot_shop_time = 0_ms; // draw now
 	if (price > 0)
