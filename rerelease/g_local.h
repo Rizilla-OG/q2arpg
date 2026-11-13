@@ -2830,6 +2830,8 @@ struct client_persistant_t
 	bool loot_shields_unlocked;
 	loot_grenade_t loot_grenade; // q2rpg: equipped grenade mod
 	loot_classmod_t loot_classmod; // q2rpg: equipped class mod
+	std::array<loot_stash_slot_t, LOOT_STASH_SLOTS> loot_stash; // q2rpg: stash (vendor page 4)
+	int32_t loot_stash_bought; // q2rpg: extra 4-slot rows bought at Lv 60
 	int32_t loot_tree; // loot_tree_t
 	std::array<uint8_t, LOOT_NUM_SKILLS> loot_skill_ranks;
 	int32_t loot_money;
@@ -2953,6 +2955,7 @@ struct gclient_t
 	// q2rpg: vendor (transient)
 	bool loot_shop_open;
 	int32_t loot_shop_page; // q2rpg: shop page (vendor_page_t)
+	int32_t loot_stash_page; // q2rpg: page of the stash list (8 slots each)
 	gtime_t loot_shop_time;
 	gtime_t loot_sell_confirm_time;
 	int32_t loot_sell_confirm_id; // edict number of floor item, or -(slot + 1)

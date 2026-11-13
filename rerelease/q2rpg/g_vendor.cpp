@@ -122,6 +122,7 @@ enum vendor_page_t
 	VENDOR_PAGE_STOCK,
 	VENDOR_PAGE_UPGRADES,
 	VENDOR_PAGE_WORKSHOP,
+	VENDOR_PAGE_STASH,
 	VENDOR_PAGE_COUNT
 };
 
@@ -431,8 +432,184 @@ static void Vendor_SendWorkshop(edict_t *ent)
 		line("string", "3  - sold -");
 
 	y += 6;
-	line("string2", "[1-3] buy  [9] back  [V] close");
+	line("string2", "[1-3] buy  [9] stash >  [V] close");
 	Loot_SendLayout(ent, s);
+}
+
+static int32_t Vendor_CountGuns(gclient_t *cl);
+static bool Vendor_Pay(edict_t *ent, int32_t price);
+
+//==========================================================================
+// Stash page
+//==========================================================================
+
+static bool Vendor_StashSlotUsed(const loot_stash_slot_t &slot)
+{
+	return slot.gun.valid || slot.shield.valid || slot.grenade.valid || slot.classmod.valid;
+}
+
+// one line: kind, name, level and rarity
+static std::string Vendor_StashLine(const loot_stash_slot_t &slot)
+{
+	if (slot.gun.valid)
+		return G_Fmt("Gun     {}  L{} {}", slot.gun.name, Loot_GunLevel(slot.gun), Loot_RarityName(slot.gun.rarity)).data();
+	if (slot.shield.valid)
+		return G_Fmt("Shield  {}  L{} {}", slot.shield.name, slot.shield.level, Loot_RarityName(slot.shield.rarity)).data();
+	if (slot.grenade.valid)
+		return G_Fmt("Grenade {}  L{} {}", slot.grenade.name, slot.grenade.level, Loot_RarityName(slot.grenade.rarity)).data();
+	if (slot.classmod.valid)
+		return G_Fmt("Class   {}  {} {}", slot.classmod.name, Loot_RarityName(slot.classmod.rarity), Skill_TreeName(slot.classmod.tree)).data();
+	return "- empty -";
+}
+
+// 4 slots at Lv 1, +4 every 10 levels: 28 at Lv 60, plus bought rows
+static int32_t Vendor_StashOpenSlots(edict_t *ent)
+{
+	const int32_t level = std::max(1, ent->client->pers.loot_level);
+	const int32_t from_level = std::min(28, 4 + 4 * (level / 10));
+	return std::min(LOOT_STASH_SLOTS, from_level + 4 * ent->client->pers.loot_stash_bought);
+}
+
+constexpr int32_t STASH_BUY_LEVEL = LOOT_MAX_LEVEL + LOOT_NGPLUS_LEVEL_CAP_BONUS; // 60
+
+// 0 when no more rows can be bought (under Lv 60 or all bought): $25k, 50k, 100k, 200k
+static int32_t Vendor_StashBuyPrice(edict_t *ent)
+{
+	const gclient_t *cl = ent->client;
+	if (cl->pers.loot_level < STASH_BUY_LEVEL || cl->pers.loot_stash_bought >= LOOT_STASH_BUYS)
+		return 0;
+	return 25000 << cl->pers.loot_stash_bought;
+}
+
+// the buy row takes the key after the last slot, so it counts as one more entry
+static int32_t Vendor_StashEntries(edict_t *ent)
+{
+	return Vendor_StashOpenSlots(ent) + (Vendor_StashBuyPrice(ent) ? 1 : 0);
+}
+
+static int32_t Vendor_StashPages(edict_t *ent)
+{
+	return (Vendor_StashEntries(ent) + LOOT_STASH_PAGE_SLOTS - 1) / LOOT_STASH_PAGE_SLOTS;
+}
+
+static void Vendor_SendStash(edict_t *ent)
+{
+	gclient_t *cl = ent->client;
+	std::string s = "loot_dim xl 16 "; // dim backdrop first so text draws on top
+	int32_t y = 24;
+	auto line = [&](const char *kind, const std::string &text)
+	{
+		s += G_Fmt("yv {} {} \"{}\" ", y, kind, text).data();
+		y += 10;
+	};
+	// x carries over; one line per slot keeps this well under the 1024-char layout limit
+
+	const int32_t open_slots = Vendor_StashOpenSlots(ent);
+	const int32_t pages = Vendor_StashPages(ent);
+	const int32_t page = std::clamp(cl->loot_stash_page, 0, pages - 1);
+	line("string2", G_Fmt("STASH  page {}/{}   {} slots (+4 every 10 levels)", page + 1, pages, open_slots).data());
+	y += 6;
+	for (int32_t key = 1; key <= LOOT_STASH_PAGE_SLOTS; key++)
+	{
+		const int32_t index = page * LOOT_STASH_PAGE_SLOTS + key - 1;
+		if (index == open_slots && Vendor_StashBuyPrice(ent))
+		{
+			const int32_t price = Vendor_StashBuyPrice(ent);
+			line(price <= cl->pers.loot_money ? "string2" : "string", G_Fmt("{}  Buy 4 more slots  ${}", key, price).data());
+			break;
+		}
+		if (index >= open_slots)
+			break;
+		const loot_stash_slot_t &slot = cl->pers.loot_stash[index];
+		line(Vendor_StashSlotUsed(slot) ? "string2" : "string", G_Fmt("{}  {}", key, Vendor_StashLine(slot)).data());
+	}
+	y += 6;
+	line("string", "Empty: store floor item, else held gun. Full: take out");
+	y += 6;
+	line("string2", page + 1 < pages ? "[1-8] store / take  [9] next page  [V] close" : "[1-8] store / take  [9] back  [V] close");
+	Loot_SendLayout(ent, s);
+}
+
+// Store into an empty slot: the floor item you stand on, else the held gun.
+static void Vendor_StashStore(edict_t *ent, loot_stash_slot_t &slot)
+{
+	gclient_t *cl = ent->client;
+	edict_t *floor = Loot_TouchTarget(ent);
+	if (floor)
+	{
+		if (floor->target)
+			G_UseTargets(floor, ent); // placed loot fires its targets like a pickup
+		slot.gun = floor->loot.valid && !floor->loot_shield.valid && !floor->loot_grenade.valid && !floor->loot_classmod.valid ? floor->loot : loot_weapon_t{};
+		slot.shield = floor->loot_shield;
+		slot.grenade = floor->loot_grenade;
+		slot.classmod = floor->loot_classmod;
+		G_FreeEdict(floor);
+		cl->loot_touch_ent = nullptr;
+		cl->loot_card_sent = nullptr;
+	}
+	else
+	{
+		if (!Loot_Active(ent))
+			return;
+		if (Vendor_CountGuns(cl) <= 1)
+		{
+			gi.Center_Print(ent, "Can't stash your last gun");
+			return;
+		}
+		slot.gun = Loot_RemoveActiveGun(ent, true);
+	}
+	gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/am_pkup.wav"), 1, ATTN_NORM, 0);
+	gi.Center_Print(ent, "Stashed");
+}
+
+// Take out of a full slot. A gun goes to an empty gun slot, or swaps with the held gun.
+// Gear replaces what you wear; the old piece drops at your feet like a pickup.
+static void Vendor_StashTake(edict_t *ent, loot_stash_slot_t &slot)
+{
+	gclient_t *cl = ent->client;
+	const loot_stash_slot_t taken = slot;
+	slot = {};
+
+	if (taken.gun.valid)
+	{
+		bool has_empty_slot = false;
+		for (const auto &g : cl->pers.loot_slots)
+			has_empty_slot |= !g.valid;
+		if (!has_empty_slot && Loot_Active(ent))
+			slot.gun = Loot_RemoveActiveGun(ent, false); // swap: held gun goes in
+		Loot_GiveGun(ent, taken.gun);
+	}
+	else if (taken.shield.valid)
+		Loot_GiveShield(ent, taken.shield);
+	else if (taken.grenade.valid)
+		Grenade_Give(ent, taken.grenade);
+	else if (taken.classmod.valid)
+		ClassMod_Give(ent, taken.classmod);
+}
+
+static void Vendor_StashUse(edict_t *ent, int32_t n)
+{
+	const int32_t page = std::clamp(ent->client->loot_stash_page, 0, Vendor_StashPages(ent) - 1);
+	const int32_t index = page * LOOT_STASH_PAGE_SLOTS + n - 1;
+	if (n < 1 || n > LOOT_STASH_PAGE_SLOTS || index > Vendor_StashOpenSlots(ent) || ent->health <= 0)
+		return;
+	if (n >= 1 && n <= LOOT_STASH_PAGE_SLOTS && index == Vendor_StashOpenSlots(ent) && Vendor_StashBuyPrice(ent))
+	{
+		if (!Vendor_Pay(ent, Vendor_StashBuyPrice(ent)))
+			return;
+		ent->client->pers.loot_stash_bought++;
+		gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/secret.wav"), 1, ATTN_NORM, 0);
+		gi.Center_Print(ent, G_Fmt("Stash: {} slots", Vendor_StashOpenSlots(ent)).data());
+		return;
+	}
+	if (index >= Vendor_StashOpenSlots(ent))
+		return;
+	loot_stash_slot_t &slot = ent->client->pers.loot_stash[index];
+	if (Vendor_StashSlotUsed(slot))
+		Vendor_StashTake(ent, slot);
+	else
+		Vendor_StashStore(ent, slot);
+	ent->client->loot_shop_time = 0_ms;
 }
 
 static void Vendor_SendShop(edict_t *ent)
@@ -446,6 +623,11 @@ static void Vendor_SendShop(edict_t *ent)
 	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP)
 	{
 		Vendor_SendWorkshop(ent);
+		return;
+	}
+	if (cl->loot_shop_page == VENDOR_PAGE_STASH)
+	{
+		Vendor_SendStash(ent);
 		return;
 	}
 	const int32_t money = cl->pers.loot_money;
@@ -544,11 +726,24 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 {
 	gclient_t *cl = ent->client;
 
-	// 9 cycles stock -> upgrades -> workshop
+	// 9 cycles stock -> upgrades -> workshop -> stash pages -> stock
+	if (n == 9 && cl->loot_shop_page == VENDOR_PAGE_STASH && cl->loot_stash_page + 1 < Vendor_StashPages(ent))
+	{
+		cl->loot_stash_page++;
+		cl->loot_shop_time = 0_ms;
+		return;
+	}
 	if (n == 9)
 	{
+		cl->loot_stash_page = 0;
 		cl->loot_shop_page = (cl->loot_shop_page + 1) % VENDOR_PAGE_COUNT;
 		cl->loot_shop_time = 0_ms;
+		return;
+	}
+
+	if (cl->loot_shop_page == VENDOR_PAGE_STASH)
+	{
+		Vendor_StashUse(ent, n);
 		return;
 	}
 

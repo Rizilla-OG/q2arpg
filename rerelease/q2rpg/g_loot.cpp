@@ -3717,10 +3717,24 @@ static void Loot_Cmd_Drop(edict_t *ent)
 		return;
 	}
 
-	Loot_SpawnDrop(ent, cl->pers.loot_slots[slot], true);
+	Loot_SpawnDrop(ent, Loot_RemoveActiveGun(ent, true), true);
+}
+
+// Takes the held gun out of its slot (drop, sell, stash). With select_next, switches to
+// the next gun; without, the caller is about to give one (stash swap).
+loot_weapon_t Loot_RemoveActiveGun(edict_t *ent, bool select_next)
+{
+	gclient_t *cl = ent->client;
+	const int32_t slot = cl->pers.loot_active_slot;
+	if (slot < 0 || slot >= LOOT_NUM_SLOTS)
+		return {};
+
+	const loot_weapon_t gun = cl->pers.loot_slots[slot];
 	cl->pers.loot_slots[slot] = {};
 	Loot_CancelReload(cl);
 	Loot_SyncInventory(ent);
+	if (!select_next)
+		return gun;
 
 	for (int32_t i = 0; i < LOOT_NUM_SLOTS; i++)
 	{
@@ -3731,6 +3745,7 @@ static void Loot_Cmd_Drop(edict_t *ent)
 			break;
 		}
 	}
+	return gun;
 }
 
 static void Loot_Cmd_Dump(edict_t *ent)

@@ -314,6 +314,22 @@ struct loot_weapon_t
 	char name[48];
 };
 
+// Stash (g_vendor.cpp, shop page 4): per-character storage, kept across maps and NG+.
+// One slot holds one item of any kind; the valid member says which.
+// Open slots grow with player level: 4 at Lv 1, +4 every 10 levels (28 at Lv 60), then
+// Lv 60 players can buy 4 more slots up to LOOT_STASH_BUYS times (cash sink).
+constexpr int32_t LOOT_STASH_BUYS = 4;
+constexpr int32_t LOOT_STASH_SLOTS = 28 + 4 * LOOT_STASH_BUYS;
+constexpr int32_t LOOT_STASH_PAGE_SLOTS = 8; // keys 1-8 per stash page
+
+struct loot_stash_slot_t
+{
+	loot_weapon_t gun;
+	loot_shield_t shield;
+	loot_grenade_t grenade;
+	loot_classmod_t classmod;
+};
+
 // time-to-kill stat buckets (loot_stats_t::ttk_*)
 enum loot_ttk_kind_t : int32_t
 {

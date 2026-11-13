@@ -190,6 +190,7 @@ void Loot_SendLayout(edict_t *ent, const std::string &s);
 std::string Loot_GunBrief(const loot_weapon_t &g);
 void Loot_GiveGun(edict_t *ent, const loot_weapon_t &gun);
 void Loot_GiveShield(edict_t *ent, const loot_shield_t &sh);
+loot_weapon_t Loot_RemoveActiveGun(edict_t *ent, bool select_next); // held gun out of its slot
 
 // grenade mods (g_grenade.cpp)
 loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t forced_type = -1);

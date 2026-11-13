@@ -745,6 +745,18 @@ SAVE_STRUCT_END
 
 MAKE_STRUCT_SAVE_DEDUCER(loot_classmod_t);
 
+// q2rpg: one stash slot
+#define DECLARE_SAVE_STRUCT loot_stash_slot_t
+SAVE_STRUCT_START
+	FIELD_AUTO(gun),
+	FIELD_AUTO(shield),
+	FIELD_AUTO(grenade),
+	FIELD_AUTO(classmod)
+SAVE_STRUCT_END
+#undef DECLARE_SAVE_STRUCT
+
+MAKE_STRUCT_SAVE_DEDUCER(loot_stash_slot_t);
+
 // q2rpg: per-map balance stats
 #define DECLARE_SAVE_STRUCT loot_stats_t
 SAVE_STRUCT_START
@@ -987,6 +999,8 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_shields_unlocked),
 	FIELD_AUTO(loot_grenade),
 	FIELD_AUTO(loot_classmod),
+	FIELD_AUTO(loot_stash),
+	FIELD_AUTO(loot_stash_bought),
 	FIELD_AUTO(loot_tree),
 	FIELD_AUTO(loot_skill_ranks),
 	FIELD_AUTO(loot_money),
