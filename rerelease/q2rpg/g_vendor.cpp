@@ -260,6 +260,8 @@ void Vendor_DropCash(edict_t *monster, edict_t *attacker)
 	const float base_health = Loot_MonsterBaseHealth(monster);
 	const int32_t mlevel = std::max(1, monster->loot_mlevel);
 	float amount = (5.f + base_health * 0.15f) * (1.0f + 0.1f * (mlevel - 1)) * frandom(0.75f, 1.25f);
+	if (monster->monsterinfo.aiflags & AI_SPAWNED_MASK)
+		amount *= LOOT_REINFORCEMENT_PAY_MULT; // called-in reinforcements
 	if (monster->loot_elite)
 		amount *= monster->loot_omega ? 6.f : 3.f;
 	if (Loot_IsBossTier(monster))
@@ -306,6 +308,11 @@ static void Vendor_SpawnCash(edict_t *monster, float amount, edict_t *owner)
 // Rolled once per map at spawn; saved with the level, so a revisited map keeps its stock.
 void Vendor_RollStock()
 {
+	// q2rpg: roll from the map seed + paid reroll count (the global rng is swapped out and put
+	// back), so dying and restarting the map can't reroll the shop for free
+	const std::mt19937 saved_rng = mt_rand;
+	mt_rand.seed(NGPlus_MapSeed() ^ 0x5eed5eedu ^ ((uint32_t)level.loot_vendor_rerolls * 0x85ebca6bu)); // paid rerolls still get new stock
+
 	const int32_t zone = Loot_ZoneLevel();
 	const float luck = 1.0f + Loot_ZoneLuck();
 
@@ -320,6 +327,8 @@ void Vendor_RollStock()
 	if (Loot_ShieldsAvailable())
 		level.loot_vendor_shield = Loot_RollShield(Loot_RollRarity(luck), zone, (uint32_t)mt_rand());
 	level.loot_vendor_grenade = Grenade_Roll(Loot_RollRarity(luck), zone, (uint32_t)mt_rand());
+
+	mt_rand = saved_rng;
 }
 
 //==========================================================================

@@ -1208,7 +1208,17 @@ void monster_death_use(edict_t *self)
 		edict_t *killer = NGPlus_KillCredit(self->monsterinfo.damage_attacker); // Volatile blasts credit the Alpha's killer
 		// q2rpg: a medic-revived monster already paid out once, and a mapper's loot_nodrop monster pays nothing:
 		// no xp, cash, drops or challenge progress
-		if (!self->loot_revived && !self->loot_map_nodrop)
+		// q2rpg: called-in reinforcements (medic commander, carrier, widow) stop paying after a
+		// per-map cap, so a caller left alive can't be farmed forever
+		bool pays = !self->loot_revived && !self->loot_map_nodrop;
+		if (pays && (self->monsterinfo.aiflags & AI_SPAWNED_MASK))
+		{
+			if (level.loot_reinforcements_paid >= LOOT_REINFORCEMENT_PAY_CAP)
+				pays = false;
+			else
+				level.loot_reinforcements_paid++;
+		}
+		if (pays)
 		{
 			Loot_AwardXP(self, killer);
 			Challenge_OnKill(self, killer);

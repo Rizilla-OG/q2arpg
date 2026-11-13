@@ -1188,6 +1188,7 @@ struct level_locals_t
 	loot_shield_t loot_vendor_shield;
 	loot_grenade_t loot_vendor_grenade; // q2rpg
 	int32_t loot_vendor_rerolls; // q2rpg: stock rerolls bought on this map (price climbs)
+	int32_t loot_reinforcements_paid; // q2rpg: called-in reinforcements (medic commander, carrier...) that paid out on this map
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
 	bool loot_novendor;			 // q2rpg: worldspawn loot_novendor 1, the shop won't open on this map
 	int32_t loot_level_bonus;	 // q2rpg: worldspawn loot_level_bonus, added to monster levels

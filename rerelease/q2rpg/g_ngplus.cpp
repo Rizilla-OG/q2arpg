@@ -26,7 +26,12 @@ void NGPlus_OnMapSpawn()
 	if (deathmatch->integer)
 		return;
 	if (!game.loot_start_map[0])
+	{
 		Q_strlcpy(game.loot_start_map, level.mapname, sizeof(game.loot_start_map));
+		// q2rpg: a brand-new game: random save seed, so each playthrough rolls its own shops and modifiers
+		if (!game.loot_map_mod_seed)
+			game.loot_map_mod_seed = (uint32_t)irandom(1, INT32_MAX);
+	}
 	NGPlus_SpawnBounty();
 }
 
@@ -143,6 +148,24 @@ void NGPlus_ForceMapMod(const char *name)
 	gi.Com_PrintFmt("loot_modifier: unknown \"{}\"\n", name);
 }
 
+static uint32_t NGPlus_Fnv1a(const char *text)
+{
+	uint32_t hash = 2166136261u;
+	for (const char *c = text; *c; c++)
+		hash = (hash ^ (uint8_t)*c) * 16777619u;
+	return hash;
+}
+
+// q2rpg: fixed per save + map + NG+ cycle, so restarting a map (death, reload) rolls
+// the same modifier and vendor stock. A brand-new game gets a random save seed; a save
+// made before seeds existed gets one from its start map.
+uint32_t NGPlus_MapSeed()
+{
+	if (!game.loot_map_mod_seed)
+		game.loot_map_mod_seed = game.loot_start_map[0] ? (NGPlus_Fnv1a(game.loot_start_map) | 1u) : (uint32_t)irandom(1, INT32_MAX);
+	return game.loot_map_mod_seed ^ NGPlus_Fnv1a(level.mapname) ^ ((uint32_t)game.loot_ngplus * 0x9e3779b9u);
+}
+
 void NGPlus_RollMapMod()
 {
 	if (deathmatch->integer || game.loot_ngplus <= 0)
@@ -153,19 +176,7 @@ void NGPlus_RollMapMod()
 
 	// q2rpg: roll from the save's seed + NG+ cycle + map name, so reloading an
 	// autosave from before the roll gives the same modifier (no rerolling)
-	auto fnv1a = [](const char *text)
-	{
-		uint32_t hash = 2166136261u;
-		for (const char *c = text; *c; c++)
-			hash = (hash ^ (uint8_t)*c) * 16777619u;
-		return hash;
-	};
-	// q2rpg: a brand-new game gets a random seed; a save made before seeds existed
-	// gets one from its start map, so every reload of it rolls the same
-	if (!game.loot_map_mod_seed)
-		game.loot_map_mod_seed = game.loot_start_map[0] ? (fnv1a(game.loot_start_map) | 1u) : (uint32_t)irandom(1, INT32_MAX);
-	uint32_t map_hash = fnv1a(level.mapname);
-	std::mt19937 map_rng(game.loot_map_mod_seed ^ map_hash ^ ((uint32_t)game.loot_ngplus * 0x9e3779b9u));
+	std::mt19937 map_rng(NGPlus_MapSeed());
 
 	// q2rpg: the no-repeat check uses the modifier of the map before this one. The
 	// map-start autosave already holds this map's own roll as "last", so a reload

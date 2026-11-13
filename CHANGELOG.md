@@ -2,6 +2,8 @@
 
 ## Unreleased (next update)
 
+- The vendor's stock no longer rerolls when you die and the map restarts; only a paid reroll changes it.
+- Reinforcements that other monsters call in (Medic Commander, Carrier, Widow) give half XP and cash, and stop paying after 40 per map, so they can't be farmed.
 - The level's monster count no longer goes up for death spawns that had no room to appear, so "all monsters killed" can be reached again.
 
 ## 0.9.4

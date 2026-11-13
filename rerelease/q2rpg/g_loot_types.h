@@ -180,8 +180,10 @@ enum loot_tree_t : uint8_t
 constexpr int32_t LOOT_NUM_SKILLS = 12; // 9 base + NG+ tier-4 row
 constexpr int32_t LOOT_MAX_LEVEL = 50;  // player level cap (Loot_LevelCap adds LOOT_NGPLUS_LEVEL_CAP_BONUS in NG+)
 constexpr int32_t LOOT_NGPLUS_LEVEL_CAP_BONUS = 10;
-constexpr int32_t LOOT_NUM_CHALLENGES = 13; // g_challenge.cpp table size
-constexpr int32_t LOOT_CHALLENGE_TIERS = 4; // tier 4 is NG+ only
+constexpr int32_t LOOT_REINFORCEMENT_PAY_CAP = 40;  // called-in reinforcements that pay out per map
+constexpr float LOOT_REINFORCEMENT_PAY_MULT = 0.5f; // their XP and cash
+constexpr int32_t LOOT_NUM_CHALLENGES = 13;         // g_challenge.cpp table size
+constexpr int32_t LOOT_CHALLENGE_TIERS = 4;         // tier 4 is NG+ only
 
 // NG+ Alpha traits (bit flags on edict_t::loot_alpha_traits, g_ngplus.cpp)
 enum loot_alpha_trait_t : int32_t

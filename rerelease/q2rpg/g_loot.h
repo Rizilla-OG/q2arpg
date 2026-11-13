@@ -228,6 +228,7 @@ void Unique_MakeAva(loot_weapon_t &gun);
 const char *Unique_Tribute(int32_t unique); // memorial text for the gun card, or nullptr
 void Unique_OnKill(edict_t *killer);
 void Unique_AvaMapSpawn();
+uint32_t NGPlus_MapSeed(); // fixed per save + map + NG+ cycle
 void Unique_BeginFire(edict_t *ent);
 void Unique_EndFire(edict_t *ent);
 void Unique_TagSpawn(edict_t *e);

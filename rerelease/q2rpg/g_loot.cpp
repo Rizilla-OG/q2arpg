@@ -2826,6 +2826,8 @@ void Loot_AwardXP(edict_t *monster, edict_t *attacker)
 		xp_scale *= monster->loot_omega ? 4.f : 2.5f;
 	xp_scale *= 1 + game.loot_ngplus; // NG+: early maps' weak monsters still level a high character
 	xp_scale *= NGPlus_XPMult();      // Bloodthirsty
+	if (monster->monsterinfo.aiflags & AI_SPAWNED_MASK)
+		xp_scale *= LOOT_REINFORCEMENT_PAY_MULT; // called-in reinforcements
 	const int32_t xp = 5 + (int32_t)(Loot_MonsterBaseHealth(monster) * 0.4f * xp_scale);
 
 	loot_stats_t &stats = level.loot_stats;
