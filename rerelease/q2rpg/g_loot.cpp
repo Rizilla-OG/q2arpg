@@ -2547,6 +2547,9 @@ THINK(loot_death_spawner_think)(edict_t *self)->void
 		const trace_t tr = gi.trace(monster->s.origin, monster->mins, monster->maxs, monster->s.origin, monster, MASK_MONSTERSOLID);
 		if (tr.startsolid || tr.allsolid)
 		{
+			// monster_start already counted it; take it back out so the kill count can still reach the total
+			if (!(monster->monsterinfo.aiflags & AI_DO_NOT_COUNT) && level.total_monsters > 0)
+				level.total_monsters--;
 			G_FreeEdict(monster);
 			continue;
 		}
