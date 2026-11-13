@@ -160,7 +160,7 @@ loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, 
 		grenade.fuse = std::max(0.5f, grenade.fuse * AIRBURST_FUSE_MULT);
 	grenade.speed = GRENADE_BASE_SPEED * mk.speed;
 
-	// element: same odds as guns; Brask / Vexa / Salvage lean
+	// element: same odds as guns; Brask fire, Vexa shock, Salvage corrosive, Kessler cryo, Hardline explosive lean
 	static const float elem_odds[LOOT_RARITY_COUNT] = {0.10f, 0.25f, 0.40f, 0.60f, 0.80f, 1.00f};
 	if (rf(0.f, 1.f) < elem_odds[rarity < LOOT_RARITY_COUNT ? rarity : 0])
 	{
@@ -173,6 +173,10 @@ loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, 
 				grenade.element = LOOT_ELEM_SHOCK;
 			else if (grenade.maker == LOOT_MAKER_SALVAGE)
 				grenade.element = LOOT_ELEM_CORROSIVE;
+			else if (grenade.maker == LOOT_MAKER_KESSLER)
+				grenade.element = LOOT_ELEM_CRYO;
+			else if (grenade.maker == LOOT_MAKER_HARDLINE)
+				grenade.element = LOOT_ELEM_EXPLOSIVE;
 		}
 		grenade.elem_chance = std::min(1.f, 0.5f + 0.08f * r);
 	}

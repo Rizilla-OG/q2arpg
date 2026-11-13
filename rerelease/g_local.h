@@ -1085,7 +1085,9 @@ enum mod_id_t : uint8_t
 	MOD_LOOT_SHOCK,
 	MOD_LOOT_TURRET,
 	MOD_LOOT_SLAM,
-	MOD_LOOT_GRENADE // q2rpg: grenade mods
+	MOD_LOOT_GRENADE, // q2rpg: grenade mods
+	MOD_LOOT_FREEZE,  // q2rpg: cryo nova / shatter
+	MOD_LOOT_EXPLODE  // q2rpg: explosive proc blast
 };
 
 struct mod_t

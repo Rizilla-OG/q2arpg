@@ -25,20 +25,26 @@ static const uint32_t element_tracer_colors[LOOT_ELEM_COUNT] = {
     0xe0e1e2e3, // fire: orange
     0xf1f3b0f1, // shock: blue
     0xd0d1d2d3, // corrosive: green
+    0x0f0e6ff1, // cryo: white / pale blue
+    0xdcdde0e1, // explosive: gold / orange
 };
 
 static const rgba_t element_light_colors[LOOT_ELEM_COUNT] = {
     {0, 0, 0, 0},
-    {255, 120, 20, 255}, // fire
-    {80, 140, 255, 255}, // shock
-    {90, 255, 40, 255},  // corrosive
+    {255, 120, 20, 255},  // fire
+    {80, 140, 255, 255},  // shock
+    {90, 255, 40, 255},   // corrosive
+    {170, 225, 255, 255}, // cryo
+    {255, 200, 60, 255},  // explosive
 };
 
 static const renderfx_t element_shells[LOOT_ELEM_COUNT] = {
     RF_NONE,
-    RF_SHELL_RED,   // fire
-    RF_SHELL_BLUE,  // shock
-    RF_SHELL_GREEN, // corrosive
+    RF_SHELL_RED,                   // fire
+    RF_SHELL_BLUE,                  // shock
+    RF_SHELL_GREEN,                 // corrosive
+    RF_SHELL_BLUE | RF_SHELL_GREEN, // cryo: cyan
+    RF_SHELL_RED | RF_SHELL_GREEN,  // explosive: yellow
 };
 
 static edict_t *LootFx_SpawnBeam(uint32_t color, int32_t width)

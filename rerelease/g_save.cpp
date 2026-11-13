@@ -793,6 +793,10 @@ SAVE_STRUCT_START
 	FIELD_AUTO(melt_dps),
 	FIELD_AUTO(shock_end),
 	FIELD_AUTO(shock_dmg),
+	FIELD_AUTO(chill_end),
+	FIELD_AUTO(chill_stacks),
+	FIELD_AUTO(freeze_end),
+	FIELD_AUTO(freeze_ready),
 	FIELD_AUTO(shell)
 SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT

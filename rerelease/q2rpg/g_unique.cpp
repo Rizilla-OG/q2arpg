@@ -28,7 +28,7 @@ static const unique_def_t unique_defs[LOOT_UNIQUE_COUNT] = {
     // second uniques (NG+)
     {"Last Word", "last round in the magazine hits x3 and crits"},
     {"Bulwark", "pellet hits restore 1% shield each"},
-    {"Prism", "element cycles fire/shock/corrosive each shot"},
+    {"Prism", "element cycles through all 5 each shot"},
     {"Tick Tock", "every 10th hit marks: +25% damage taken for 4s"},
     {"Furnace", "damage ramps +5%/s while held, up to +50%"},
     {"Tar Pit", "grenades leave a corrosive puddle that bogs monsters down"},
@@ -635,7 +635,7 @@ void Unique_BfgImpact(edict_t *bfg)
 		{
 			if (!(e->svflags & SVF_MONSTER) || e->health <= 0 || e->deadflag || (e->monsterinfo.aiflags & AI_GOOD_GUY))
 				continue;
-			for (int32_t el = LOOT_ELEM_NONE + 1; el < LOOT_ELEM_COUNT; el++)
+			for (int32_t el = LOOT_ELEM_FIRE; el <= LOOT_ELEM_CORROSIVE; el++) // the original three (an explosive per monster would spam blasts)
 				Loot_ApplyStatus(e, owner, (loot_element_t)el, bfg->radius_dmg / 4);
 		}
 		T_RadiusDamage(bfg, owner, bfg->radius_dmg * 0.5f, nullptr, nova_radius, DAMAGE_ENERGY, MOD_BFG_BLAST);

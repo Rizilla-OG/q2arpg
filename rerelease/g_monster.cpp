@@ -548,6 +548,10 @@ void M_MoveFrame(edict_t *self)
 
 	self->nextthink = level.time + FRAME_TIME_S;
 
+	// q2rpg: frozen monsters don't animate, move or attack
+	if (Loot_MonsterFrozen(self))
+		return;
+
 	// time to run next 10hz move yet?
 	bool run_frame = self->monsterinfo.next_move_time <= level.time;
 
@@ -625,7 +629,7 @@ void M_MoveFrame(edict_t *self)
 		if (self->monsterinfo.aiflags & AI_HIGH_TICK_RATE)
 			self->monsterinfo.next_move_time = level.time;
 		else
-			self->monsterinfo.next_move_time = level.time + (self->loot_elite ? Loot_EliteFrameTime(self) : 10_hz); // q2rpg: badass animate faster
+			self->monsterinfo.next_move_time = level.time + Loot_MonsterFrameTime(self); // q2rpg: badass animate faster, chilled slower
 
 		if ((self->monsterinfo.nextframe) && !((self->monsterinfo.nextframe >= move->firstframe) &&
 			(self->monsterinfo.nextframe <= move->lastframe)))
@@ -642,6 +646,7 @@ void M_MoveFrame(edict_t *self)
 		{
 			float dist = move->frame[index].dist * self->monsterinfo.scale;
 			dist /= gi.tick_rate / 10;
+			dist *= Loot_MonsterMoveScale(self); // q2rpg: chilled monsters walk slower
 			move->frame[index].aifunc(self, dist);
 		}
 		else
@@ -1226,6 +1231,7 @@ void monster_death_use(edict_t *self)
 			Loot_MonsterDrop(self);
 			Loot_DeathSpawn(self);
 		}
+		Loot_CryoShatter(self, killer); // q2rpg: frozen kills burst and chill neighbors
 		Skill_OnMonsterKilled(self, killer);
 		Unique_OnKill(killer); // q2rpg: Ava's Zoomies
 		Loot_SecondChanceKill(killer);

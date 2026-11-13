@@ -426,8 +426,8 @@ void Loot_LoadData()
 	gi.Com_PrintFmt("loot_data.json: {} values changed, {} problems\n", r.changes, r.problems);
 }
 
-static const char *const loot_element_names[LOOT_ELEM_COUNT] = {"None", "Fire", "Shock", "Corrosive"};
-static const char *const loot_element_short[LOOT_ELEM_COUNT] = {"", "Fir", "Shk", "Cor"};
+static const char *const loot_element_names[LOOT_ELEM_COUNT] = {"None", "Fire", "Shock", "Corrosive", "Cryo", "Explosive"};
+static const char *const loot_element_short[LOOT_ELEM_COUNT] = {"", "Fir", "Shk", "Cor", "Cry", "Exp"};
 
 // Per-archetype proc scale: pellet guns hit many times per shot,
 // slow single-shot guns hit rarely.
@@ -610,6 +610,10 @@ loot_weapon_t Loot_Roll(loot_archetype_t archetype, loot_rarity_t rarity, uint32
 				e = LOOT_ELEM_SHOCK;
 			else if (gun.maker == LOOT_MAKER_SALVAGE)
 				e = LOOT_ELEM_CORROSIVE;
+			else if (gun.maker == LOOT_MAKER_KESSLER)
+				e = LOOT_ELEM_CRYO;
+			else if (gun.maker == LOOT_MAKER_HARDLINE)
+				e = LOOT_ELEM_EXPLOSIVE;
 		}
 		gun.element = e;
 		gun.elem_chance = 0.10f + 0.04f * r + rf(0.f, 0.06f);
@@ -1355,7 +1359,8 @@ float Loot_ReloadDip(edict_t *ent)
 // damage from loot systems themselves: no crits, procs or skill bonuses
 static bool Loot_IsStatusMod(const mod_t &mod)
 {
-	return mod.id == MOD_LOOT_BURN || mod.id == MOD_LOOT_MELT || mod.id == MOD_LOOT_SHOCK || mod.id == MOD_LOOT_TURRET || mod.id == MOD_LOOT_SLAM;
+	return mod.id == MOD_LOOT_BURN || mod.id == MOD_LOOT_MELT || mod.id == MOD_LOOT_SHOCK || mod.id == MOD_LOOT_TURRET || mod.id == MOD_LOOT_SLAM ||
+	       mod.id == MOD_LOOT_FREEZE || mod.id == MOD_LOOT_EXPLODE;
 }
 
 // q2rpg: the gun behind a player hit: projectiles carry the gun that fired them,
@@ -1371,7 +1376,7 @@ static loot_weapon_t *Loot_HitGun(edict_t *inflictor, edict_t *attacker, const m
 
 void Loot_StatusSparks(edict_t *ent, loot_element_t element)
 {
-	static const int32_t colors[LOOT_ELEM_COUNT] = {0, 0xe0, 0x70, 0xd0};
+	static const int32_t colors[LOOT_ELEM_COUNT] = {0, 0xe0, 0x70, 0xd0, 0x0b, 0xdc}; // cryo white, explosive gold
 
 	vec3_t pos = (ent->absmin + ent->absmax) * 0.5f;
 	pos[0] += crandom() * ent->size[0] * 0.3f;
@@ -1398,6 +1403,10 @@ static void Loot_UpdateShell(edict_t *ent)
 		want |= (int32_t)RF_SHELL_GREEN;
 	if (st.shock_end > level.time)
 		want |= (int32_t)RF_SHELL_BLUE;
+	if (st.chill_end > level.time)
+		want |= (int32_t)(RF_SHELL_BLUE | RF_SHELL_GREEN); // cyan
+	if (st.freeze_end > level.time)
+		want = (int32_t)(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE); // white: frozen solid
 
 	// applied each frame by M_SetEffects, which owns monster shell bits
 	st.shell = want;
@@ -1406,6 +1415,98 @@ static void Loot_UpdateShell(edict_t *ent)
 static void Loot_ClearStatus(edict_t *ent)
 {
 	ent->loot_status = {};
+}
+
+// Cryo tuning
+constexpr float CRYO_CHILL_SECONDS = 3.0f;
+constexpr int32_t CRYO_FREEZE_STACKS = 3;
+constexpr float CRYO_FREEZE_SECONDS = 1.5f;
+constexpr float CRYO_REFREEZE_SECONDS = 3.0f; // after a freeze ends, so fast guns can't chain-freeze
+constexpr float CRYO_SLOW = 0.6f;             // chilled speed (bosses CRYO_BOSS_SLOW)
+constexpr float CRYO_BOSS_SLOW = 0.8f;
+constexpr float CRYO_FROZEN_DAMAGE = 1.3f; // frozen targets take more from everything
+constexpr float CRYO_SHATTER_RADIUS = 192.f;
+// Explosive tuning
+constexpr float EXPLOSIVE_DAMAGE = 0.6f; // of the proc hit, to everything in the blast (target too)
+constexpr float EXPLOSIVE_RADIUS = 120.f;
+
+static bool Loot_Chilled(const edict_t *monster)
+{
+	return monster->loot_status.active && monster->loot_status.chill_end > level.time;
+}
+
+bool Loot_MonsterFrozen(const edict_t *monster)
+{
+	return monster->loot_status.active && monster->loot_status.freeze_end > level.time && monster->health > 0;
+}
+
+float Loot_MonsterMoveScale(const edict_t *monster)
+{
+	if (!Loot_Chilled(monster))
+		return 1.0f;
+	return Loot_IsBossTier(monster) ? CRYO_BOSS_SLOW : CRYO_SLOW;
+}
+
+gtime_t Loot_MonsterFrameTime(const edict_t *monster)
+{
+	const gtime_t base = monster->loot_elite ? Loot_EliteFrameTime(monster) : 10_hz;
+	if (!Loot_Chilled(monster))
+		return base;
+	return gtime_t::from_ms((int64_t)(base.milliseconds() / Loot_MonsterMoveScale(monster)));
+}
+
+// Explosive procs blast on the next server frame, so the blast never kills the target in
+// the middle of the T_Damage that procced it (that would count the kill twice).
+THINK(Loot_ExplosionThink)(edict_t *self)->void
+{
+	edict_t *attacker = (self->owner && self->owner->inuse) ? self->owner : world;
+
+	gi.WriteByte(svc_temp_entity);
+	gi.WriteByte(TE_EXPLOSION1_NP);
+	gi.WritePosition(self->s.origin);
+	gi.multicast(self->s.origin, MULTICAST_PHS, false);
+
+	for (edict_t *e = nullptr; (e = findradius(e, self->s.origin, EXPLOSIVE_RADIUS)) != nullptr;)
+	{
+		if (!(e->svflags & SVF_MONSTER) || e->health <= 0 || e->deadflag || !e->takedamage || (e->monsterinfo.aiflags & AI_GOOD_GUY))
+			continue;
+		vec3_t dir = e->s.origin - self->s.origin;
+		const float dist = dir.normalize();
+		const float falloff = 1.0f - 0.5f * std::min(1.f, dist / EXPLOSIVE_RADIUS); // 100% at the center, 50% at the edge
+		T_Damage(e, attacker, attacker, dir, e->s.origin, vec3_origin, std::max(1, (int32_t)(self->dmg * falloff)), 40, DAMAGE_RADIUS, MOD_LOOT_EXPLODE);
+	}
+	G_FreeEdict(self);
+}
+
+static void Loot_QueueExplosion(edict_t *targ, edict_t *attacker, float damage)
+{
+	edict_t *blast = G_Spawn();
+	blast->classname = "loot_explosion";
+	blast->s.origin = (targ->absmin + targ->absmax) * 0.5f;
+	blast->owner = attacker;
+	blast->dmg = std::max(1, (int32_t)damage);
+	blast->think = Loot_ExplosionThink;
+	blast->nextthink = level.time + FRAME_TIME_S;
+	gi.linkentity(blast);
+}
+
+// Killed while frozen: the ice bursts and chills everything near it.
+void Loot_CryoShatter(edict_t *monster, edict_t *attacker)
+{
+	// health is already 0 here, so check the freeze timer directly
+	if (!monster->loot_status.active || monster->loot_status.freeze_end <= level.time)
+		return;
+	const vec3_t org = (monster->absmin + monster->absmax) * 0.5f;
+	gi.sound(monster, CHAN_AUTO, gi.soundindex("world/brkglas.wav"), 1, ATTN_NORM, 0);
+	for (int32_t i = 0; i < 3; i++)
+		Loot_StatusSparks(monster, LOOT_ELEM_CRYO);
+	for (edict_t *e = nullptr; (e = findradius(e, org, CRYO_SHATTER_RADIUS)) != nullptr;)
+	{
+		if (e == monster || !(e->svflags & SVF_MONSTER) || e->health <= 0 || e->deadflag || !e->takedamage || (e->monsterinfo.aiflags & AI_GOOD_GUY))
+			continue;
+		Loot_ApplyStatus(e, attacker, LOOT_ELEM_CRYO, 1);
+	}
+	monster->loot_status.freeze_end = 0_ms;
 }
 
 void Loot_ApplyStatus(edict_t *targ, edict_t *attacker, loot_element_t element, int32_t hit)
@@ -1441,6 +1542,22 @@ void Loot_ApplyStatus(edict_t *targ, edict_t *attacker, loot_element_t element, 
 		case LOOT_ELEM_SHOCK:
 			st.shock_dmg = std::max({st.shock_end > level.time ? st.shock_dmg : 0.f, h * 0.25f * dot, 2.f});
 			st.shock_end = level.time + secs(1.5f);
+			break;
+		case LOOT_ELEM_CRYO:
+			// chill slows; CRYO_FREEZE_STACKS procs while chilled freeze a non-boss solid
+			if (st.chill_end <= level.time)
+				st.chill_stacks = 0;
+			st.chill_end = level.time + secs(CRYO_CHILL_SECONDS);
+			if (++st.chill_stacks >= CRYO_FREEZE_STACKS && !Loot_IsBossTier(targ) && level.time >= st.freeze_ready && st.freeze_end <= level.time)
+			{
+				st.chill_stacks = 0;
+				st.freeze_end = level.time + secs(CRYO_FREEZE_SECONDS);
+				st.freeze_ready = st.freeze_end + gtime_t::from_sec(CRYO_REFREEZE_SECONDS);
+				gi.sound(targ, CHAN_AUTO, gi.soundindex("world/brkglas.wav"), 1, ATTN_NORM, 0);
+			}
+			break;
+		case LOOT_ELEM_EXPLOSIVE:
+			Loot_QueueExplosion(targ, attacker, h * EXPLOSIVE_DAMAGE * dot);
 			break;
 		default:
 			return;
@@ -1480,6 +1597,10 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 	// corroded targets take extra damage from everything
 	if (targ->loot_status.active && targ->loot_status.melt_end > level.time)
 		damage = (int32_t)ceilf(damage * 1.25f);
+
+	// frozen ones too
+	if (Loot_MonsterFrozen(targ))
+		damage = (int32_t)ceilf(damage * CRYO_FROZEN_DAMAGE);
 
 	// Tick Tock marks: same bonus, stacks with corrosion
 	if (targ->loot_mark_end > level.time)
@@ -1559,8 +1680,9 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 		LootFx_ProcLight(attacker, element); // gun procs only, not turret / slam / spread
 
 		if (g_loot_debug->integer)
-			gi.Com_PrintFmt("[loot] {} proc on {} (hit {}, burn {:.1f} melt {:.1f} shock {:.1f})\n", Loot_ElementName(element),
-			                targ->classname, damage, targ->loot_status.burn_dps, targ->loot_status.melt_dps, targ->loot_status.shock_dmg);
+			gi.Com_PrintFmt("[loot] {} proc on {} (hit {}, burn {:.1f} melt {:.1f} shock {:.1f} chill {} frozen {})\n", Loot_ElementName(element),
+			                targ->classname, damage, targ->loot_status.burn_dps, targ->loot_status.melt_dps, targ->loot_status.shock_dmg,
+			                targ->loot_status.chill_stacks, Loot_MonsterFrozen(targ));
 	}
 
 	damage = Unique_OnHit(targ, attacker, *gun, damage, mod); // Lancer, Bulwark, Tick Tock, Executioner
@@ -1633,7 +1755,8 @@ void Loot_RecordDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, int
 		const loot_status_t &st = targ->loot_status;
 		targ->loot_hit_elements = (st.burn_end > level.time ? 1 << LOOT_ELEM_FIRE : 0) |
 		                          (st.shock_end > level.time ? 1 << LOOT_ELEM_SHOCK : 0) |
-		                          (st.melt_end > level.time ? 1 << LOOT_ELEM_CORROSIVE : 0);
+		                          (st.melt_end > level.time ? 1 << LOOT_ELEM_CORROSIVE : 0) |
+		                          (st.chill_end > level.time ? 1 << LOOT_ELEM_CRYO : 0);
 	}
 
 	cl->loot_dmg_ent = targ;
@@ -1667,8 +1790,9 @@ void Loot_RunStatus(edict_t *ent)
 	const bool burn = st.burn_end > level.time;
 	const bool melt = st.melt_end > level.time;
 	const bool shock = st.shock_end > level.time;
+	const bool chill = st.chill_end > level.time || st.freeze_end > level.time;
 
-	if (!burn && !melt && !shock)
+	if (!burn && !melt && !shock && !chill)
 	{
 		Loot_ClearStatus(ent);
 		return;
@@ -1695,13 +1819,16 @@ void Loot_RunStatus(edict_t *ent)
 		Loot_StatusSparks(ent, LOOT_ELEM_SHOCK);
 		Loot_StatusDamage(ent, attacker, st.shock_dmg, MOD_LOOT_SHOCK);
 
-		// stagger: force a pain reaction
-		if (ent->health > 0 && ent->pain)
+		// stagger: force a pain reaction (not while frozen: it would thaw the pose)
+		if (ent->health > 0 && ent->pain && !Loot_MonsterFrozen(ent))
 		{
 			ent->pain_debounce_time = 0_ms;
 			ent->pain(ent, attacker, 0, (int32_t)st.shock_dmg, MOD_LOOT_SHOCK);
 		}
 	}
+
+	if (chill && ent->health > 0)
+		Loot_StatusSparks(ent, LOOT_ELEM_CRYO);
 
 	if (ent->health <= 0)
 		Loot_ClearStatus(ent);
@@ -1716,7 +1843,7 @@ void Loot_RunStatus(edict_t *ent)
 static void Loot_ShieldNova(edict_t *player, const loot_shield_t &sh)
 {
 	const float dmg = sh.capacity * 0.6f;
-	static const mod_id_t mods[LOOT_ELEM_COUNT] = {MOD_LOOT_BURN, MOD_LOOT_BURN, MOD_LOOT_SHOCK, MOD_LOOT_MELT};
+	static const mod_id_t mods[LOOT_ELEM_COUNT] = {MOD_LOOT_BURN, MOD_LOOT_BURN, MOD_LOOT_SHOCK, MOD_LOOT_MELT, MOD_LOOT_FREEZE, MOD_LOOT_EXPLODE};
 
 	gi.WriteByte(svc_temp_entity);
 	gi.WriteByte(TE_EXPLOSION1_NP);
@@ -3824,6 +3951,13 @@ static void Loot_Cmd_Spawn(edict_t *ent)
 		const int32_t a = std::clamp(atoi(gi.argv(1)), 0, LOOT_ARCH_COUNT - 1);
 		const int32_t r = std::clamp(atoi(gi.argv(2)), 0, LOOT_RARITY_COUNT - 1);
 		gun = Loot_Roll((loot_archetype_t)a, (loot_rarity_t)r, (uint32_t)mt_rand());
+		// optional 4th arg: force an element (0 none, 1 fire, 2 shock, 3 corrosive, 4 cryo, 5 explosive)
+		if (gi.argc() >= 4)
+		{
+			gun.element = (loot_element_t)std::clamp(atoi(gi.argv(3)), 0, LOOT_ELEM_COUNT - 1);
+			if (gun.element && gun.elem_chance <= 0.f)
+				gun.elem_chance = 0.10f + 0.04f * r;
+		}
 	}
 	else
 		gun = Loot_RollRandom(gi.argc() >= 2 ? (float)atof(gi.argv(1)) : 0.f);

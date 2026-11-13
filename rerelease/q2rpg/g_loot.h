@@ -105,6 +105,10 @@ int32_t Loot_XPToNext(int32_t level);
 void Loot_ScaleMonster(edict_t *monster);
 bool Loot_EliteFire(edict_t *self, const vec3_t &start, const vec3_t &dir, monster_muzzleflash_id_t flashtype, loot_elite_fire_t original);
 gtime_t Loot_EliteFrameTime(const edict_t *monster);
+gtime_t Loot_MonsterFrameTime(const edict_t *monster);      // M_MoveFrame: elite faster, chilled slower
+float Loot_MonsterMoveScale(const edict_t *monster);        // M_MoveFrame: chilled walk slower
+bool Loot_MonsterFrozen(const edict_t *monster);            // M_MoveFrame: frozen skips the frame
+void Loot_CryoShatter(edict_t *monster, edict_t *attacker); // killed while frozen: chill nearby
 void Loot_AwardXP(edict_t *monster, edict_t *attacker);
 void Loot_GiveXP(edict_t *ent, int32_t xp);
 

@@ -81,7 +81,7 @@ static const tree_def_t tree_defs[LOOT_TREE_COUNT] = {
                                                                                  {"Avatar", "overcharge: every hit procs", 1},
                                                                                  {"Fusion", "+10% proc dmg, mixed element", 5},
                                                                                  {"Spread", "10%: status jumps on death", 5},
-                                                                                 {"Prism Heart", "procs rotate all 3 elements", 1},
+                                                                                 {"Prism Heart", "procs rotate all 5 elements", 1},
                                                                              }},
 };
 
@@ -389,11 +389,12 @@ float Skill_FusionMult(edict_t *ent, edict_t *targ, loot_element_t element)
 
 	const bool other = (element != LOOT_ELEM_FIRE && st.burn_end > level.time) ||
 	                   (element != LOOT_ELEM_CORROSIVE && st.melt_end > level.time) ||
-	                   (element != LOOT_ELEM_SHOCK && st.shock_end > level.time);
+	                   (element != LOOT_ELEM_SHOCK && st.shock_end > level.time) ||
+	                   (element != LOOT_ELEM_CRYO && st.chill_end > level.time);
 	return other ? 1.0f + 0.10f * r : 1.0f;
 }
 
-// Prism Heart: each proc takes the next element in fire -> shock -> corrosive
+// Prism Heart: each proc takes the next element in fire -> shock -> corrosive -> cryo -> explosive
 loot_element_t Skill_ProcElement(edict_t *ent, loot_element_t element)
 {
 	if (!element || !RANK(LOOT_TREE_ELEMENTALIST, SK_PRISM))
@@ -485,6 +486,8 @@ static void Skill_SpreadStatus(edict_t *monster, edict_t *ent)
 		Loot_ApplyStatus(best, ent, LOOT_ELEM_CORROSIVE, (int32_t)(st.melt_dps / (0.35f * dot)));
 	if (st.shock_end > level.time)
 		Loot_ApplyStatus(best, ent, LOOT_ELEM_SHOCK, (int32_t)(st.shock_dmg / (0.25f * dot)));
+	if (st.chill_end > level.time)
+		Loot_ApplyStatus(best, ent, LOOT_ELEM_CRYO, 1);
 }
 
 // Scavenger: kills top up the active gun's magazine
@@ -516,6 +519,8 @@ void Skill_OnMonsterKilled(edict_t *monster, edict_t *ent)
 		element = LOOT_ELEM_CORROSIVE;
 	else if (st.shock_end > level.time)
 		element = LOOT_ELEM_SHOCK;
+	else if (st.chill_end > level.time)
+		element = LOOT_ELEM_CRYO;
 	if (!element)
 		return;
 

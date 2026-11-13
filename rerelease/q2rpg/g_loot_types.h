@@ -67,6 +67,8 @@ enum loot_element_t : uint8_t
 	LOOT_ELEM_FIRE,      // burn damage over time
 	LOOT_ELEM_SHOCK,     // stagger, bonus vs power armor
 	LOOT_ELEM_CORROSIVE, // melt damage over time, target takes extra damage
+	LOOT_ELEM_CRYO,      // chill slows; 3 procs freeze (non-bosses), frozen kills shatter
+	LOOT_ELEM_EXPLOSIVE, // proc sets off a small blast around the target
 
 	LOOT_ELEM_COUNT
 };
@@ -86,6 +88,11 @@ struct loot_status_t
 
 	gtime_t shock_end;
 	float shock_dmg; // per tick
+
+	gtime_t chill_end;    // cryo: slowed until
+	int32_t chill_stacks; // cryo procs since the last freeze
+	gtime_t freeze_end;   // frozen solid until
+	gtime_t freeze_ready; // can't refreeze before this
 
 	int32_t shell; // RF_SHELL_* bits this system added
 };
