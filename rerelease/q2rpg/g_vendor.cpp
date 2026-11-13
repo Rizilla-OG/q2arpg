@@ -45,6 +45,11 @@ static int32_t Vendor_GrenadeValue(const loot_grenade_t &grenade)
 	return std::max(1, (int32_t)v);
 }
 
+static int32_t Vendor_ClassModValue(const loot_classmod_t &mod)
+{
+	return std::max(1, (int32_t)(Vendor_LevelBase(mod.level) * vendor_prices.rarity_value[mod.rarity < LOOT_RARITY_COUNT ? mod.rarity : 0] * 1.2f));
+}
+
 static int32_t Vendor_SellPrice(int32_t value)
 {
 	return std::max(1, (int32_t)(value * vendor_prices.sell_fraction));
@@ -327,6 +332,9 @@ void Vendor_RollStock()
 	if (Loot_ShieldsAvailable())
 		level.loot_vendor_shield = Loot_RollShield(Loot_RollRarity(luck), zone, (uint32_t)mt_rand());
 	level.loot_vendor_grenade = Grenade_Roll(Loot_RollRarity(luck), zone, (uint32_t)mt_rand());
+	// class mod for the first player's tree (rolled last so the older stock stays the same)
+	const int32_t player_tree = g_edicts[1].client ? g_edicts[1].client->pers.loot_tree : LOOT_TREE_NONE;
+	level.loot_vendor_classmod = ClassMod_Roll(Loot_RollRarity(luck), zone, (uint32_t)mt_rand(), player_tree);
 
 	mt_rand = saved_rng;
 }
@@ -410,8 +418,20 @@ static void Vendor_SendWorkshop(edict_t *ent)
 		line("string", "2  - sold -");
 	line("string", G_Fmt("   Grenades {}  (stock hand grenades are your ammo)", cl->pers.inventory[IT_AMMO_GRENADES]).data());
 
+	// class mod for sale (rerolls with the stock)
 	y += 6;
-	line("string2", "[1-2] buy  [9] back  [V] close");
+	const loot_classmod_t &classmod = level.loot_vendor_classmod;
+	if (classmod.valid)
+	{
+		const int32_t price = Vendor_ClassModValue(classmod);
+		line(price <= money ? "string2" : "string", G_Fmt("3  {} [{} {}]  ${}", classmod.name, Loot_RarityName(classmod.rarity), Skill_TreeName(classmod.tree), price).data());
+		line("loot_str", "   " + ClassMod_BriefLine(classmod));
+	}
+	else
+		line("string", "3  - sold -");
+
+	y += 6;
+	line("string2", "[1-3] buy  [9] back  [V] close");
 	Loot_SendLayout(ent, s);
 }
 
@@ -558,6 +578,18 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 		return;
 	}
 
+	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP && n == 3)
+	{
+		loot_classmod_t &classmod = level.loot_vendor_classmod;
+		if (!classmod.valid || !Vendor_Pay(ent, Vendor_ClassModValue(classmod)))
+			return;
+		const loot_classmod_t bought = classmod;
+		classmod = {};
+		ClassMod_Give(ent, bought);
+		cl->loot_shop_time = 0_ms;
+		return;
+	}
+
 	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP)
 		return;
 
@@ -668,6 +700,11 @@ static void Vendor_Sell(edict_t *ent)
 		{
 			price = Vendor_SellPrice(Vendor_GrenadeValue(floor->loot_grenade));
 			name = floor->loot_grenade.name;
+		}
+		else if (floor->loot_classmod.valid)
+		{
+			price = Vendor_SellPrice(Vendor_ClassModValue(floor->loot_classmod));
+			name = floor->loot_classmod.name;
 		}
 		else
 		{

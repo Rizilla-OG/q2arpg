@@ -1187,6 +1187,7 @@ struct level_locals_t
 	std::array<loot_weapon_t, 4> loot_vendor_guns;
 	loot_shield_t loot_vendor_shield;
 	loot_grenade_t loot_vendor_grenade; // q2rpg
+	loot_classmod_t loot_vendor_classmod; // q2rpg
 	int32_t loot_vendor_rerolls; // q2rpg: stock rerolls bought on this map (price climbs)
 	int32_t loot_reinforcements_paid; // q2rpg: called-in reinforcements (medic commander, carrier...) that paid out on this map
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
@@ -2828,6 +2829,7 @@ struct client_persistant_t
 	float loot_shield_points;
 	bool loot_shields_unlocked;
 	loot_grenade_t loot_grenade; // q2rpg: equipped grenade mod
+	loot_classmod_t loot_classmod; // q2rpg: equipped class mod
 	int32_t loot_tree; // loot_tree_t
 	std::array<uint8_t, LOOT_NUM_SKILLS> loot_skill_ranks;
 	int32_t loot_money;
@@ -3301,6 +3303,7 @@ struct edict_t
 	loot_weapon_t loot; // q2rpg: rolled gun on a floor item
 	loot_shield_t loot_shield; // q2rpg: rolled shield on a floor item
 	loot_grenade_t loot_grenade; // q2rpg: grenade mod on a floor item; live grenade stats on a thrown one
+	loot_classmod_t loot_classmod; // q2rpg: class mod on a floor item
 	edict_t *loot_stuck_to;		 // q2rpg: Sticky grenade target
 	vec3_t loot_stuck_offset;	 // q2rpg: Sticky grenade offset from the target
 	loot_status_t loot_status; // q2rpg: elemental effects on monsters

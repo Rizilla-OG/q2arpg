@@ -165,6 +165,23 @@ struct loot_grenade_t
 	char name[48];
 };
 
+// Class mods (g_classmod.cpp): one equipped, adds bonus ranks to up to 3 skills of one tree.
+// Bonus ranks can go past a skill's max; 1-rank capstones are never boosted.
+constexpr int32_t LOOT_CLASSMOD_SKILLS = 3;
+
+struct loot_classmod_t
+{
+	bool valid;
+	uint32_t seed;
+	int32_t level; // only sets the price
+	loot_rarity_t rarity;
+	int32_t tree;                                    // loot_tree_t
+	std::array<int8_t, LOOT_CLASSMOD_SKILLS> skills; // skill index, -1 = none
+	std::array<uint8_t, LOOT_CLASSMOD_SKILLS> bonus; // bonus ranks for that skill
+
+	char name[48];
+};
+
 // Skill trees (classes). Picking one locks it until respec / new game.
 enum loot_tree_t : uint8_t
 {

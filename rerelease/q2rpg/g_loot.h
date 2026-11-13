@@ -206,6 +206,20 @@ void Loot_QueueWelcome();                                                    // 
 void Loot_ApplyVisuals(edict_t *item);                                       // rarity glow on a floor item
 bool Loot_IsLootItem(const edict_t *item);                                   // floor gun, shield or grenade mod
 
+// class mods (g_classmod.cpp)
+loot_classmod_t ClassMod_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t tree); // tree 0 = random
+edict_t *ClassMod_SpawnDrop(edict_t *source, const loot_classmod_t &mod, bool from_player);      // g_loot.cpp
+void ClassMod_Give(edict_t *ent, const loot_classmod_t &mod);
+void ClassMod_SendCard(edict_t *ent, const loot_classmod_t &mod);
+std::string ClassMod_BriefLine(const loot_classmod_t &mod);        // "+2 Hollow Points  +1 Marksman"
+int32_t ClassMod_Bonus(edict_t *ent, int32_t tree, int32_t skill); // bonus ranks from the equipped mod
+int32_t ClassMod_DropTree(edict_t *owner);                         // tree to roll a drop for
+
+// skill table access for class mods (g_skills.cpp)
+const char *Skill_TreeName(int32_t tree);
+const char *Skill_Name(int32_t tree, int32_t skill);
+bool Skill_Boostable(int32_t tree, int32_t skill); // class mods may boost it (not a 1-rank capstone)
+
 // loot visual effects (g_lootfx.cpp)
 void LootFx_RarityBeam(edict_t *item, loot_rarity_t rarity);                  // replaces any beam the item has
 void LootFx_Tracer(edict_t *shooter, const vec3_t &start, const vec3_t &end); // elemental hitscan only

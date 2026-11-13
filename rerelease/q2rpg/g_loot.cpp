@@ -1873,13 +1873,18 @@ int32_t Loot_ShieldAbsorb(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 
 bool Loot_IsLootItem(const edict_t *item)
 {
-	return item->loot.valid || item->loot_shield.valid || item->loot_grenade.valid;
+	return item->loot.valid || item->loot_shield.valid || item->loot_grenade.valid || item->loot_classmod.valid;
 }
 
 void Loot_ApplyVisuals(edict_t *item)
 {
-	const loot_rarity_t rarity = item->loot_shield.valid ? item->loot_shield.rarity : item->loot_grenade.valid ? item->loot_grenade.rarity
-	                                                                                                           : item->loot.rarity;
+	loot_rarity_t rarity = item->loot.rarity;
+	if (item->loot_shield.valid)
+		rarity = item->loot_shield.rarity;
+	else if (item->loot_grenade.valid)
+		rarity = item->loot_grenade.rarity;
+	else if (item->loot_classmod.valid)
+		rarity = item->loot_classmod.rarity;
 	// rarity shows as a beam so the shell doesn't hide the gun model
 	item->s.renderfx &= ~(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 	item->s.effects &= ~EF_COLOR_SHELL;
@@ -2116,6 +2121,27 @@ edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool 
 	return drop;
 }
 
+// class mods lie on the floor as a data CD (keys are never auto-picked: Loot_Touch takes them)
+edict_t *ClassMod_SpawnDrop(edict_t *source, const loot_classmod_t &mod, bool from_player)
+{
+	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_KEY_DATA_CD));
+
+	drop->loot_classmod = mod;
+	drop->svflags &= ~SVF_INSTANCED;
+
+	if (from_player)
+		drop->spawnflags |= SPAWNFLAG_ITEM_DROPPED_PLAYER;
+	else
+	{
+		drop->velocity = {crandom() * 150.f, crandom() * 150.f, 250.f + frandom(150.f)};
+		Loot_InstanceFor(drop, loot_drop_owner);
+	}
+
+	Loot_ApplyVisuals(drop);
+	gi.linkentity(drop);
+	return drop;
+}
+
 //==========================================================================
 // Boss loot tables
 //==========================================================================
@@ -2320,6 +2346,14 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		{
 			Grenade_SpawnDrop(monster, Grenade_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand()), false);
 			level.loot_stats.grenade_mod_drops++;
+			continue;
+		}
+
+		// and some are class mods
+		if (frandom() < 0.08f)
+		{
+			ClassMod_SpawnDrop(monster, ClassMod_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand(), ClassMod_DropTree(loot_drop_owner)),
+			                   false);
 			continue;
 		}
 
@@ -3140,6 +3174,14 @@ static void Loot_SendInventory(edict_t *ent)
 			row("|" + Grenade_LoadoutLine(grenade), 13);
 		}
 
+		const loot_classmod_t &classmod = cl->pers.loot_classmod;
+		if (classmod.valid)
+		{
+			row("^aCLASS MOD", 12);
+			row(G_Fmt("|{} ({} {})", classmod.name, Loot_RarityName(classmod.rarity), Skill_TreeName(classmod.tree)).data());
+			row("|" + ClassMod_BriefLine(classmod), 13);
+		}
+
 		row("^a[1-4] equip  [G] drop  [I] gun details");
 	}
 	else
@@ -3554,6 +3596,8 @@ void Loot_SetStats(edict_t *ent)
 			Loot_SendShieldCard(ent, target->loot_shield);
 		else if (target->loot_grenade.valid)
 			Grenade_SendCard(ent, target->loot_grenade);
+		else if (target->loot_classmod.valid)
+			ClassMod_SendCard(ent, target->loot_classmod);
 		else
 			Loot_SendCard(ent, target->loot);
 		cl->loot_card_sent = target;
@@ -3637,6 +3681,8 @@ static void Loot_Cmd_Take(edict_t *ent)
 	const loot_shield_t sh = target->loot_shield;
 	const bool is_grenade = target->loot_grenade.valid;
 	const loot_grenade_t grenade = target->loot_grenade;
+	const bool is_classmod = target->loot_classmod.valid;
+	const loot_classmod_t classmod = target->loot_classmod;
 	const loot_weapon_t gun = target->loot;
 
 	if (target->target)
@@ -3649,6 +3695,8 @@ static void Loot_Cmd_Take(edict_t *ent)
 		Loot_GiveShield(ent, sh);
 	else if (is_grenade)
 		Grenade_Give(ent, grenade);
+	else if (is_classmod)
+		ClassMod_Give(ent, classmod);
 	else
 		Loot_GiveGun(ent, gun);
 }
@@ -4060,6 +4108,18 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 			const int32_t want_type = gi.argc() >= 2 ? std::clamp(atoi(gi.argv(1)), 0, LOOT_GRENADE_TYPE_COUNT - 1) : -1;
 			const loot_grenade_t grenade = Grenade_Roll((loot_rarity_t)r, std::max(1, ent->client->pers.loot_level), (uint32_t)mt_rand(), want_type);
 			Grenade_SpawnDrop(ent, grenade, true);
+		}
+		return true;
+	}
+	// dev: class mod at your feet; loot_classmod [rarity 0-5] [tree 1-3]
+	if (!Q_strcasecmp(cmd, "loot_classmod"))
+	{
+		if (Loot_CheatCheck(ent))
+		{
+			const int32_t rarity = gi.argc() >= 2 ? std::clamp(atoi(gi.argv(1)), 0, LOOT_RARITY_COUNT - 1) : (int32_t)Loot_RollRarity(0.f);
+			const int32_t tree = gi.argc() >= 3 ? atoi(gi.argv(2)) : ent->client->pers.loot_tree;
+			const loot_classmod_t mod = ClassMod_Roll((loot_rarity_t)rarity, std::max(1, ent->client->pers.loot_level), (uint32_t)mt_rand(), tree);
+			ClassMod_SpawnDrop(ent, mod, true);
 		}
 		return true;
 	}

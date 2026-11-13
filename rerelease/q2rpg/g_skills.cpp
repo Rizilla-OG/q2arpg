@@ -199,7 +199,34 @@ int32_t Skill_Rank(edict_t *ent, loot_tree_t tree, int32_t skill)
 {
 	if (deathmatch->integer || Skill_Tree(ent) != tree || skill < 0 || skill >= LOOT_NUM_SKILLS)
 		return 0;
-	return ent->client->pers.loot_skill_ranks[skill];
+	int32_t class_mod_bonus = ClassMod_Bonus(ent, tree, skill);
+	if (skill >= SKILL_FIRST_TIER4 && !Skill_Tier4Open())
+		class_mod_bonus = 0; // tier 4 stays NG+ only
+	return ent->client->pers.loot_skill_ranks[skill] + class_mod_bonus;
+}
+
+// q2rpg: skill table access for class mods (g_classmod.cpp)
+const char *Skill_TreeName(int32_t tree)
+{
+	return (tree > LOOT_TREE_NONE && tree < LOOT_TREE_COUNT) ? tree_defs[tree].name : "None";
+}
+
+const char *Skill_Name(int32_t tree, int32_t skill)
+{
+	if (tree <= LOOT_TREE_NONE || tree >= LOOT_TREE_COUNT || skill < 0 || skill >= LOOT_NUM_SKILLS)
+		return "?";
+	return tree_defs[tree].skills[skill].name;
+}
+
+// class mods boost multi-rank skills only; Thick Skin is left out because its max health is
+// applied once per rank point (Skill_ApplyRankEffects), not read live
+bool Skill_Boostable(int32_t tree, int32_t skill)
+{
+	if (tree <= LOOT_TREE_NONE || tree >= LOOT_TREE_COUNT || skill < 0 || skill >= LOOT_NUM_SKILLS)
+		return false;
+	if (tree == LOOT_TREE_JUGGERNAUT && skill == SK_SKIN)
+		return false;
+	return tree_defs[tree].skills[skill].max_rank > 1;
 }
 
 static int32_t Skill_Spent(edict_t *ent)
@@ -1019,7 +1046,11 @@ static void Skill_SendScreen(edict_t *ent)
 
 		const skill_def_t &sk = d.skills[i];
 		const int32_t rank = cl->pers.loot_skill_ranks[i];
-		line("loot_str", G_Fmt("{}|{}|{}/{}|{}", i - first + 1, sk.name, rank, Skill_MaxRank(sk, i), sk.desc).data());
+		const int32_t class_mod_bonus = Skill_Rank(ent, tree, i) - rank; // shown as green +N
+		if (class_mod_bonus > 0)
+			line("loot_str", G_Fmt("{}|{}|{}^g+{}^w/{}|{}", i - first + 1, sk.name, rank, class_mod_bonus, Skill_MaxRank(sk, i), sk.desc).data());
+		else
+			line("loot_str", G_Fmt("{}|{}|{}/{}|{}", i - first + 1, sk.name, rank, Skill_MaxRank(sk, i), sk.desc).data());
 	}
 
 	y += 6;

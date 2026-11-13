@@ -729,6 +729,22 @@ SAVE_STRUCT_END
 
 MAKE_STRUCT_SAVE_DEDUCER(loot_grenade_t);
 
+// q2rpg: class mod
+#define DECLARE_SAVE_STRUCT loot_classmod_t
+SAVE_STRUCT_START
+	FIELD_AUTO(valid),
+	FIELD_AUTO(seed),
+	FIELD_AUTO(level),
+	FIELD_AUTO(rarity),
+	FIELD_AUTO(tree),
+	FIELD_AUTO(skills),
+	FIELD_AUTO(bonus),
+	FIELD_AUTO(name)
+SAVE_STRUCT_END
+#undef DECLARE_SAVE_STRUCT
+
+MAKE_STRUCT_SAVE_DEDUCER(loot_classmod_t);
+
 // q2rpg: per-map balance stats
 #define DECLARE_SAVE_STRUCT loot_stats_t
 SAVE_STRUCT_START
@@ -814,6 +830,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_vendor_guns), // q2rpg
 	FIELD_AUTO(loot_vendor_shield), // q2rpg
 	FIELD_AUTO(loot_vendor_grenade), // q2rpg
+	FIELD_AUTO(loot_vendor_classmod), // q2rpg
 	FIELD_AUTO(loot_vendor_rerolls), // q2rpg
 	FIELD_AUTO(loot_reinforcements_paid), // q2rpg
 	FIELD_AUTO(loot_map_mod), // q2rpg
@@ -969,6 +986,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_shield_points),
 	FIELD_AUTO(loot_shields_unlocked),
 	FIELD_AUTO(loot_grenade),
+	FIELD_AUTO(loot_classmod),
 	FIELD_AUTO(loot_tree),
 	FIELD_AUTO(loot_skill_ranks),
 	FIELD_AUTO(loot_money),
@@ -1252,6 +1270,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot), // q2rpg
 	FIELD_AUTO(loot_shield), // q2rpg
 	FIELD_AUTO(loot_grenade), // q2rpg
+	FIELD_AUTO(loot_classmod), // q2rpg
 	FIELD_AUTO(loot_stuck_to), // q2rpg
 	FIELD_AUTO(loot_stuck_offset), // q2rpg
 	FIELD_AUTO(loot_status), // q2rpg

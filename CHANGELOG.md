@@ -2,6 +2,7 @@
 
 ## Unreleased (next update)
 
+- New gear piece: class mods. One equipped; each adds bonus ranks to up to 3 skills of one tree (+1 on Common up to +3/+2/+2 on Mythic), and can push a skill past its max rank. Capstones are never boosted. They drop from monsters (mostly for your tree), and the vendor's Workshop page sells one. The skills screen shows the bonus in green.
 - The vendor's stock no longer rerolls when you die and the map restarts; only a paid reroll changes it.
 - Reinforcements that other monsters call in (Medic Commander, Carrier, Widow) give half XP and cash, and stop paying after 40 per map, so they can't be farmed.
 - The level's monster count no longer goes up for death spawns that had no room to appear, so "all monsters killed" can be reached again.
