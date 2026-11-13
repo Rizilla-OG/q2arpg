@@ -3009,7 +3009,7 @@ static void Loot_SendShieldCard(edict_t *ent, const loot_shield_t &sh)
 		s += G_Fmt("xv 24 yv {} string \"vs {}\" ", y, o.name).data();
 		y += 10;
 	}
-	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [I] loadout\" ", y).data();
+	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [B] stash  [I] loadout\" ", y).data();
 
 	Loot_SendLayout(ent, s);
 }
@@ -3065,7 +3065,7 @@ static void Loot_SendCard(edict_t *ent, const loot_weapon_t &gun)
 		s += G_Fmt("xv 24 yv {} string \"vs {}\" ", y, o.name).data();
 		y += 10;
 	}
-	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [I] loadout\" ", y).data();
+	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [B] stash  [I] loadout\" ", y).data();
 
 	Loot_SendLayout(ent, s);
 }

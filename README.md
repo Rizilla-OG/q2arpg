@@ -72,6 +72,7 @@ The mod sets these binds in `q2rpg/autoexec.cfg`:
 | `G` | Drop your active gun |
 | `I` | Loadout (press again for held gun details) |
 | `X` | Sell the loot you're standing on, else your active gun (press twice) |
+| `B` | Send the loot you're standing on to your stash |
 | `V` | Vendor (first visit per map is free) |
 | `K` | Skills (press again for the NG+ tier-4 page) |
 | `J` | Challenges |

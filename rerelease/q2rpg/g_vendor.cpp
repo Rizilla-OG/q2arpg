@@ -530,23 +530,28 @@ static void Vendor_SendStash(edict_t *ent)
 	Loot_SendLayout(ent, s);
 }
 
+// Moves a floor loot item into a stash slot and removes it from the world.
+static void Vendor_StashFromFloor(edict_t *ent, edict_t *floor, loot_stash_slot_t &slot)
+{
+	gclient_t *cl = ent->client;
+	if (floor->target)
+		G_UseTargets(floor, ent); // placed loot fires its targets like a pickup
+	slot.gun = floor->loot.valid && !floor->loot_shield.valid && !floor->loot_grenade.valid && !floor->loot_classmod.valid ? floor->loot : loot_weapon_t{};
+	slot.shield = floor->loot_shield;
+	slot.grenade = floor->loot_grenade;
+	slot.classmod = floor->loot_classmod;
+	G_FreeEdict(floor);
+	cl->loot_touch_ent = nullptr;
+	cl->loot_card_sent = nullptr;
+}
+
 // Store into an empty slot: the floor item you stand on, else the held gun.
 static void Vendor_StashStore(edict_t *ent, loot_stash_slot_t &slot)
 {
 	gclient_t *cl = ent->client;
 	edict_t *floor = Loot_TouchTarget(ent);
 	if (floor)
-	{
-		if (floor->target)
-			G_UseTargets(floor, ent); // placed loot fires its targets like a pickup
-		slot.gun = floor->loot.valid && !floor->loot_shield.valid && !floor->loot_grenade.valid && !floor->loot_classmod.valid ? floor->loot : loot_weapon_t{};
-		slot.shield = floor->loot_shield;
-		slot.grenade = floor->loot_grenade;
-		slot.classmod = floor->loot_classmod;
-		G_FreeEdict(floor);
-		cl->loot_touch_ent = nullptr;
-		cl->loot_card_sent = nullptr;
-	}
+		Vendor_StashFromFloor(ent, floor, slot);
 	else
 	{
 		if (!Loot_Active(ent))
@@ -610,6 +615,28 @@ static void Vendor_StashUse(edict_t *ent, int32_t n)
 	else
 		Vendor_StashStore(ent, slot);
 	ent->client->loot_shop_time = 0_ms;
+}
+
+// "loot_stash" (B): send the floor item you stand on to the first free stash slot, anywhere
+static void Vendor_StashCommand(edict_t *ent)
+{
+	gclient_t *cl = ent->client;
+	edict_t *floor = Loot_TouchTarget(ent);
+	if (!floor || ent->health <= 0)
+		return;
+	const int32_t open_slots = Vendor_StashOpenSlots(ent);
+	for (int32_t i = 0; i < open_slots; i++)
+	{
+		loot_stash_slot_t &slot = cl->pers.loot_stash[i];
+		if (Vendor_StashSlotUsed(slot))
+			continue;
+		Vendor_StashFromFloor(ent, floor, slot);
+		gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/am_pkup.wav"), 1, ATTN_NORM, 0);
+		gi.Center_Print(ent, G_Fmt("Stashed (slot {}/{})", i + 1, open_slots).data());
+		cl->loot_shop_time = 0_ms;
+		return;
+	}
+	gi.Center_Print(ent, G_Fmt("Stash full ({} slots)", open_slots).data());
 }
 
 static void Vendor_SendShop(edict_t *ent)
@@ -1017,6 +1044,11 @@ bool Vendor_ClientCommand(edict_t *ent, const char *cmd)
 	if (!Q_strcasecmp(cmd, "slot") && cl->loot_shop_open && !cl->loot_showinv && !cl->loot_showskills && !cl->loot_showchallenges)
 	{
 		Vendor_Buy(ent, atoi(gi.argv(1)));
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_stash"))
+	{
+		Vendor_StashCommand(ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_sell"))

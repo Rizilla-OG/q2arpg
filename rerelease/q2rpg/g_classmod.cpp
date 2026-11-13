@@ -164,7 +164,7 @@ void ClassMod_SendCard(edict_t *ent, const loot_classmod_t &mod)
 		s += G_Fmt("xv 24 yv {} string \"vs {}\" ", y, other.name).data();
 		y += 10;
 	}
-	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [X] sell\" ", y).data();
+	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [B] stash  [X] sell\" ", y).data();
 	Loot_SendLayout(ent, s);
 }
 
