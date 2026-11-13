@@ -739,6 +739,10 @@ void ExitLevel()
 	level.exitintermission = 0;
 	level.intermissiontime = 0_ms;
 
+	// q2rpg: leaving a rift goes back where it was opened (before the exit's inventory clear /
+	// end-of-unit handling can touch the party); a new unit frees the rift maps
+	Rift_OnExitLevel();
+
 	// [Paril-KEX] support for intermission completely wiping players
 	// back to default stuff
 	if (level.intermission_clear)
@@ -778,9 +782,6 @@ void ExitLevel()
 		gi.Com_Error("Got null changemap when trying to exit level. Was a trigger_changelevel configured correctly?");
 		return;
 	}
-
-	// q2rpg: leaving a rift goes back where it was opened; a new unit frees the rift maps
-	Rift_OnExitLevel();
 
 	// q2rpg: campaign end restarts the campaign as New Game+
 	if (NGPlus_TryRestart(level.changemap))

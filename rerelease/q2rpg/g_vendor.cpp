@@ -1033,20 +1033,7 @@ static void Vendor_Sell(edict_t *ent)
 		cl->loot_card_sent = nullptr;
 	}
 	else
-	{
-		const int32_t slot = -id - 1;
-		cl->pers.loot_slots[slot] = {};
-		Loot_SyncInventory(ent);
-		for (int32_t i = 0; i < LOOT_NUM_SLOTS; i++)
-		{
-			if (cl->pers.loot_slots[i].valid)
-			{
-				cl->pers.loot_active_slot = -1;
-				Loot_SelectSlot(ent, i);
-				break;
-			}
-		}
-	}
+		Loot_RemoveActiveGun(ent, true); // the confirm id is the held slot, so this is the gun priced above
 
 	gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/ar2_pkup.wav"), 1, ATTN_NORM, 0);
 	gi.Center_Print(ent, G_Fmt("Sold for ${}", price).data());

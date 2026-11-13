@@ -43,8 +43,9 @@ constexpr float RIFT_DAMAGE_PER_TIER = 0.08f;                                   
 constexpr float RIFT_LUCK_PER_TIER = 0.25f;
 constexpr float RIFT_ELITE_PER_TIER = 0.10f; // Alpha chance x(1 + 0.1 per tier)
 
-// guardians: tough single monsters that fit most rooms
-static const char *const rift_guardians[] = {"monster_tank_commander", "monster_gladiator", "monster_guncmdr", "monster_berserk", "monster_chick_heat"};
+// guardians: tough single monsters that fit most rooms; none boss tier (1000+ health), which
+// can't become Omegas
+static const char *const rift_guardians[] = {"monster_tank", "monster_gladiator", "monster_guncmdr", "monster_berserk", "monster_chick_heat"};
 
 //==========================================================================
 // State
@@ -209,6 +210,9 @@ void Rift_OnExitLevel()
 		game.loot_rift_active = false;
 		game.loot_rift_return_pending = true;
 		level.changemap = Rift_ReturnChangemap();
+		// the rift map's own exit may clear inventory or end its unit: never on the way home
+		level.intermission_clear = false;
+		level.intermission_eou = false;
 		return;
 	}
 
@@ -229,7 +233,20 @@ static void Rift_ReturnPlayers()
 		if (player->health <= 0)
 			continue;
 		gi.unlinkentity(player);
-		player->s.origin = game.loot_rift_return_origin + vec3_t{(float)(index % 2) * 40.f, (float)(index / 2) * 40.f, 0}; // coop: side by side
+		// leader on the saved spot; coop players on the first free spot around it
+		static const vec3_t offsets[] = {{0, 0, 0}, {48, 0, 0}, {-48, 0, 0}, {0, 48, 0}, {0, -48, 0}, {48, 48, 0}, {-48, -48, 0}, {48, -48, 0}, {-48, 48, 0}};
+		vec3_t spot = game.loot_rift_return_origin;
+		for (int32_t k = index ? 1 : 0; k < (int32_t)q_countof(offsets); k++)
+		{
+			const vec3_t test = game.loot_rift_return_origin + offsets[k];
+			const trace_t tr = gi.trace(test, player->mins, player->maxs, test, player, MASK_PLAYERSOLID);
+			if (!tr.startsolid && !tr.allsolid)
+			{
+				spot = test;
+				break;
+			}
+		}
+		player->s.origin = spot;
 		player->s.old_origin = player->s.origin;
 		player->velocity = {};
 		player->client->ps.pmove.pm_time = 160;

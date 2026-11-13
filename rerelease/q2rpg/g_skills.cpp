@@ -368,7 +368,7 @@ float Skill_OutgoingMult(edict_t *ent, edict_t *targ)
 
 	const int32_t cond = RANK(LOOT_TREE_ELEMENTALIST, SK_CONDUCTOR);
 	const loot_status_t &st = targ->loot_status;
-	if (cond && st.active && (st.burn_end > level.time || st.melt_end > level.time || st.shock_end > level.time))
+	if (cond && st.active && (st.burn_end > level.time || st.melt_end > level.time || st.shock_end > level.time || st.chill_end > level.time || st.freeze_end > level.time))
 		m *= 1.0f + 0.06f * cond;
 
 	// Crossfire: the monster your turret is zapping

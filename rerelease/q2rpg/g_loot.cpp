@@ -1412,9 +1412,14 @@ static void Loot_UpdateShell(edict_t *ent)
 	st.shell = want;
 }
 
+// keeps the cooldowns, so a status ending can't skip the refreeze / blast waits
 static void Loot_ClearStatus(edict_t *ent)
 {
+	const gtime_t freeze_ready = ent->loot_status.freeze_ready;
+	const gtime_t explode_ready = ent->loot_status.explode_ready;
 	ent->loot_status = {};
+	ent->loot_status.freeze_ready = freeze_ready;
+	ent->loot_status.explode_ready = explode_ready;
 }
 
 // Cryo tuning
@@ -1429,6 +1434,7 @@ constexpr float CRYO_SHATTER_RADIUS = 192.f;
 // Explosive tuning
 constexpr float EXPLOSIVE_DAMAGE = 0.6f; // of the proc hit, to everything in the blast (target too)
 constexpr float EXPLOSIVE_RADIUS = 120.f;
+constexpr gtime_t EXPLOSIVE_COOLDOWN = 300_ms;
 
 static bool Loot_Chilled(const edict_t *monster)
 {
@@ -1521,7 +1527,7 @@ void Loot_ApplyStatus(edict_t *targ, edict_t *attacker, loot_element_t element, 
 
 	if (!st.active)
 	{
-		st = {};
+		Loot_ClearStatus(targ);
 		st.active = true;
 		st.next_tick = level.time + 500_ms;
 	}
@@ -1557,6 +1563,10 @@ void Loot_ApplyStatus(edict_t *targ, edict_t *attacker, loot_element_t element, 
 			}
 			break;
 		case LOOT_ELEM_EXPLOSIVE:
+			// one blast per target per cooldown: novas, grenades and pellets can't stack N x N blasts
+			if (level.time < st.explode_ready)
+				return;
+			st.explode_ready = level.time + EXPLOSIVE_COOLDOWN;
 			Loot_QueueExplosion(targ, attacker, h * EXPLOSIVE_DAMAGE * dot);
 			break;
 		default:
@@ -2491,16 +2501,16 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		if (Loot_ShieldsAvailable() && frandom() < 0.15f * NGPlus_ShieldDropMult()) // Fortified
 		{
 			const loot_shield_t shield = Loot_RollShield(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand());
-			level.loot_stats.shield_drops[shield.rarity]++;
-			Loot_SpawnShieldDrop(monster, shield, false);
+			if (Loot_SpawnShieldDrop(monster, shield, false)) // nullptr: hidden by the loot filter
+				level.loot_stats.shield_drops[shield.rarity]++;
 			continue;
 		}
 
 		// and some are grenade mods
 		if (frandom() < 0.12f)
 		{
-			Grenade_SpawnDrop(monster, Grenade_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand()), false);
-			level.loot_stats.grenade_mod_drops++;
+			if (Grenade_SpawnDrop(monster, Grenade_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand()), false))
+				level.loot_stats.grenade_mod_drops++;
 			continue;
 		}
 
@@ -2514,8 +2524,8 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 
 		loot_weapon_t gun = Loot_RollRandom(luck);
 		Loot_SetLevel(gun, std::max(1, monster->loot_mlevel));
-		level.loot_stats.gun_drops[gun.rarity]++;
-		Loot_SpawnDrop(monster, gun, false);
+		if (Loot_SpawnDrop(monster, gun, false))
+			level.loot_stats.gun_drops[gun.rarity]++;
 	}
 
 	// Alpha Omega: a guaranteed Legendary (25% Mythic) on top
@@ -3472,6 +3482,10 @@ static void Loot_TargetLine(edict_t *ent, char (&line)[48])
 		status = "  Melting";
 	else if (st.active && st.shock_end > level.time)
 		status = "  Shocked";
+	else if (st.active && st.freeze_end > level.time)
+		status = "  Frozen";
+	else if (st.active && st.chill_end > level.time)
+		status = "  Chilled";
 
 	char traits[24];
 	NGPlus_TraitNames(t, traits);
@@ -4011,8 +4025,9 @@ edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char 
 // Shared drops (no coop instancing), like map-placed loot.
 void Loot_RiftDrops(const vec3_t &where, int32_t count, int32_t tier)
 {
-	edict_t *source = G_Spawn(); // Drop_Item tosses from an entity
+	edict_t *source = G_Spawn(); // Drop_Item tosses from an entity's box center
 	source->s.origin = where + vec3_t{0, 0, 24};
+	gi.linkentity(source); // sets absmin / absmax, or the drops land at 0 0 0
 	loot_drop_owner = nullptr;
 
 	const int32_t level = Loot_ZoneLevel();

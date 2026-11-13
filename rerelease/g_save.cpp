@@ -797,6 +797,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(chill_stacks),
 	FIELD_AUTO(freeze_end),
 	FIELD_AUTO(freeze_ready),
+	FIELD_AUTO(explode_ready),
 	FIELD_AUTO(shell)
 SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT

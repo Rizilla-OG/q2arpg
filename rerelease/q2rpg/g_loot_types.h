@@ -89,10 +89,11 @@ struct loot_status_t
 	gtime_t shock_end;
 	float shock_dmg; // per tick
 
-	gtime_t chill_end;    // cryo: slowed until
-	int32_t chill_stacks; // cryo procs since the last freeze
-	gtime_t freeze_end;   // frozen solid until
-	gtime_t freeze_ready; // can't refreeze before this
+	gtime_t chill_end;     // cryo: slowed until
+	int32_t chill_stacks;  // cryo procs since the last freeze
+	gtime_t freeze_end;    // frozen solid until
+	gtime_t freeze_ready;  // can't refreeze before this
+	gtime_t explode_ready; // explosive: next proc blast allowed (one per target per EXPLOSIVE_COOLDOWN)
 
 	int32_t shell; // RF_SHELL_* bits this system added
 };
