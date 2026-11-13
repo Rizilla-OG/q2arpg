@@ -54,8 +54,8 @@ void Loot_ApplyStatus(edict_t *targ, edict_t *attacker, loot_element_t element, 
 void Loot_StatusSparks(edict_t *ent, loot_element_t element);
 
 // world items
-edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_player);
-edict_t *Loot_SpawnSharedDrop(edict_t *source, const loot_weapon_t &gun); // loot fountain everyone can pick up
+edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_player, bool apply_filter = false); // apply_filter: ordinary monster drops (loot filter); nullptr when hidden
+edict_t *Loot_SpawnSharedDrop(edict_t *source, const loot_weapon_t &gun);                                        // loot fountain everyone can pick up
 void Loot_MonsterDrop(edict_t *monster);
 void Loot_OnItemSpawned(edict_t *ent);
 bool Loot_Touch(edict_t *item, edict_t *other);
@@ -188,7 +188,7 @@ std::string Loot_GunBriefCompare(const loot_weapon_t &g, const loot_weapon_t *ot
 std::string Loot_ShieldBriefCompare(const loot_shield_t &sh, const loot_shield_t &other);
 void Loot_StatsLogMap();                                   // map end: console summary + loot_stats.csv row
 void Loot_LogEvent(edict_t *ent, const std::string &text); // append a line to q2rpg/q2rpg_events.log
-edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool from_player);
+edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool from_player, bool apply_filter = false);
 edict_t *Loot_TouchTarget(edict_t *ent);
 void Loot_SendLayout(edict_t *ent, const std::string &s);
 std::string Loot_GunBrief(const loot_weapon_t &g);
@@ -199,7 +199,7 @@ loot_weapon_t Loot_RemoveActiveGun(edict_t *ent, bool select_next); // held gun 
 // grenade mods (g_grenade.cpp)
 loot_grenade_t Grenade_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t forced_type = -1);
 int32_t Grenade_TypeByName(const char *name); // -1 if blank or unknown
-edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool from_player);
+edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool from_player, bool apply_filter = false);
 void Grenade_Give(edict_t *ent, const loot_grenade_t &grenade);
 void Grenade_SendCard(edict_t *ent, const loot_grenade_t &grenade);
 std::string Grenade_BriefCompare(const loot_grenade_t &grenade, const loot_grenade_t &other);
@@ -212,8 +212,8 @@ void Loot_ApplyVisuals(edict_t *item);                                       // 
 bool Loot_IsLootItem(const edict_t *item);                                   // floor gun, shield or grenade mod
 
 // class mods (g_classmod.cpp)
-loot_classmod_t ClassMod_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t tree); // tree 0 = random
-edict_t *ClassMod_SpawnDrop(edict_t *source, const loot_classmod_t &mod, bool from_player);      // g_loot.cpp
+loot_classmod_t ClassMod_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t tree);                       // tree 0 = random
+edict_t *ClassMod_SpawnDrop(edict_t *source, const loot_classmod_t &mod, bool from_player, bool apply_filter = false); // g_loot.cpp
 void ClassMod_Give(edict_t *ent, const loot_classmod_t &mod);
 void ClassMod_SendCard(edict_t *ent, const loot_classmod_t &mod);
 std::string ClassMod_BriefLine(const loot_classmod_t &mod);        // "+2 Hollow Points  +1 Marksman"
@@ -239,6 +239,7 @@ void Rift_Open(edict_t *ent);
 void Rift_Leave(edict_t *ent);
 void Rift_OnExitLevel();                                                                     // ExitLevel, before the gamemap command
 void Rift_PlayerFrame(edict_t *ent);                                                         // Loot_SetStats
+vec3_t Loot_SpotAhead(edict_t *ent, float yaw, float distance, float pull_back);             // g_loot.cpp: spawn spot in front of a player
 edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char *classname); // g_loot.cpp; nullptr if it didn't fit
 void Loot_RiftDrops(const vec3_t &where, int32_t count, int32_t tier);                       // g_loot.cpp: rift reward burst
 

@@ -1755,20 +1755,17 @@ void Loot_RecordDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, int
 	if (targ->health > 0)
 	{
 		targ->loot_hit_crit = loot_last_hit_crit;
+		const loot_weapon_t *hit_gun = Loot_HitGun(inflictor, attacker, mod); // the gun that fired, even after a swap; nullptr for status / skills / grenades
 		if (mod.id == MOD_LOOT_TURRET || mod.id == MOD_LOOT_SLAM || mod.id == MOD_LOOT_GRENADE)
 			targ->loot_hit_arch = 0;
 		else if (!Loot_IsStatusMod(mod))
-		{
-			const loot_weapon_t *gun = Loot_HitGun(inflictor, attacker, mod); // the gun that fired, even after a swap
-			targ->loot_hit_arch = gun ? gun->archetype + 1 : 0;
-		}
+			targ->loot_hit_arch = hit_gun ? hit_gun->archetype + 1 : 0;
 		const loot_status_t &st = targ->loot_status;
 		targ->loot_hit_elements = (st.burn_end > level.time ? 1 << LOOT_ELEM_FIRE : 0) |
 		                          (st.shock_end > level.time ? 1 << LOOT_ELEM_SHOCK : 0) |
 		                          (st.melt_end > level.time ? 1 << LOOT_ELEM_CORROSIVE : 0) |
 		                          (st.chill_end > level.time || st.freeze_end > level.time ? 1 << LOOT_ELEM_CRYO : 0);
 		// explosive has no status: an explosive gun's hit or a blast marks it
-		const loot_weapon_t *hit_gun = Loot_HitGun(inflictor, attacker, mod);
 		if (mod.id == MOD_LOOT_EXPLODE || (hit_gun && hit_gun->element == LOOT_ELEM_EXPLOSIVE))
 			targ->loot_hit_elements |= 1 << LOOT_ELEM_EXPLOSIVE;
 	}
@@ -2061,24 +2058,21 @@ bool Loot_HiddenFrom(const edict_t *ent, const edict_t *player)
 // owner of the monster drops being spawned right now (nullptr = shared)
 static edict_t *loot_drop_owner;
 
-// Loot filter: set around ordinary monster drops only (not boss tables, placed loot or
-// rift rewards). The drop's owner (coop) or the first player decides.
-static bool loot_filter_on;
+// Loot filter: callers pass apply_filter for ordinary monster drops only (not boss tables,
+// placed loot or rift rewards). The drop's owner (coop) or the first player decides.
 constexpr int32_t LOOT_FILTER_MAX = LOOT_RARITY_EPIC; // Epic and up always drop
 
 static bool Loot_DropFiltered(loot_rarity_t rarity)
 {
-	if (!loot_filter_on)
-		return false;
 	edict_t *owner = loot_drop_owner ? loot_drop_owner : &g_edicts[1];
 	if (!owner->client)
 		return false;
 	return (int32_t)rarity < std::clamp(owner->client->pers.loot_filter, 0, LOOT_FILTER_MAX);
 }
 
-edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_player)
+edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_player, bool apply_filter)
 {
-	if (!from_player && Loot_DropFiltered(gun.rarity))
+	if (apply_filter && !from_player && Loot_DropFiltered(gun.rarity))
 		return nullptr;
 	edict_t *drop = Drop_Item(source, GetItemByIndex(gun.base));
 
@@ -2239,9 +2233,9 @@ void SP_item_loot_grenade(edict_t *self)
 	self->nextthink = level.time + FRAME_TIME_S;
 }
 
-edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool from_player)
+edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool from_player, bool apply_filter)
 {
-	if (!from_player && Loot_DropFiltered(shield.rarity))
+	if (apply_filter && !from_player && Loot_DropFiltered(shield.rarity))
 		return nullptr;
 	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_ITEM_POWER_SCREEN));
 
@@ -2261,9 +2255,9 @@ edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool
 	return drop;
 }
 
-edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool from_player)
+edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool from_player, bool apply_filter)
 {
-	if (!from_player && Loot_DropFiltered(grenade.rarity))
+	if (apply_filter && !from_player && Loot_DropFiltered(grenade.rarity))
 		return nullptr;
 	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_AMMO_GRENADES));
 
@@ -2284,9 +2278,9 @@ edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool 
 }
 
 // class mods lie on the floor as a data CD (keys are never auto-picked: Loot_Touch takes them)
-edict_t *ClassMod_SpawnDrop(edict_t *source, const loot_classmod_t &mod, bool from_player)
+edict_t *ClassMod_SpawnDrop(edict_t *source, const loot_classmod_t &mod, bool from_player, bool apply_filter)
 {
-	if (!from_player && Loot_DropFiltered(mod.rarity))
+	if (apply_filter && !from_player && Loot_DropFiltered(mod.rarity))
 		return nullptr;
 	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_KEY_DATA_CD));
 
@@ -2466,7 +2460,6 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 
 	if (const loot_boss_info_t *boss_info = Loot_BossInfo(monster))
 	{
-		loot_filter_on = false; // boss tables always drop in full
 		Loot_BossDrop(monster, *boss_info, luck + 2.f);
 		return;
 	}
@@ -2501,7 +2494,7 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		if (Loot_ShieldsAvailable() && frandom() < 0.15f * NGPlus_ShieldDropMult()) // Fortified
 		{
 			const loot_shield_t shield = Loot_RollShield(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand());
-			if (Loot_SpawnShieldDrop(monster, shield, false)) // nullptr: hidden by the loot filter
+			if (Loot_SpawnShieldDrop(monster, shield, false, true)) // nullptr: hidden by the loot filter
 				level.loot_stats.shield_drops[shield.rarity]++;
 			continue;
 		}
@@ -2509,7 +2502,7 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		// and some are grenade mods
 		if (frandom() < 0.12f)
 		{
-			if (Grenade_SpawnDrop(monster, Grenade_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand()), false))
+			if (Grenade_SpawnDrop(monster, Grenade_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand()), false, true))
 				level.loot_stats.grenade_mod_drops++;
 			continue;
 		}
@@ -2518,13 +2511,13 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		if (frandom() < 0.08f)
 		{
 			ClassMod_SpawnDrop(monster, ClassMod_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand(), ClassMod_DropTree(loot_drop_owner)),
-			                   false);
+			                   false, true);
 			continue;
 		}
 
 		loot_weapon_t gun = Loot_RollRandom(luck);
 		Loot_SetLevel(gun, std::max(1, monster->loot_mlevel));
-		if (Loot_SpawnDrop(monster, gun, false))
+		if (Loot_SpawnDrop(monster, gun, false, true))
 			level.loot_stats.gun_drops[gun.rarity]++;
 	}
 
@@ -2544,18 +2537,14 @@ void Loot_MonsterDrop(edict_t *monster)
 {
 	if (!Loot_PerPlayerDrops())
 	{
-		loot_filter_on = true;
 		Loot_MonsterDropRoll(monster);
-		loot_filter_on = false;
 		return;
 	}
 	for (auto player : active_players())
 	{
 		loot_drop_owner = player;
-		loot_filter_on = true;
 		Loot_MonsterDropRoll(monster);
 	}
-	loot_filter_on = false;
 	loot_drop_owner = nullptr;
 }
 
@@ -2742,6 +2731,15 @@ bool Loot_IsBossTier(const edict_t *monster)
 
 //==========================================================================
 // Death spawns: a dying monster may bring 1-3 more of its kind
+// Frees a monster that was just spawned but can't stay (no room, not the elite we wanted).
+// monster_start already counted it; take it back out so the kill count can still reach the total.
+static void Loot_DiscardSpawnedMonster(edict_t *monster)
+{
+	if (!(monster->monsterinfo.aiflags & AI_DO_NOT_COUNT) && level.total_monsters > 0)
+		level.total_monsters--;
+	G_FreeEdict(monster);
+}
+
 //==========================================================================
 
 // Spawner entity left at the corpse: `target` = monster classname, `count` = how many,
@@ -2764,10 +2762,7 @@ THINK(loot_death_spawner_think)(edict_t *self)->void
 		const trace_t tr = gi.trace(monster->s.origin, monster->mins, monster->maxs, monster->s.origin, monster, MASK_MONSTERSOLID);
 		if (tr.startsolid || tr.allsolid)
 		{
-			// monster_start already counted it; take it back out so the kill count can still reach the total
-			if (!(monster->monsterinfo.aiflags & AI_DO_NOT_COUNT) && level.total_monsters > 0)
-				level.total_monsters--;
-			G_FreeEdict(monster);
+			Loot_DiscardSpawnedMonster(monster);
 			continue;
 		}
 
@@ -3969,6 +3964,16 @@ static bool Loot_CheatCheck(edict_t *ent)
 // loot_spawn [archetype 0-9] [rarity 0-4]
 // loot_spawnmonster <classname>: spawn a monster in front of you for fight testing.
 // It goes through monster_start like a map monster (level, shield, elite roll, drops).
+// A spot up to `distance` ahead of the player along `yaw`, pulled back `pull_back` from any wall.
+vec3_t Loot_SpotAhead(edict_t *ent, float yaw, float distance, float pull_back)
+{
+	vec3_t forward;
+	AngleVectors({0, yaw, 0}, forward, nullptr, nullptr);
+	const vec3_t start = ent->s.origin + vec3_t{0, 0, 16};
+	const trace_t tr = gi.trace(start, vec3_origin, vec3_origin, start + forward * distance, ent, MASK_MONSTERSOLID);
+	return tr.endpos - forward * pull_back;
+}
+
 static void Loot_Cmd_SpawnMonster(edict_t *ent)
 {
 	if (!Loot_CheatCheck(ent))
@@ -3981,12 +3986,7 @@ static void Loot_Cmd_SpawnMonster(edict_t *ent)
 		return;
 	}
 
-	// a spot up to 160 units ahead, pulled back from any wall
-	vec3_t forward;
-	AngleVectors({0, ent->client->v_angle[YAW], 0}, forward, nullptr, nullptr);
-	const vec3_t start = ent->s.origin + vec3_t{0, 0, 16};
-	const trace_t tr = gi.trace(start, vec3_origin, vec3_origin, start + forward * 160.f, ent, MASK_MONSTERSOLID);
-	const vec3_t spot = tr.endpos - forward * 48.f;
+	const vec3_t spot = Loot_SpotAhead(ent, ent->client->v_angle[YAW], 160.f, 48.f);
 
 	loot_force_omega = gi.argc() >= 3 && !Q_strcasecmp(gi.argv(2), "omega");
 	edict_t *monster = CreateMonster(spot, {0, ent->client->v_angle[YAW] + 180.f, 0}, G_CopyString(classname, TAG_LEVEL));
@@ -4012,10 +4012,7 @@ edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char 
 		return nullptr;
 	if (!monster->loot_omega) // too big for the spot: a plain one is no guardian
 	{
-		// monster_start already counted it; take it back out so the kill count can still reach the total
-		if (!(monster->monsterinfo.aiflags & AI_DO_NOT_COUNT) && level.total_monsters > 0)
-			level.total_monsters--;
-		G_FreeEdict(monster);
+		Loot_DiscardSpawnedMonster(monster);
 		return nullptr;
 	}
 	return monster;

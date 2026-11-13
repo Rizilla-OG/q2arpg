@@ -269,11 +269,7 @@ static edict_t *Rift_SpawnGuardian(edict_t *ent)
 	for (int32_t attempt = 0; attempt < 8; attempt++)
 	{
 		const float yaw = ent->client->v_angle[YAW] + 45.f * attempt;
-		vec3_t forward;
-		AngleVectors({0, yaw, 0}, forward, nullptr, nullptr);
-		const vec3_t start = ent->s.origin + vec3_t{0, 0, 16};
-		const trace_t tr = gi.trace(start, vec3_origin, vec3_origin, start + forward * 256.f, ent, MASK_MONSTERSOLID);
-		const vec3_t spot = tr.endpos - forward * 64.f;
+		const vec3_t spot = Loot_SpotAhead(ent, yaw, 256.f, 64.f);
 		if ((spot - ent->s.origin).length() < 96.f)
 			continue;
 
