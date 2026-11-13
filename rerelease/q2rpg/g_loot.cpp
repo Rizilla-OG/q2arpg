@@ -2047,8 +2047,25 @@ bool Loot_HiddenFrom(const edict_t *ent, const edict_t *player)
 // owner of the monster drops being spawned right now (nullptr = shared)
 static edict_t *loot_drop_owner;
 
+// Loot filter: set around ordinary monster drops only (not boss tables, placed loot or
+// rift rewards). The drop's owner (coop) or the first player decides.
+static bool loot_filter_on;
+constexpr int32_t LOOT_FILTER_MAX = LOOT_RARITY_EPIC; // Epic and up always drop
+
+static bool Loot_DropFiltered(loot_rarity_t rarity)
+{
+	if (!loot_filter_on)
+		return false;
+	edict_t *owner = loot_drop_owner ? loot_drop_owner : &g_edicts[1];
+	if (!owner->client)
+		return false;
+	return (int32_t)rarity < std::clamp(owner->client->pers.loot_filter, 0, LOOT_FILTER_MAX);
+}
+
 edict_t *Loot_SpawnDrop(edict_t *source, const loot_weapon_t &gun, bool from_player)
 {
+	if (!from_player && Loot_DropFiltered(gun.rarity))
+		return nullptr;
 	edict_t *drop = Drop_Item(source, GetItemByIndex(gun.base));
 
 	drop->loot = gun;
@@ -2210,6 +2227,8 @@ void SP_item_loot_grenade(edict_t *self)
 
 edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool from_player)
 {
+	if (!from_player && Loot_DropFiltered(shield.rarity))
+		return nullptr;
 	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_ITEM_POWER_SCREEN));
 
 	drop->loot_shield = shield;
@@ -2230,6 +2249,8 @@ edict_t *Loot_SpawnShieldDrop(edict_t *source, const loot_shield_t &shield, bool
 
 edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool from_player)
 {
+	if (!from_player && Loot_DropFiltered(grenade.rarity))
+		return nullptr;
 	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_AMMO_GRENADES));
 
 	drop->loot_grenade = grenade;
@@ -2251,6 +2272,8 @@ edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool 
 // class mods lie on the floor as a data CD (keys are never auto-picked: Loot_Touch takes them)
 edict_t *ClassMod_SpawnDrop(edict_t *source, const loot_classmod_t &mod, bool from_player)
 {
+	if (!from_player && Loot_DropFiltered(mod.rarity))
+		return nullptr;
 	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_KEY_DATA_CD));
 
 	drop->loot_classmod = mod;
@@ -2429,6 +2452,7 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 
 	if (const loot_boss_info_t *boss_info = Loot_BossInfo(monster))
 	{
+		loot_filter_on = false; // boss tables always drop in full
 		Loot_BossDrop(monster, *boss_info, luck + 2.f);
 		return;
 	}
@@ -2506,15 +2530,33 @@ void Loot_MonsterDrop(edict_t *monster)
 {
 	if (!Loot_PerPlayerDrops())
 	{
+		loot_filter_on = true;
 		Loot_MonsterDropRoll(monster);
+		loot_filter_on = false;
 		return;
 	}
 	for (auto player : active_players())
 	{
 		loot_drop_owner = player;
+		loot_filter_on = true;
 		Loot_MonsterDropRoll(monster);
 	}
+	loot_filter_on = false;
 	loot_drop_owner = nullptr;
+}
+
+// "loot_filter" (L): cycle off -> hide Common -> hide Uncommon and below -> hide Rare and below
+static void Loot_Cmd_Filter(edict_t *ent)
+{
+	int32_t &filter = ent->client->pers.loot_filter;
+	filter = (std::clamp(filter, 0, LOOT_FILTER_MAX) + 1) % (LOOT_FILTER_MAX + 1);
+	if (!filter)
+		gi.Center_Print(ent, "Loot filter: off");
+	else if (filter == 1)
+		gi.Center_Print(ent, "Loot filter: hide Common drops");
+	else
+		gi.Center_Print(ent, G_Fmt("Loot filter: hide {} and below", Loot_RarityName((loot_rarity_t)(filter - 1))).data());
+	gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/menu1.wav"), 1, ATTN_NONE, 0);
 }
 
 // Map-placed stock weapons become rolled guns (common-biased).
@@ -4342,6 +4384,11 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 	if (!Q_strcasecmp(cmd, "loot_spawnmonster"))
 	{
 		Loot_Cmd_SpawnMonster(ent);
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_filter"))
+	{
+		Loot_Cmd_Filter(ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_spawn"))

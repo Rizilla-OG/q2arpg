@@ -2851,6 +2851,7 @@ struct client_persistant_t
 	loot_classmod_t loot_classmod; // q2rpg: equipped class mod
 	std::array<loot_stash_slot_t, LOOT_STASH_SLOTS> loot_stash; // q2rpg: stash (vendor page 4)
 	int32_t loot_stash_bought; // q2rpg: extra 4-slot rows bought at Lv 60
+	int32_t loot_filter; // q2rpg: loot filter: monster drops below this rarity don't spawn (0 off, max 3)
 	int32_t loot_tree; // loot_tree_t
 	std::array<uint8_t, LOOT_NUM_SKILLS> loot_skill_ranks;
 	int32_t loot_money;

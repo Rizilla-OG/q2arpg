@@ -73,6 +73,8 @@ The mod sets these binds in `q2rpg/autoexec.cfg`:
 | `I` | Loadout (press again for held gun details) |
 | `X` | Sell the loot you're standing on, else your active gun (press twice) |
 | `B` | Send the loot you're standing on to your stash, else open your stash (free) |
+| `L` | Loot filter: hide low-rarity monster drops (press to cycle: off, Common, Uncommon and below, Rare and below) |
+| `L` | Loot filter: hide Common, Uncommon, or Rare-and-below monster drops (press to cycle) |
 | `V` | Vendor (first visit per map is free) |
 | `K` | Skills (press again for the NG+ tier-4 page) |
 | `J` | Challenges |
