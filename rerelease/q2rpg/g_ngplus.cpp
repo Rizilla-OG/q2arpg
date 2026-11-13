@@ -207,7 +207,7 @@ static bool NGPlus_MapMod(loot_map_mod_t mod)
 
 float NGPlus_EliteChanceMult()
 {
-	return NGPlus_MapMod(LOOT_MAPMOD_ALPHA_SURGE) ? 3.f : 1.f;
+	return (NGPlus_MapMod(LOOT_MAPMOD_ALPHA_SURGE) ? 3.f : 1.f) * Rift_EliteMult();
 }
 
 float NGPlus_CashMult()
@@ -217,7 +217,7 @@ float NGPlus_CashMult()
 
 float NGPlus_LuckBonus()
 {
-	return NGPlus_MapMod(LOOT_MAPMOD_LOOT_FRENZY) ? 1.5f : 0.f;
+	return (NGPlus_MapMod(LOOT_MAPMOD_LOOT_FRENZY) ? 1.5f : 0.f) + Rift_LuckBonus();
 }
 
 // Monsters get x1.5 health and damage per NG+ cycle on top of their levels:
@@ -236,12 +236,12 @@ float NGPlus_MonsterHealthMult()
 		mult *= 1.3f;
 	if (NGPlus_MapMod(LOOT_MAPMOD_GLASS_CANNON))
 		mult *= 0.7f;
-	return mult;
+	return mult * Rift_HealthMult();
 }
 
 float NGPlus_MonsterDamageMult()
 {
-	return NGPlus_CycleMult() * (NGPlus_MapMod(LOOT_MAPMOD_GLASS_CANNON) ? 1.4f : 1.f);
+	return NGPlus_CycleMult() * (NGPlus_MapMod(LOOT_MAPMOD_GLASS_CANNON) ? 1.4f : 1.f) * Rift_DamageMult();
 }
 
 float NGPlus_DeathSpawnMult()

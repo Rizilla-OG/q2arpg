@@ -779,6 +779,9 @@ void ExitLevel()
 		return;
 	}
 
+	// q2rpg: leaving a rift goes back where it was opened; a new unit frees the rift maps
+	Rift_OnExitLevel();
+
 	// q2rpg: campaign end restarts the campaign as New Game+
 	if (NGPlus_TryRestart(level.changemap))
 	{

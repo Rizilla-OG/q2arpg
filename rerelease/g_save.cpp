@@ -829,6 +829,16 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_ava_cycle), // q2rpg
 	FIELD_AUTO(loot_map_mod_map), // q2rpg
 	FIELD_AUTO(loot_map_mod_previous), // q2rpg
+	FIELD_AUTO(loot_rift_tier), // q2rpg
+	FIELD_AUTO(loot_rift_best), // q2rpg
+	FIELD_AUTO(loot_rift_active), // q2rpg
+	FIELD_AUTO(loot_rift_map), // q2rpg
+	FIELD_AUTO(loot_rift_used_mask), // q2rpg
+	FIELD_AUTO(loot_rift_return_map), // q2rpg
+	FIELD_AUTO(loot_rift_return_spot), // q2rpg
+	FIELD_AUTO(loot_rift_return_origin), // q2rpg
+	FIELD_AUTO(loot_rift_return_angles), // q2rpg
+	FIELD_AUTO(loot_rift_return_pending), // q2rpg
 
 	FIELD_AUTO(autosaved),
 	FIELD_AUTO(level_entries)
@@ -849,6 +859,12 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_vendor_classmod), // q2rpg
 	FIELD_AUTO(loot_vendor_rerolls), // q2rpg
 	FIELD_AUTO(loot_reinforcements_paid), // q2rpg
+	FIELD_AUTO(loot_rift_announced), // q2rpg
+	FIELD_AUTO(loot_rift_progress_shown), // q2rpg
+	FIELD_AUTO(loot_rift_guardian), // q2rpg
+	FIELD_AUTO(loot_rift_guardian_count), // q2rpg
+	FIELD_AUTO(loot_rift_cleared), // q2rpg
+	FIELD_AUTO(loot_rift_return_time), // q2rpg
 	FIELD_AUTO(loot_map_mod), // q2rpg
 	FIELD_AUTO(loot_novendor), // q2rpg
 	FIELD_AUTO(loot_level_bonus), // q2rpg

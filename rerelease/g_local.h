@@ -1166,6 +1166,17 @@ struct game_locals_t
 	char loot_map_mod_map[MAX_QPATH];	 // q2rpg: map the last modifier roll was for
 	int32_t loot_map_mod_previous;		 // q2rpg: modifier of the map before it (no-repeat check, kept for reloads)
 	int32_t loot_ava_cycle;			 // q2rpg: NG+ cycle + 1 when the Ava pistol was given (0 = never); once per playthrough
+	// q2rpg: rifts (g_rift.cpp)
+	int32_t loot_rift_tier;            // tier of the next / current rift (0 = 1)
+	int32_t loot_rift_best;            // highest tier cleared
+	bool loot_rift_active;             // a rift is open (we're in it, or on the way)
+	char loot_rift_map[MAX_QPATH];     // the rift's map
+	uint32_t loot_rift_used_mask;      // pool maps used this unit (bit per rift_maps entry)
+	char loot_rift_return_map[MAX_QPATH];  // map the rift was opened from
+	char loot_rift_return_spot[MAX_QPATH]; // an info_player_start targetname there ("" = plain start)
+	vec3_t loot_rift_return_origin;
+	vec3_t loot_rift_return_angles;
+	bool loot_rift_return_pending;     // put players back at the origin once the return map loads
 };
 
 constexpr size_t MAX_HEALTH_BARS = 2;
@@ -1192,6 +1203,12 @@ struct level_locals_t
 	loot_classmod_t loot_vendor_classmod; // q2rpg
 	int32_t loot_vendor_rerolls; // q2rpg: stock rerolls bought on this map (price climbs)
 	int32_t loot_reinforcements_paid; // q2rpg: called-in reinforcements (medic commander, carrier...) that paid out on this map
+	bool loot_rift_announced;          // q2rpg: rift banner shown
+	int32_t loot_rift_progress_shown;  // q2rpg: tenths of the way to the guardian already announced
+	edict_t *loot_rift_guardian;       // q2rpg: the rift guardian while alive
+	int32_t loot_rift_guardian_count;  // q2rpg: its spawn_count (edicts get reused)
+	bool loot_rift_cleared;            // q2rpg: guardian dead, loot paid
+	gtime_t loot_rift_return_time;     // q2rpg: auto return after a clear
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
 	bool loot_novendor;			 // q2rpg: worldspawn loot_novendor 1, the shop won't open on this map
 	int32_t loot_level_bonus;	 // q2rpg: worldspawn loot_level_bonus, added to monster levels

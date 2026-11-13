@@ -2857,6 +2857,7 @@ void Loot_ScaleMonster(edict_t *monster)
 	if (boss)
 		level += 2;
 	level += ::level.loot_level_bonus; // mapper's worldspawn loot_level_bonus
+	level += Rift_LevelBonus();
 
 	// badass variant
 	vec3_t elite_origin;
@@ -3580,6 +3581,8 @@ void Loot_SetStats(edict_t *ent)
 	if (deathmatch->integer)
 		return;
 
+	Rift_PlayerFrame(ent);
+
 	// mapper's worldspawn loot_start_level: lift players who come in below it
 	if (std::min(level.loot_start_level, Loot_LevelCap()) > cl->pers.loot_level && ent->health > 0) // capped, or it would heal every frame
 	{
@@ -3937,6 +3940,58 @@ static void Loot_Cmd_SpawnMonster(edict_t *ent)
 	gi.Client_Print(ent, PRINT_HIGH, G_Fmt("Spawned {} Lv {}{}\n", classname, monster->loot_mlevel, monster->loot_omega ? " (Omega)" : monster->loot_elite ? " (Alpha)"
 	                                                                                                                                                       : "")
 	                                     .data());
+}
+
+// An Alpha Omega of `classname` at origin (rift guardian); nullptr if it can't spawn there.
+edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char *classname)
+{
+	loot_force_omega = true;
+	edict_t *monster = CreateMonster(origin, angles, classname);
+	loot_force_omega = false;
+	if (!monster || !monster->inuse)
+		return nullptr;
+	if (!monster->loot_omega) // too big for the spot: a plain one is no guardian
+	{
+		// monster_start already counted it; take it back out so the kill count can still reach the total
+		if (!(monster->monsterinfo.aiflags & AI_DO_NOT_COUNT) && level.total_monsters > 0)
+			level.total_monsters--;
+		G_FreeEdict(monster);
+		return nullptr;
+	}
+	return monster;
+}
+
+// Rift reward: `count` drops tossed from `where`; the first is Legendary (Mythic 20% + 2%/tier).
+// Shared drops (no coop instancing), like map-placed loot.
+void Loot_RiftDrops(const vec3_t &where, int32_t count, int32_t tier)
+{
+	edict_t *source = G_Spawn(); // Drop_Item tosses from an entity
+	source->s.origin = where + vec3_t{0, 0, 24};
+	loot_drop_owner = nullptr;
+
+	const int32_t level = Loot_ZoneLevel();
+	const float luck = 1.0f + Loot_ZoneLuck() + NGPlus_LuckBonus() + 0.3f * tier;
+	for (int32_t i = 0; i < count; i++)
+	{
+		if (i == 0)
+		{
+			const loot_rarity_t rarity = frandom() < 0.2f + 0.02f * tier ? LOOT_RARITY_MYTHIC : LOOT_RARITY_LEGENDARY;
+			loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(LOOT_ARCH_COUNT), rarity, (uint32_t)mt_rand());
+			Loot_SetLevel(gun, level);
+			Loot_SpawnDrop(source, gun, false);
+		}
+		else if (i == 1)
+			ClassMod_SpawnDrop(source, ClassMod_Roll(Loot_RollRarity(luck), level, (uint32_t)mt_rand(), ClassMod_DropTree(nullptr)), false);
+		else if (i == 2 && Loot_ShieldsAvailable())
+			Loot_SpawnShieldDrop(source, Loot_RollShield(Loot_RollRarity(luck), level, (uint32_t)mt_rand()), false);
+		else
+		{
+			loot_weapon_t gun = Loot_RollRandom(luck);
+			Loot_SetLevel(gun, level);
+			Loot_SpawnDrop(source, gun, false);
+		}
+	}
+	G_FreeEdict(source);
 }
 
 static void Loot_Cmd_Spawn(edict_t *ent)

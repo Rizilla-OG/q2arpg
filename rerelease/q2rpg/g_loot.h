@@ -225,6 +225,23 @@ const char *Skill_TreeName(int32_t tree);
 const char *Skill_Name(int32_t tree, int32_t skill);
 bool Skill_Boostable(int32_t tree, int32_t skill); // class mods may boost it (not a 1-rank capstone)
 
+// rifts (g_rift.cpp)
+bool Rift_InRift();
+int32_t Rift_LevelBonus();
+float Rift_HealthMult();
+float Rift_DamageMult();
+float Rift_LuckBonus();
+float Rift_EliteMult();
+int32_t Rift_OpenPrice();
+std::string Rift_VendorLine(edict_t *ent, bool &can_use);
+bool Rift_CanOpen(edict_t *ent);
+void Rift_Open(edict_t *ent);
+void Rift_Leave(edict_t *ent);
+void Rift_OnExitLevel();                                                                     // ExitLevel, before the gamemap command
+void Rift_PlayerFrame(edict_t *ent);                                                         // Loot_SetStats
+edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char *classname); // g_loot.cpp; nullptr if it didn't fit
+void Loot_RiftDrops(const vec3_t &where, int32_t count, int32_t tier);                       // g_loot.cpp: rift reward burst
+
 // loot visual effects (g_lootfx.cpp)
 void LootFx_RarityBeam(edict_t *item, loot_rarity_t rarity);                  // replaces any beam the item has
 void LootFx_Tracer(edict_t *shooter, const vec3_t &start, const vec3_t &end); // elemental hitscan only

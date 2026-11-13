@@ -431,8 +431,15 @@ static void Vendor_SendWorkshop(edict_t *ent)
 	else
 		line("string", "3  - sold -");
 
+	// rift (Lv 60 endgame)
 	y += 6;
-	line("string2", "[1-3] buy  [9] stash >  [V] close");
+	bool rift_usable = false;
+	const std::string rift_text = Rift_VendorLine(ent, rift_usable);
+	const bool rift_affordable = Rift_InRift() || Rift_OpenPrice() <= money;
+	line(rift_usable && rift_affordable ? "string2" : "string", "4  " + rift_text);
+
+	y += 6;
+	line("string2", "[1-4] buy  [9] stash >  [V] close");
 	Loot_SendLayout(ent, s);
 }
 
@@ -851,6 +858,19 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 		classmod = {};
 		ClassMod_Give(ent, bought);
 		cl->loot_shop_time = 0_ms;
+		return;
+	}
+
+	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP && n == 4)
+	{
+		if (Rift_InRift())
+		{
+			Rift_Leave(ent);
+			return;
+		}
+		if (!Rift_CanOpen(ent) || !Vendor_Pay(ent, Rift_OpenPrice()))
+			return;
+		Rift_Open(ent);
 		return;
 	}
 
