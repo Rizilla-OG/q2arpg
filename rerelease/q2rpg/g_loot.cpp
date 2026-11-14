@@ -1402,7 +1402,7 @@ static bool Loot_IsStatusMod(const mod_t &mod)
 // hitscan uses the held gun; status ticks and grenade mods have no gun
 static loot_weapon_t *Loot_HitGun(edict_t *inflictor, edict_t *attacker, const mod_t &mod)
 {
-	if (!attacker || !attacker->client || Loot_IsStatusMod(mod) || mod.id == MOD_LOOT_GRENADE)
+	if (!attacker || !attacker->client || Loot_IsStatusMod(mod) || mod.id == MOD_LOOT_GRENADE || mod.id == MOD_LOOT_MELEE)
 		return nullptr;
 	if (inflictor && inflictor != attacker && inflictor->loot_shot_gun.valid)
 		return &inflictor->loot_shot_gun;
@@ -1665,6 +1665,15 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 	if (Loot_IsStatusMod(mod) || !attacker || !attacker->client || targ == attacker)
 		return damage;
 
+	// q2rpg: melee: its own damage and head crit, none of the held gun's stats
+	if (mod.id == MOD_LOOT_MELEE)
+	{
+		bool crit = false;
+		damage = Melee_ModifyDamage(targ, point, damage, crit);
+		loot_last_hit_crit = crit;
+		return damage;
+	}
+
 	// grenade mods carry their own element; the held gun's crit / element / skills don't apply
 	if (mod.id == MOD_LOOT_GRENADE)
 	{
@@ -1794,7 +1803,7 @@ void Loot_RecordDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, int
 	{
 		targ->loot_hit_crit = loot_last_hit_crit;
 		const loot_weapon_t *hit_gun = Loot_HitGun(inflictor, attacker, mod); // the gun that fired, even after a swap; nullptr for status / skills / grenades
-		if (mod.id == MOD_LOOT_TURRET || mod.id == MOD_LOOT_SLAM || mod.id == MOD_LOOT_GRENADE)
+		if (mod.id == MOD_LOOT_TURRET || mod.id == MOD_LOOT_SLAM || mod.id == MOD_LOOT_GRENADE || mod.id == MOD_LOOT_MELEE)
 			targ->loot_hit_arch = 0;
 		else if (!Loot_IsStatusMod(mod))
 			targ->loot_hit_arch = hit_gun ? hit_gun->archetype + 1 : 0;
@@ -4568,6 +4577,11 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 			Loot_SetLevel(gun, std::max(1, ent->client->pers.loot_level));
 			Loot_SpawnDrop(ent, gun, true);
 		}
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_melee"))
+	{
+		Melee_Cmd(ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_raid"))

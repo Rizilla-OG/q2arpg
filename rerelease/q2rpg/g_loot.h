@@ -277,6 +277,9 @@ bool Raid_CanOpen(edict_t *ent);
 void Raid_Open(edict_t *ent);
 void Raid_Leave(edict_t *ent);
 void Raid_CmdOpen(edict_t *ent); // dev: loot_raid
+// melee (g_melee.cpp)
+void Melee_Cmd(edict_t *ent);
+int32_t Melee_ModifyDamage(edict_t *targ, const vec3_t &point, int32_t damage, bool &crit);
 void Raid_PlayerFrame(edict_t *ent);
 edict_t *Loot_SpawnAlpha(const vec3_t &origin, const vec3_t &angles, const char *classname); // g_loot.cpp
 void Loot_RaidDrops(const vec3_t &where);                                                    // g_loot.cpp

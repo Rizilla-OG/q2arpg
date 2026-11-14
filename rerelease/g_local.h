@@ -1087,7 +1087,8 @@ enum mod_id_t : uint8_t
 	MOD_LOOT_SLAM,
 	MOD_LOOT_GRENADE, // q2rpg: grenade mods
 	MOD_LOOT_FREEZE,  // q2rpg: cryo nova / shatter
-	MOD_LOOT_EXPLODE  // q2rpg: explosive proc blast
+	MOD_LOOT_EXPLODE, // q2rpg: explosive proc blast
+	MOD_LOOT_MELEE    // q2rpg: melee strike
 };
 
 struct mod_t
@@ -2979,6 +2980,7 @@ struct gclient_t
 	gtime_t loot_shield_snd_time;
 	gtime_t loot_grenade_next; // q2rpg: grenade throw cooldown
 	gtime_t loot_zoomies_end;  // q2rpg: Ava pistol speed burst runs until this time
+	gtime_t loot_melee_ready;  // q2rpg: melee cooldown
 	gtime_t loot_relic_ammo_time; // q2rpg: next Quartermaster relic ammo tick
 	gtime_t loot_mission_spree_start; // q2rpg: Spree mission: first kill of the current run
 	float loot_relic_heal_carry;  // q2rpg: Leech relic heal fraction not yet given
