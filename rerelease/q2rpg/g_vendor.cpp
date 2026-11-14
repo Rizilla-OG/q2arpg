@@ -307,6 +307,11 @@ static void Vendor_SpawnCash(edict_t *monster, float amount, edict_t *owner)
 	gi.linkentity(cash);
 }
 
+void Vendor_SpawnCashPile(edict_t *source, float amount, edict_t *owner)
+{
+	Vendor_SpawnCash(source, amount, owner);
+}
+
 //==========================================================================
 // Vendor entity
 //==========================================================================

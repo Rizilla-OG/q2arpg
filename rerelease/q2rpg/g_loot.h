@@ -244,6 +244,10 @@ void Rift_PlayerFrame(edict_t *ent);                                            
 vec3_t Loot_SpotAhead(edict_t *ent, float yaw, float distance, float pull_back);             // g_loot.cpp: spawn spot in front of a player
 edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char *classname); // g_loot.cpp; nullptr if it didn't fit
 void Loot_RiftDrops(const vec3_t &where, int32_t count, int32_t tier);                       // g_loot.cpp: rift reward burst
+void Loot_ChestDrops(const vec3_t &where, bool red_chest, edict_t *owner, edict_t *opener);  // g_loot.cpp: loot chest burst
+void Vendor_SpawnCashPile(edict_t *source, float amount, edict_t *owner);                    // g_vendor.cpp: a cash pile tossed from source
+void Chest_CmdList(edict_t *ent);                                                            // g_chest.cpp: dev list of chests
+void Chest_MapSpawn();                                                                       // g_chest.cpp: random chests, end of SpawnEntities
 
 // loot visual effects (g_lootfx.cpp)
 void LootFx_RarityBeam(edict_t *item, loot_rarity_t rarity);                  // replaces any beam the item has

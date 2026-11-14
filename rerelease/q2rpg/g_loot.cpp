@@ -4081,6 +4081,73 @@ void Loot_RiftDrops(const vec3_t &where, int32_t count, int32_t tier)
 	G_FreeEdict(source);
 }
 
+// q2rpg: loot chest burst (g_chest.cpp). Regular: 2 guns, maybe a shield or grenade mod, cash, ammo.
+// Red: a Rare-or-better gun, 2 more guns at higher luck, a shield / grenade mod / class mod, 3x cash.
+// owner = the coop player it's instanced for (nullptr = shared); opener gets ammo for their guns.
+void Loot_ChestDrops(const vec3_t &where, bool red_chest, edict_t *owner, edict_t *opener)
+{
+	edict_t *source = G_Spawn(); // Drop_Item tosses from an entity's box center
+	source->s.origin = where + vec3_t{0, 0, 24};
+	gi.linkentity(source);
+	loot_drop_owner = owner;
+
+	const int32_t level = Loot_ZoneLevel();
+	const float luck = 1.0f + Loot_ZoneLuck() + NGPlus_LuckBonus() + (red_chest ? 1.0f : 0.5f);
+
+	if (red_chest)
+	{
+		const loot_rarity_t rarity = std::max(LOOT_RARITY_RARE, Loot_RollRarity(luck));
+		const loot_archetype_t arch = Loot_RollArchetype(rarity);
+		loot_weapon_t gun = Loot_Roll(arch, std::max(rarity, loot_archs[arch].min_rarity), (uint32_t)mt_rand());
+		Loot_SetLevel(gun, level);
+		Loot_SpawnDrop(source, gun, false);
+	}
+	for (int32_t i = 0; i < 2; i++)
+	{
+		loot_weapon_t gun = Loot_RollRandom(luck);
+		Loot_SetLevel(gun, level);
+		Loot_SpawnDrop(source, gun, false);
+	}
+
+	// gear: red chests always, regular ones half the time
+	if (red_chest || frandom() < 0.5f)
+	{
+		const float gear_roll = frandom();
+		if (red_chest && gear_roll < 0.34f)
+			ClassMod_SpawnDrop(source, ClassMod_Roll(Loot_RollRarity(luck), level, (uint32_t)mt_rand(), ClassMod_DropTree(owner)), false);
+		else if (gear_roll < 0.67f && Loot_ShieldsAvailable())
+			Loot_SpawnShieldDrop(source, Loot_RollShield(Loot_RollRarity(luck), level, (uint32_t)mt_rand()), false);
+		else
+			Grenade_SpawnDrop(source, Grenade_Roll(Loot_RollRarity(luck), level, (uint32_t)mt_rand(), -1), false);
+	}
+
+	const float cash = (50.f + 20.f * level) * (red_chest ? 3.f : 1.f) * frandom(0.85f, 1.15f) * NGPlus_CashMult();
+	Vendor_SpawnCashPile(source, cash, owner);
+
+	// ammo for up to 2 of the opener's guns
+	if (opener && opener->client)
+	{
+		int32_t ammo_drops = 0;
+		for (const loot_weapon_t &gun : opener->client->pers.loot_slots)
+		{
+			if (ammo_drops >= 2 || !gun.valid)
+				continue;
+			gitem_t *weapon = GetItemByIndex(gun.base);
+			if (!weapon || !weapon->ammo)
+				continue;
+			edict_t *ammo = Drop_Item(source, GetItemByIndex(weapon->ammo));
+			ammo->velocity = {crandom() * 150.f, crandom() * 150.f, 250.f + frandom(150.f)};
+			ammo->svflags &= ~SVF_INSTANCED;
+			Loot_InstanceFor(ammo, owner);
+			gi.linkentity(ammo);
+			ammo_drops++;
+		}
+	}
+
+	loot_drop_owner = nullptr;
+	G_FreeEdict(source);
+}
+
 static void Loot_Cmd_Spawn(edict_t *ent)
 {
 	if (!Loot_CheatCheck(ent))
@@ -4359,6 +4426,12 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 			Loot_SetLevel(gun, std::max(1, ent->client->pers.loot_level));
 			Loot_SpawnDrop(ent, gun, true);
 		}
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_chests"))
+	{
+		if (Loot_CheatCheck(ent))
+			Chest_CmdList(ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_xp"))

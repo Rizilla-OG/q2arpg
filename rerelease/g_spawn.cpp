@@ -116,6 +116,7 @@ void SP_misc_teleporter_dest(edict_t *self);
 void SP_item_loot_gun(edict_t *self); // q2rpg
 void SP_item_loot_shield(edict_t *self); // q2rpg
 void SP_item_loot_grenade(edict_t *self); // q2rpg
+void SP_item_loot_chest(edict_t *self); // q2rpg
 void SP_target_loot_drop(edict_t *self); // q2rpg
 void SP_target_ngplus(edict_t *self); // q2rpg
 void SP_misc_blackhole(edict_t *self);
@@ -332,6 +333,7 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "item_loot_gun", SP_item_loot_gun }, // q2rpg
 	{ "item_loot_shield", SP_item_loot_shield }, // q2rpg
 	{ "item_loot_grenade", SP_item_loot_grenade }, // q2rpg
+	{ "item_loot_chest", SP_item_loot_chest }, // q2rpg
 	{ "target_loot_drop", SP_target_loot_drop }, // q2rpg
 	{ "target_ngplus", SP_target_ngplus }, // q2rpg
 	{ "misc_blackhole", SP_misc_blackhole },
@@ -821,6 +823,7 @@ static const std::initializer_list<temp_field_t> temp_fields = {
 	FIELD_AUTO(loot_grenade),    // q2rpg
 	FIELD_AUTO(loot_nomodifier), // q2rpg
 	FIELD_AUTO(loot_novendor),   // q2rpg
+	FIELD_AUTO(loot_nochests),   // q2rpg
 	FIELD_AUTO(loot_level_bonus), // q2rpg
 	FIELD_AUTO(loot_droprate),    // q2rpg
 	FIELD_AUTO(loot_elite_chance), // q2rpg
@@ -1304,6 +1307,7 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 	NGPlus_OnMapSpawn(); // q2rpg: remember the campaign start map
 	Unique_AvaMapSpawn(); // q2rpg: Lost Station duck memorial
 	Vendor_RollStock(); // q2rpg: this map's vendor stock (shop opens with the vendor command)
+	Chest_MapSpawn(); // q2rpg: random loot chests
 }
 
 //===================================================================
@@ -1467,6 +1471,7 @@ void SP_worldspawn(edict_t *ent)
 	if (st.loot_nomodifier)
 		NGPlus_ClearMapMod(); // q2rpg: mapper opted this map out of modifiers
 	level.loot_novendor = st.loot_novendor != 0; // q2rpg
+	level.loot_nochests = st.loot_nochests != 0; // q2rpg
 	// q2rpg: mapper tuning
 	level.loot_level_bonus = st.loot_level_bonus;
 	// level keeps 0 = unset so older saves still read right; an explicit 0 is stored as -1 (off)

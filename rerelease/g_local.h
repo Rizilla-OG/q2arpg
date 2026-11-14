@@ -1212,6 +1212,7 @@ struct level_locals_t
 	gtime_t loot_rift_return_time;     // q2rpg: auto return after a clear
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
 	bool loot_novendor;			 // q2rpg: worldspawn loot_novendor 1, the shop won't open on this map
+	bool loot_nochests;			 // q2rpg: worldspawn loot_nochests 1, no random loot chests (spawn time only)
 	int32_t loot_level_bonus;	 // q2rpg: worldspawn loot_level_bonus, added to monster levels
 	float loot_droprate_mult;	 // q2rpg: worldspawn loot_droprate (0 = unset, treated as 1; negative = off)
 	float loot_elite_mult;		 // q2rpg: worldspawn loot_elite_chance (0 = unset, treated as 1; negative = off)
@@ -1374,6 +1375,7 @@ struct spawn_temp_t
 	const char *loot_grenade;	// item_loot_grenade: grenade mod type name (blank random)
 	int32_t loot_nomodifier;	// worldspawn: 1 = no New Game+ map modifier
 	int32_t loot_novendor;		// worldspawn: 1 = vendor closed on this map
+	int32_t loot_nochests;		// worldspawn: 1 = no random loot chests
 	int32_t loot_level_bonus;	// worldspawn: monster levels + N
 	float loot_droprate = -1;		// worldspawn: loot drop multiplier (-1 = unset, 0 = no drops)
 	float loot_elite_chance = -1;	// worldspawn: Alpha chance multiplier (-1 = unset, 0 = no Alphas)
