@@ -2,6 +2,7 @@
 
 ## Unreleased (next update)
 
+- Fixed: with two guns of the same kind equipped, running one dry could bounce between them instead of switching to the loaded one (or to another gun when both are empty).
 - Pistols are now semi-auto: each click fires as soon as a short cooldown (200 ms, shorter on faster guns) is up, instead of waiting for the full fire animation. Holding the trigger fires at the old rate.
 - Beating the Makron now plays the ending video again before New Game+ starts (single player). Before, NG+ skipped it.
 

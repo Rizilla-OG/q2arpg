@@ -436,9 +436,15 @@ void NoAmmoWeaponChange(edict_t *ent, bool sound)
 		if (!ent->client->pers.inventory[item->id])
 			continue;
 
-		// q2rpg: a gun with rounds left in its magazine can still fire
-		if (item->ammo && ent->client->pers.inventory[item->ammo] < item->quantity && !Loot_HasLoadedGun(ent, item->id))
-			continue;
+		// q2rpg: a gun with rounds left in its magazine can still fire; switch to that exact slot,
+		// or two guns of the same base bounce between each other while the empty one stays held
+		if (item->ammo && ent->client->pers.inventory[item->ammo] < item->quantity)
+		{
+			const int32_t loaded_slot = Loot_LoadedSlot(ent, item->id);
+			if (loaded_slot < 0)
+				continue;
+			ent->client->loot_pending_slot = loaded_slot;
+		}
 
 		ent->client->newweapon = item;
 		return;

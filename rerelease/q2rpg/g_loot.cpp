@@ -1077,21 +1077,31 @@ void Loot_SelectSlot(edict_t *ent, int32_t slot)
 	cl->newweapon = GetItemByIndex(cl->pers.loot_slots[slot].base);
 }
 
+// q2rpg: a loot slot of this base weapon with rounds in its magazine, preferring one that
+// isn't the held slot; -1 if none
+int32_t Loot_LoadedSlot(edict_t *ent, item_id_t base)
+{
+	if (!ent || !ent->client || deathmatch->integer)
+		return -1;
+	const int32_t held_slot = ent->client->pers.loot_active_slot;
+	const int32_t shot_cost = std::max(1, GetItemByIndex(base)->quantity); // same test as Loot_CanFire
+	int32_t loaded_slot = -1;
+	for (int32_t i = 0; i < LOOT_NUM_SLOTS; i++)
+	{
+		const loot_weapon_t &gun = ent->client->pers.loot_slots[i];
+		if (!gun.valid || gun.base != base || gun.mag_size <= 0 || gun.mag_ammo < shot_cost)
+			continue;
+		if (i != held_slot)
+			return i;
+		loaded_slot = i;
+	}
+	return loaded_slot;
+}
+
 // The weapon wheel and weapnext/weapprev only know stock weapons, so two slots
 // with the same base were unreachable past the first. While holding one of them,
 // selecting that weapon again (or next/prev) steps to the other slot. `wrap`
 // cycles around (wheel); without it, next/prev fall through to stock at the end.
-// q2rpg: true if a loot slot of this base weapon still has rounds in its magazine
-bool Loot_HasLoadedGun(edict_t *ent, item_id_t base)
-{
-	if (!ent || !ent->client || deathmatch->integer)
-		return false;
-	for (const loot_weapon_t &gun : ent->client->pers.loot_slots)
-		if (gun.valid && gun.base == base && gun.mag_size > 0 && gun.mag_ammo > 0)
-			return true;
-	return false;
-}
-
 bool Loot_CycleSameBase(edict_t *ent, const gitem_t *item, int32_t dir, bool wrap)
 {
 	gclient_t *cl = ent->client;
