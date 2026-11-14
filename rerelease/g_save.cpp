@@ -745,6 +745,23 @@ SAVE_STRUCT_END
 
 MAKE_STRUCT_SAVE_DEDUCER(loot_classmod_t);
 
+// q2rpg: side mission
+#define DECLARE_SAVE_STRUCT loot_mission_t
+SAVE_STRUCT_START
+	FIELD_AUTO(valid),
+	FIELD_AUTO(type),
+	FIELD_AUTO(goal),
+	FIELD_AUTO(progress),
+	FIELD_AUTO(difficulty),
+	FIELD_AUTO(element),
+	FIELD_AUTO(monster_class),
+	FIELD_AUTO(label),
+	FIELD_AUTO(short_label)
+SAVE_STRUCT_END
+#undef DECLARE_SAVE_STRUCT
+
+MAKE_STRUCT_SAVE_DEDUCER(loot_mission_t);
+
 // q2rpg: relic
 #define DECLARE_SAVE_STRUCT loot_relic_t
 SAVE_STRUCT_START
@@ -875,6 +892,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_vendor_shield), // q2rpg
 	FIELD_AUTO(loot_vendor_grenade), // q2rpg
 	FIELD_AUTO(loot_vendor_classmod), // q2rpg
+	FIELD_AUTO(loot_missions), // q2rpg
 	FIELD_AUTO(loot_vendor_rerolls), // q2rpg
 	FIELD_AUTO(loot_reinforcements_paid), // q2rpg
 	FIELD_AUTO(loot_rift_announced), // q2rpg
@@ -1038,6 +1056,10 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_grenade),
 	FIELD_AUTO(loot_classmod),
 	FIELD_AUTO(loot_relic),
+	FIELD_AUTO(loot_mission),
+	FIELD_AUTO(loot_mission_map),
+	FIELD_AUTO(loot_mission_done_mask),
+	FIELD_AUTO(loot_mission_taken),
 	FIELD_AUTO(loot_stash),
 	FIELD_AUTO(loot_stash_bought),
 	FIELD_AUTO(loot_filter),

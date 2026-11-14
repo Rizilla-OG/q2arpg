@@ -1202,6 +1202,7 @@ struct level_locals_t
 	loot_shield_t loot_vendor_shield;
 	loot_grenade_t loot_vendor_grenade; // q2rpg
 	loot_classmod_t loot_vendor_classmod; // q2rpg
+	std::array<loot_mission_t, LOOT_MISSION_OFFERS> loot_missions; // q2rpg: this map's side mission offers
 	int32_t loot_vendor_rerolls; // q2rpg: stock rerolls bought on this map (price climbs)
 	int32_t loot_reinforcements_paid; // q2rpg: called-in reinforcements (medic commander, carrier...) that paid out on this map
 	bool loot_rift_announced;          // q2rpg: rift banner shown
@@ -2853,6 +2854,10 @@ struct client_persistant_t
 	loot_grenade_t loot_grenade; // q2rpg: equipped grenade mod
 	loot_classmod_t loot_classmod; // q2rpg: equipped class mod
 	loot_relic_t loot_relic;       // q2rpg: equipped relic
+	loot_mission_t loot_mission;   // q2rpg: active side mission (valid = running)
+	char loot_mission_map[MAX_QPATH]; // q2rpg: map the mission state belongs to; a new map drops it
+	int32_t loot_mission_done_mask;   // q2rpg: offers finished on that map (bit per offer)
+	int32_t loot_mission_taken;       // q2rpg: offer index of the active mission
 	std::array<loot_stash_slot_t, LOOT_STASH_SLOTS> loot_stash; // q2rpg: stash (vendor page 4)
 	int32_t loot_stash_bought; // q2rpg: extra 4-slot rows bought at Lv 60
 	std::array<int32_t, LOOT_ARCH_COUNT> loot_prof_kills; // q2rpg: weapon proficiency kills per gun type
@@ -2947,7 +2952,7 @@ struct gclient_t
 	bool loot_showinv;
 	gtime_t loot_inv_time;
 	int32_t loot_inv_page; // q2rpg: 0 loadout table, 1 held gun details
-	char loot_xp_cache[48];
+	char loot_xp_cache[96]; // q2rpg: level line, plus the side mission
 	char loot_target_cache[48];
 	gtime_t loot_target_time;
 	edict_t *loot_bar_ent; // last monster this player damaged
@@ -2958,6 +2963,7 @@ struct gclient_t
 	gtime_t loot_grenade_next; // q2rpg: grenade throw cooldown
 	gtime_t loot_zoomies_end;  // q2rpg: Ava pistol speed burst runs until this time
 	gtime_t loot_relic_ammo_time; // q2rpg: next Quartermaster relic ammo tick
+	gtime_t loot_mission_spree_start; // q2rpg: Spree mission: first kill of the current run
 	float loot_relic_heal_carry;  // q2rpg: Leech relic heal fraction not yet given
 	gtime_t loot_pistol_last_shot;    // q2rpg: semi-auto pistol: time of the last shot
 	bool loot_pistol_click_buffered; // q2rpg: semi-auto pistol: a click came in during the cooldown

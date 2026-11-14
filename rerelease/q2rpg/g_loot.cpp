@@ -1342,8 +1342,9 @@ void Loot_Think(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
 
-	Unique_Frame(ent); // Spin Cycle ramp
-	Relic_Think(ent);  // q2rpg: Quartermaster relic ammo
+	Unique_Frame(ent);  // Spin Cycle ramp
+	Relic_Think(ent);   // q2rpg: Quartermaster relic ammo
+	Mission_Frame(ent); // q2rpg: a new map drops the side mission
 
 	// burst trigger: hold fire during the pause; releasing resets the burst
 	if (cl->loot_burst_pause > level.time + 1_sec)
@@ -3773,7 +3774,7 @@ void Loot_SetStats(edict_t *ent)
 		cl->ps.stats[STAT_LOOT_HUD] = line[0] ? (int16_t)(CONFIG_LOOT_HUD + playernum) : 0;
 
 		// level / xp line
-		char xpline[48];
+		char xpline[96];
 		const int32_t plevel = std::max(1, cl->pers.loot_level);
 		if (plevel >= Loot_LevelCap())
 			G_FmtTo(xpline, "Lv {}  MAX  ${}", plevel, cl->pers.loot_money);
@@ -3785,6 +3786,14 @@ void Loot_SetStats(edict_t *ent)
 			char base[48];
 			Q_strlcpy(base, xpline, sizeof(base));
 			G_FmtTo(xpline, "{}  [K] +{} pt{}", base, unspent, unspent > 1 ? "s" : "");
+		}
+		// q2rpg: side mission progress at the end of the line
+		const std::string mission_text = Mission_HudText(ent);
+		if (!mission_text.empty())
+		{
+			char base[96];
+			Q_strlcpy(base, xpline, sizeof(base));
+			G_FmtTo(xpline, "{}{}", base, mission_text);
 		}
 		Loot_SetHudString(ent, CONFIG_LOOT_XP + playernum, cl->loot_xp_cache, sizeof(cl->loot_xp_cache), xpline, STAT_LOOT_XP);
 		Skill_SetActionStat(ent, playernum);
@@ -4205,6 +4214,29 @@ void Loot_ChestDrops(const vec3_t &where, bool red_chest, edict_t *owner, edict_
 
 	loot_drop_owner = nullptr;
 	G_FreeEdict(source);
+}
+
+// q2rpg: side mission reward: one gear piece at the player's feet, at least min_rarity.
+// 70% gun, 15% relic, 15% class mod.
+void Loot_MissionDrop(edict_t *player, loot_rarity_t min_rarity)
+{
+	loot_drop_owner = Loot_PerPlayerDrops() ? player : nullptr;
+	const int32_t level = Loot_ZoneLevel();
+	const float luck = 1.0f + Loot_ZoneLuck() + NGPlus_LuckBonus() + Relic_LuckBonus(player) + 1.0f;
+	const loot_rarity_t rarity = std::max(min_rarity, Loot_RollRarity(luck));
+	const float kind_roll = frandom();
+	if (kind_roll < 0.15f)
+		Relic_SpawnDrop(player, Relic_Roll(rarity, level, (uint32_t)mt_rand()), false);
+	else if (kind_roll < 0.30f)
+		ClassMod_SpawnDrop(player, ClassMod_Roll(rarity, level, (uint32_t)mt_rand(), ClassMod_DropTree(player)), false);
+	else
+	{
+		const loot_archetype_t arch = Loot_RollArchetype(rarity);
+		loot_weapon_t gun = Loot_Roll(arch, std::max(rarity, loot_archs[arch].min_rarity), (uint32_t)mt_rand());
+		Loot_SetLevel(gun, level);
+		Loot_SpawnDrop(player, gun, false);
+	}
+	loot_drop_owner = nullptr;
 }
 
 static void Loot_Cmd_Spawn(edict_t *ent)

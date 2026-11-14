@@ -33,6 +33,7 @@ TOUCH(Chest_Touch)(edict_t *self, edict_t *other, const trace_t &tr, bool other_
 	Loot_ChestDrops(self->s.origin, Chest_IsRed(self), per_player ? other : nullptr, other);
 	gi.sound(other, CHAN_AUTO, gi.soundindex(Chest_IsRed(self) ? "misc/secret.wav" : "items/pkup.wav"), 1, ATTN_NORM, 0);
 	Loot_LogEvent(other, Chest_IsRed(self) ? "CHEST opened  red" : "CHEST opened");
+	Mission_OnChestOpened(other);
 
 	if (!per_player)
 	{

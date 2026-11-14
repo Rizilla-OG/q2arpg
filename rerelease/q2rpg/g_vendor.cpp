@@ -121,13 +121,14 @@ static const vendor_upgrade_t vendor_upgrades[LOOT_UPGRADE_COUNT] = {
     {"Second Chance +4%", 5},
 };
 
-// Shop pages; 9 cycles stock -> upgrades -> workshop -> stock.
+// Shop pages; 9 cycles stock -> upgrades -> workshop -> stash -> missions -> stock.
 enum vendor_page_t
 {
 	VENDOR_PAGE_STOCK,
 	VENDOR_PAGE_UPGRADES,
 	VENDOR_PAGE_WORKSHOP,
 	VENDOR_PAGE_STASH,
+	VENDOR_PAGE_MISSIONS, // q2rpg: side missions (g_mission.cpp)
 	VENDOR_PAGE_COUNT
 };
 
@@ -715,6 +716,11 @@ static void Vendor_SendShop(edict_t *ent)
 		Vendor_SendStash(ent);
 		return;
 	}
+	if (cl->loot_shop_page == VENDOR_PAGE_MISSIONS)
+	{
+		Mission_SendPage(ent);
+		return;
+	}
 	const int32_t money = cl->pers.loot_money;
 	std::string s;
 	int32_t y = 24;
@@ -835,6 +841,12 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 	if (cl->loot_shop_page == VENDOR_PAGE_STASH)
 	{
 		Vendor_StashUse(ent, n);
+		return;
+	}
+	if (cl->loot_shop_page == VENDOR_PAGE_MISSIONS)
+	{
+		Mission_Take(ent, n);
+		cl->loot_shop_time = 0_ms;
 		return;
 	}
 

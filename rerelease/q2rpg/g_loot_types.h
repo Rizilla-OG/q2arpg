@@ -353,6 +353,32 @@ constexpr int32_t LOOT_STASH_BUYS = 4;
 constexpr int32_t LOOT_STASH_SLOTS = 28 + 4 * LOOT_STASH_BUYS;
 constexpr int32_t LOOT_STASH_PAGE_SLOTS = 8; // keys 1-8 per stash page
 
+// q2rpg: side missions (g_mission.cpp): the vendor offers 2 per map, a player runs one at a time
+enum loot_mission_type_t : int32_t
+{
+	LOOT_MISSION_KILL_KIND, // kill N of one monster kind
+	LOOT_MISSION_ALPHAS,    // kill N Alphas
+	LOOT_MISSION_HEADSHOTS, // N headshot kills
+	LOOT_MISSION_ELEMENT,   // N kills with one element
+	LOOT_MISSION_CHEST,     // open a loot chest
+	LOOT_MISSION_SPREE,     // N kills inside 60 s
+	LOOT_MISSION_TYPE_COUNT
+};
+constexpr int32_t LOOT_MISSION_OFFERS = 2;
+
+struct loot_mission_t
+{
+	bool valid;
+	loot_mission_type_t type;
+	int32_t goal;
+	int32_t progress;
+	int32_t difficulty;     // 0 easy, 1 medium, 2 hard: sets the reward
+	loot_element_t element; // LOOT_MISSION_ELEMENT
+	char monster_class[40]; // LOOT_MISSION_KILL_KIND
+	char label[48];         // "Kill 8 Gunner"
+	char short_label[24];   // HUD: "Gunner"
+};
+
 struct loot_stash_slot_t
 {
 	loot_weapon_t gun;

@@ -222,6 +222,16 @@ std::string ClassMod_BriefLine(const loot_classmod_t &mod);        // "+2 Hollow
 int32_t ClassMod_Bonus(edict_t *ent, int32_t tree, int32_t skill); // bonus ranks from the equipped mod
 int32_t ClassMod_DropTree(edict_t *owner);                         // tree to roll a drop for
 
+// side missions (g_mission.cpp)
+void Mission_MapSpawn(); // end of SpawnEntities, after the chests
+void Mission_Frame(edict_t *ent);
+void Mission_OnKill(edict_t *monster, edict_t *attacker);
+void Mission_OnChestOpened(edict_t *player);
+std::string Mission_HudText(edict_t *ent);
+void Mission_SendPage(edict_t *ent);
+void Mission_Take(edict_t *ent, int32_t n);
+void Loot_MissionDrop(edict_t *player, loot_rarity_t min_rarity); // g_loot.cpp
+
 // relics (g_relic.cpp)
 loot_relic_t Relic_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t forced_type = -1);
 edict_t *Relic_SpawnDrop(edict_t *source, const loot_relic_t &relic, bool from_player, bool apply_filter = false); // g_loot.cpp
