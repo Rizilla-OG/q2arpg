@@ -2,6 +2,8 @@
 
 ## Unreleased (next update)
 
+- Beating the Makron now plays the ending video again before New Game+ starts (single player). Before, NG+ skipped it.
+
 ## 0.9.5
 
 - Fixes from a code review of the new features: rift reward loot now drops at the guardian instead of the map origin; a rift map's exit can no longer clear your inventory on the way home; the tank guardian (it could never become an Omega) was swapped for a regular tank; explosive blasts are limited to one per enemy every 0.3 s, so explosive shield novas and grenades can't chain into huge blast stacks; the cryo refreeze wait survives the chill wearing off; coop players return from a rift on free spots instead of inside walls; Conductor counts chilled and frozen enemies; the target line shows Chilled / Frozen; the loot filter's hidden drops no longer count in the drop stats; and selling your held gun cancels its reload.

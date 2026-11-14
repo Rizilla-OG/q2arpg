@@ -1161,6 +1161,7 @@ struct game_locals_t
 	int32_t loot_ngplus;			 // cycles completed; each adds monster levels and luck
 	char loot_start_map[MAX_QPATH]; // first map of this campaign; NG+ restarts here
 	bool loot_ngplus_announce;		 // show the NG+ banner on the next map
+	char loot_ngplus_video[MAX_QPATH]; // q2rpg: ending video to play once NG+ has started ("" = none)
 	int32_t loot_last_map_mod;		 // modifier the previous new map rolled (no repeats)
 	uint32_t loot_map_mod_seed;		 // q2rpg: per-save seed so a map always rolls the same modifier (no reroll by reloading)
 	char loot_map_mod_map[MAX_QPATH];	 // q2rpg: map the last modifier roll was for

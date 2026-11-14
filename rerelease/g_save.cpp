@@ -825,6 +825,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_ngplus), // q2rpg
 	FIELD_AUTO(loot_start_map), // q2rpg
 	FIELD_AUTO(loot_ngplus_announce), // q2rpg
+	FIELD_AUTO(loot_ngplus_video), // q2rpg
 	FIELD_AUTO(loot_last_map_mod), // q2rpg
 	FIELD_AUTO(loot_map_mod_seed), // q2rpg
 	FIELD_AUTO(loot_ava_cycle), // q2rpg

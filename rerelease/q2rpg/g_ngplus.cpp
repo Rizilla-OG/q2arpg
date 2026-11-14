@@ -11,7 +11,16 @@
 
 static void NGPlus_SpawnBounty();
 
-static constexpr const char *NGPLUS_FALLBACK_START = "base1"; // saves from before NG+ existed
+static constexpr const char *NGPLUS_FALLBACK_START = "base1";    // saves from before NG+ existed
+bool G_CanSave();                                                // g_save.cpp
+static constexpr const char *NGPLUS_VIDEO_SAVE = "q2rpg_ngplus"; // save slot that carries the NG+ run across the ending video
+
+// q2rpg: set while the ending video plays; the engine restarts the game DLL after a video,
+// so the next map spawn loads NGPLUS_VIDEO_SAVE to get the NG+ run back
+static cvar_t *NGPlus_ReloadCvar()
+{
+	return gi.cvar("g_ngplus_reload", "0", CVAR_NOFLAGS);
+}
 
 // Saves made before NG+ existed have no start map; they are base campaign runs.
 void NGPlus_OnGameLoaded()
@@ -25,6 +34,13 @@ void NGPlus_OnMapSpawn()
 {
 	if (deathmatch->integer)
 		return;
+	// q2rpg: the ending video just finished: bring the NG+ run back
+	if (NGPlus_ReloadCvar()->integer)
+	{
+		gi.cvar_set("g_ngplus_reload", "0");
+		gi.AddCommandString(G_Fmt("load {}\n", NGPLUS_VIDEO_SAVE).data());
+		return;
+	}
 	if (!game.loot_start_map[0])
 	{
 		Q_strlcpy(game.loot_start_map, level.mapname, sizeof(game.loot_start_map));
@@ -63,6 +79,21 @@ bool NGPlus_TryRestart(const char *changemap)
 
 	game.loot_ngplus++;
 	game.loot_ngplus_announce = true;
+
+	// q2rpg: remember the ending video ("*end.cin" in "*end.cin+victory.pcx") to play once NG+ has
+	// started. Single player only: coop players would have to reconnect after it.
+	game.loot_ngplus_video[0] = '\0';
+	const char *video_end = strchr(changemap, '+');
+	if (video_end && !coop->integer && game.maxclients == 1)
+	{
+		const char *video = changemap[0] == '*' ? changemap + 1 : changemap;
+		const size_t video_len = std::min((size_t)(video_end - video), sizeof(game.loot_ngplus_video) - 1);
+		if (video_len > 4 && !Q_strncasecmp(video + video_len - 4, ".cin", 4))
+		{
+			memcpy(game.loot_ngplus_video, video, video_len);
+			game.loot_ngplus_video[video_len] = '\0';
+		}
+	}
 
 	// fresh campaign state: cross-level triggers and unit tracking
 	game.cross_level_flags = 0;
@@ -512,6 +543,19 @@ void NGPlus_OnHealthLost(edict_t *targ, edict_t *attacker, int32_t take)
 // NG+ cycle banner and map modifier, a moment after the map loads.
 void NGPlus_Frame(edict_t *ent)
 {
+	// q2rpg: NG+ has started: save it, then play the ending video. The banner waits for the reload.
+	if (game.loot_ngplus_video[0])
+	{
+		if (level.time < 500_ms || !G_CanSave())
+			return;
+		const std::string video = game.loot_ngplus_video;
+		game.loot_ngplus_video[0] = '\0'; // cleared before saving, so the reload doesn't play it again
+		gi.AddCommandString(G_Fmt("save {}\n", NGPLUS_VIDEO_SAVE).data());
+		gi.cvar_set("g_ngplus_reload", "1");
+		gi.AddCommandString(G_Fmt("gamemap \"*{}+*{}\"\n", video, game.loot_start_map).data());
+		return;
+	}
+
 	if (level.time < 2_sec)
 		return;
 
