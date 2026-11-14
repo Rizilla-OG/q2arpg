@@ -85,7 +85,8 @@
       "magazine": 0.8,
       "reload": 1.0,
       "scope_spread": 0.95,
-      "crit": 0.1
+      "crit": 0.1,
+      "pistol_click_ms": 240
     },
     "Vexa Dynamics": {
       "name": "Vexa Dynamics",
@@ -99,7 +100,8 @@
       "magazine": 1.35,
       "reload": 1.0,
       "scope_spread": 1.1,
-      "crit": 0.0
+      "crit": 0.0,
+      "pistol_click_ms": 160
     },
     "Brask & Sons": {
       "name": "Brask & Sons",
@@ -113,7 +115,8 @@
       "magazine": 1.0,
       "reload": 1.1,
       "scope_spread": 1.1,
-      "crit": 0.0
+      "crit": 0.0,
+      "pistol_click_ms": 220
     },
     "Kessler Precision": {
       "name": "Kessler Precision",
@@ -127,7 +130,8 @@
       "magazine": 0.9,
       "reload": 1.2,
       "scope_spread": 0.7,
-      "crit": 0.75
+      "crit": 0.75,
+      "pistol_click_ms": 260
     },
     "Orbitek Supply": {
       "name": "Orbitek Supply",
@@ -141,7 +145,8 @@
       "magazine": 1.6,
       "reload": 0.7,
       "scope_spread": 1.0,
-      "crit": 0.0
+      "crit": 0.0,
+      "pistol_click_ms": 190
     },
     "Strogg Salvage": {
       "name": "Strogg Salvage",
@@ -155,7 +160,8 @@
       "magazine": 1.0,
       "reload": 1.0,
       "scope_spread": 1.0,
-      "crit": 0.25
+      "crit": 0.25,
+      "pistol_click_ms": 200
     }
   },
   "rarities": {

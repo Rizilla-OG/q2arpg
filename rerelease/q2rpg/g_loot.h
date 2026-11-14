@@ -176,7 +176,8 @@ constexpr int32_t LOOT_START_MONEY = 100;
 // Pistols are precision sidearms: stock blaster does 15, which left them far behind
 // the SMG (~38 vs ~80 dps). Damage per bolt in SP/coop, and extra headshot multiplier.
 constexpr int32_t LOOT_PISTOL_DAMAGE = 35;
-constexpr float LOOT_PISTOL_CLICK_COOLDOWN_MS = 200.f; // q2rpg: semi-auto pistol: fastest click-to-click time at fire rate 1.0
+constexpr float LOOT_PISTOL_MIN_CLICK_MS = 120.f; // q2rpg: semi-auto pistol: click delay floor
+float Loot_PistolClickMs(edict_t *ent);           // q2rpg: semi-auto pistol click delay of the held gun
 constexpr float LOOT_PISTOL_CRIT_BONUS = 0.75f;
 float Loot_CritMult(const loot_weapon_t &gun); // headshot multiplier incl. the pistol bonus
 float Loot_MonsterBaseHealth(const edict_t *monster);

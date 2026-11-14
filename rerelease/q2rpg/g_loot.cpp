@@ -81,16 +81,17 @@ struct loot_maker_info_t
 	float rate;               // trigger
 	float mag, reload;        // magazine
 	float scope_spread, crit; // scope
+	float pistol_click_ms;    // gun maker: semi-auto pistol click delay at fire rate 1.0
 };
 
 static const std::array<loot_maker_info_t, LOOT_MAKER_COUNT> loot_makers_default = {{
-    //                                      stock         barrel             trig   magazine      scope
-    {"Hardline Arms", "Hardline", 0.85f, 0.90f, 1.20f, 0.95f, 0, 0.88f, 0.80f, 1.00f, 0.95f, 0.10f},
-    {"Vexa Dynamics", "Vexa", 1.15f, 1.20f, 0.92f, 1.25f, 0, 1.25f, 1.35f, 1.00f, 1.10f, 0.00f},
-    {"Brask & Sons", "Brask", 1.00f, 1.00f, 1.05f, 1.35f, 3, 0.95f, 1.00f, 1.10f, 1.10f, 0.00f},
-    {"Kessler Precision", "Kessler", 0.70f, 0.90f, 1.05f, 0.75f, 0, 0.95f, 0.90f, 1.20f, 0.70f, 0.75f},
-    {"Orbitek Supply", "Orbitek", 1.00f, 1.15f, 0.92f, 1.00f, 0, 1.05f, 1.60f, 0.70f, 1.00f, 0.00f},
-    {"Strogg Salvage", "Salvage", 1.00f, 1.00f, 1.00f, 1.00f, 1, 1.00f, 1.00f, 1.00f, 1.00f, 0.25f},
+    //                                      stock         barrel             trig   magazine      scope         click ms
+    {"Hardline Arms", "Hardline", 0.85f, 0.90f, 1.20f, 0.95f, 0, 0.88f, 0.80f, 1.00f, 0.95f, 0.10f, 240.f},
+    {"Vexa Dynamics", "Vexa", 1.15f, 1.20f, 0.92f, 1.25f, 0, 1.25f, 1.35f, 1.00f, 1.10f, 0.00f, 160.f},
+    {"Brask & Sons", "Brask", 1.00f, 1.00f, 1.05f, 1.35f, 3, 0.95f, 1.00f, 1.10f, 1.10f, 0.00f, 220.f},
+    {"Kessler Precision", "Kessler", 0.70f, 0.90f, 1.05f, 0.75f, 0, 0.95f, 0.90f, 1.20f, 0.70f, 0.75f, 260.f},
+    {"Orbitek Supply", "Orbitek", 1.00f, 1.15f, 0.92f, 1.00f, 0, 1.05f, 1.60f, 0.70f, 1.00f, 0.00f, 190.f},
+    {"Strogg Salvage", "Salvage", 1.00f, 1.00f, 1.00f, 1.00f, 1, 1.00f, 1.00f, 1.00f, 1.00f, 0.25f, 200.f},
 }};
 static std::array<loot_maker_info_t, LOOT_MAKER_COUNT> loot_makers = loot_makers_default;
 
@@ -169,7 +170,7 @@ renderfx_t Loot_RarityShell(loot_rarity_t rarity)
 // Entries are found by their built-in name, so a renamed gun still matches.
 //   "guns":     { "Shotgun": { "name", "magazine", "reload", "drop_weight", "min_rarity" } }
 //   "makers":   { "Hardline Arms": { "name", "short_name", "recoil", "handling", "damage", "barrel_spread",
-//                 "pellets", "fire_rate", "magazine", "reload", "scope_spread", "crit" } }
+//                 "pellets", "fire_rate", "magazine", "reload", "scope_spread", "crit", "pistol_click_ms" } }
 //   "rarities": { "Rare": { "name", "damage", "drop_weight" } }
 //   "prices":   { "rarity_value": [6 numbers], "base", "per_level", "per_level_squared", "element_mult", "sell_fraction" }
 static std::deque<std::string> loot_data_strings; // keeps renamed names alive
@@ -348,7 +349,7 @@ void Loot_LoadData()
 		if (i < 0)
 			return r.warn("", "no maker by that name (e.g. Hardline Arms)");
 		r.known(v, {"name", "short_name", "recoil", "handling", "damage", "barrel_spread", "pellets", "fire_rate",
-		            "magazine", "reload", "scope_spread", "crit", "_comment"});
+		            "magazine", "reload", "scope_spread", "crit", "pistol_click_ms", "_comment"});
 		loot_maker_info_t &m = loot_makers[i];
 		r.text(v, "name", m.name);
 		r.text(v, "short_name", m.short_name);
@@ -361,7 +362,8 @@ void Loot_LoadData()
 		r.number(v, "magazine", m.mag, 0.1, 5);
 		r.number(v, "reload", m.reload, 0.1, 5);
 		r.number(v, "scope_spread", m.scope_spread, 0.1, 5);
-		r.number(v, "crit", m.crit, 0, 1); });
+		r.number(v, "crit", m.crit, 0, 1);
+		r.number(v, "pistol_click_ms", m.pistol_click_ms, 50, 1000); });
 
 	entries("rarities", [&](const std::string &key, const Json::Value &v)
 	        {
@@ -1274,6 +1276,20 @@ float Loot_RateMult(edict_t *ent)
 {
 	loot_weapon_t *gun = Loot_Active(ent);
 	return gun ? gun->rate_mult * Skill_RateMult(ent) * Unique_RateMult(ent) : 1.0f;
+}
+
+// q2rpg: semi-auto pistol click delay: the gun maker sets the base, the fire rate (trigger part,
+// skills, uniques) shortens or stretches it
+static float Loot_ClickDelayMs(const loot_weapon_t &gun, float fire_rate)
+{
+	const float base_ms = loot_makers[gun.maker < LOOT_MAKER_COUNT ? gun.maker : 0].pistol_click_ms;
+	return std::max(LOOT_PISTOL_MIN_CLICK_MS, base_ms / std::max(0.1f, fire_rate));
+}
+
+float Loot_PistolClickMs(edict_t *ent)
+{
+	loot_weapon_t *gun = Loot_Active(ent);
+	return gun ? Loot_ClickDelayMs(*gun, Loot_RateMult(ent)) : 200.f;
 }
 
 // pre-parts saves have 0 here; treat as neutral
@@ -3229,6 +3245,9 @@ static void Loot_SendCard(edict_t *ent, const loot_weapon_t &gun)
 	add(Loot_StatLine("Damage", gun.dmg_mult, o.dmg_mult, cmp, false, "pct"));
 	add(Loot_StatLine("Fire Rate", gun.rate_mult, o.rate_mult, cmp, false, "pct"));
 	add(Loot_StatLine("Accuracy", 1.0f / gun.spread_mult, cmp ? 1.0f / o.spread_mult : 0, cmp, false, "pct"));
+	if (gun.archetype == LOOT_ARCH_PISTOL) // q2rpg: semi-auto click delay, compared only with another pistol
+		add(Loot_StatLine("Click ms", Loot_ClickDelayMs(gun, gun.rate_mult), cmp ? Loot_ClickDelayMs(o, o.rate_mult) : 0,
+		                  cmp && o.archetype == LOOT_ARCH_PISTOL, true, "num"));
 	if (gun.mag_size > 0)
 		add(Loot_StatLine("Magazine", (float)gun.mag_size, (float)o.mag_size, cmp && o.mag_size > 0, false, "num"));
 	if (gun.pellets_bonus)

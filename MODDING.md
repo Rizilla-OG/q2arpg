@@ -88,7 +88,7 @@ multipliers, where `1` is normal.
 | Section | Fields |
 |---|---|
 | `guns` | `name`, `magazine` (base size), `reload` (seconds), `drop_weight` (higher drops more often, `0` never), `min_rarity` (`Common` .. `Mythic`) |
-| `makers` | `name`, `short_name` (shown on the HUD), and x per part: `recoil` and `handling` (stock), `damage` and `barrel_spread` (barrel), `pellets` (extra shotgun pellets, a whole number), `fire_rate` (trigger), `magazine` and `reload` (magazine; reload is time, so lower is faster), `scope_spread` (scope), `crit` (added to the crit multiplier, base 1.5) |
+| `makers` | `name`, `short_name` (shown on the HUD), and x per part: `recoil` and `handling` (stock), `damage` and `barrel_spread` (barrel), `pellets` (extra shotgun pellets, a whole number), `fire_rate` (trigger), `magazine` and `reload` (magazine; reload is time, so lower is faster), `scope_spread` (scope), `crit` (added to the crit multiplier, base 1.5), `pistol_click_ms` (semi-auto pistol delay between clicks, in ms at fire rate 100%; the gun's maker sets it, fire rate scales it, floor 120) |
 | `rarities` | `name`, `damage` (x), `drop_weight` (Mythic only drops in New Game+) |
 | `prices` | `rarity_value` (6 numbers, Common to Mythic), `base`, `per_level`, `per_level_squared` (price = (base + per_level x level + per_level_squared x level²) x rarity value), `element_mult` (elemental guns and grenades), `sell_fraction` (share of the price paid when selling) |
 

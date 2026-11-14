@@ -1421,7 +1421,7 @@ void Weapon_Blaster_Fire(edict_t *ent)
 }
 
 // q2rpg: semi-auto pistol. A new click during the fire animation fires again once the
-// click cooldown (shorter with faster guns) is up, instead of waiting for the animation.
+// click cooldown (set by the gun maker, shorter with faster fire rate) is up, instead of waiting for the animation.
 // Holding the button still fires at the normal animation rate.
 static void Pistol_SemiAuto(edict_t *ent)
 {
@@ -1436,7 +1436,7 @@ static void Pistol_SemiAuto(edict_t *ent)
 	if (!client->loot_pistol_click_buffered || Loot_IsReloading(ent))
 		return;
 
-	const gtime_t click_cooldown = gtime_t::from_ms((int64_t)(LOOT_PISTOL_CLICK_COOLDOWN_MS / std::max(0.1f, Loot_RateMult(ent))));
+	const gtime_t click_cooldown = gtime_t::from_ms((int64_t)Loot_PistolClickMs(ent)); // gun maker + fire rate
 	if (level.time < client->loot_pistol_last_shot + click_cooldown)
 		return;
 

@@ -2,6 +2,7 @@
 
 ## Unreleased (next update)
 
+- Semi-auto pistols: each maker has its own click delay (Vexa 160 ms, Orbitek 190, Salvage 200, Brask 220, Hardline 240, Kessler 260), and the gun's fire rate (its trigger part) shortens or stretches it, down to 120 ms. Pistol cards show it as Click ms. Modders can set it per maker with `pistol_click_ms` in `loot_data.json`.
 - Fixed: with two guns of the same kind equipped, running one dry could bounce between them instead of switching to the loaded one (or to another gun when both are empty).
 - Pistols are now semi-auto: each click fires as soon as a short cooldown (200 ms, shorter on faster guns) is up, instead of waiting for the full fire animation. Holding the trigger fires at the old rate.
 - Beating the Makron now plays the ending video again before New Game+ starts (single player). Before, NG+ skipped it.
