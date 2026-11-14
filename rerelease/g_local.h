@@ -2953,6 +2953,8 @@ struct gclient_t
 	gtime_t loot_shield_snd_time;
 	gtime_t loot_grenade_next; // q2rpg: grenade throw cooldown
 	gtime_t loot_zoomies_end;  // q2rpg: Ava pistol speed burst runs until this time
+	gtime_t loot_pistol_last_shot;    // q2rpg: semi-auto pistol: time of the last shot
+	bool loot_pistol_click_buffered; // q2rpg: semi-auto pistol: a click came in during the cooldown
 	// q2rpg: skills (transient)
 	bool loot_showskills;
 	bool loot_showchallenges; // q2rpg: challenges screen open

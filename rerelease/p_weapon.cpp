@@ -1411,6 +1411,34 @@ void Weapon_Blaster_Fire(edict_t *ent)
 	int damage = deathmatch->integer ? 15 : LOOT_PISTOL_DAMAGE; // q2rpg: pistol buff
 	Blaster_Fire(ent, vec3_origin, damage, false, EF_BLASTER);
 	Loot_ConsumeAmmo(ent, 1); // q2rpg: pistol magazine (blaster has no ammo item)
+	ent->client->loot_pistol_last_shot = level.time; // q2rpg: semi-auto cooldown
+}
+
+// q2rpg: semi-auto pistol. A new click during the fire animation fires again once the
+// click cooldown (shorter with faster guns) is up, instead of waiting for the animation.
+// Holding the button still fires at the normal animation rate.
+static void Pistol_SemiAuto(edict_t *ent)
+{
+	gclient_t *client = ent->client;
+	if (deathmatch->integer || client->weaponstate != WEAPON_FIRING)
+	{
+		client->loot_pistol_click_buffered = false;
+		return;
+	}
+	if (client->latched_buttons & BUTTON_ATTACK)
+		client->loot_pistol_click_buffered = true;
+	if (!client->loot_pistol_click_buffered || Loot_IsReloading(ent))
+		return;
+
+	const gtime_t click_cooldown = gtime_t::from_ms((int64_t)(LOOT_PISTOL_CLICK_COOLDOWN_MS / std::max(0.1f, Loot_RateMult(ent))));
+	if (level.time < client->loot_pistol_last_shot + click_cooldown)
+		return;
+
+	// back to ready with the click latched: Weapon_Generic starts a new shot this frame
+	client->loot_pistol_click_buffered = false;
+	client->weaponstate = WEAPON_READY;
+	client->weapon_fire_finished = level.time;
+	client->latched_buttons |= BUTTON_ATTACK;
 }
 
 void Weapon_Blaster(edict_t *ent)
@@ -1418,6 +1446,7 @@ void Weapon_Blaster(edict_t *ent)
 	constexpr int pause_frames[] = { 19, 32, 0 };
 	constexpr int fire_frames[] = { 5, 0 };
 
+	Pistol_SemiAuto(ent); // q2rpg
 	Weapon_Generic(ent, 4, 8, 52, 55, pause_frames, fire_frames, Weapon_Blaster_Fire);
 }
 
