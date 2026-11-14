@@ -230,7 +230,7 @@ void Mission_OnChestOpened(edict_t *player);
 std::string Mission_HudText(edict_t *ent);
 void Mission_SendPage(edict_t *ent);
 void Mission_Take(edict_t *ent, int32_t n);
-void Loot_MissionDrop(edict_t *player, loot_rarity_t min_rarity); // g_loot.cpp
+void Loot_MissionDrop(edict_t *player, loot_rarity_t min_rarity, edict_t *source = nullptr); // g_loot.cpp: for player, tossed from source (default: player)
 
 // relics (g_relic.cpp)
 loot_relic_t Relic_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t forced_type = -1);
@@ -276,9 +276,9 @@ int32_t Raid_OpenPrice();
 bool Raid_CanOpen(edict_t *ent);
 void Raid_Open(edict_t *ent);
 void Raid_Leave(edict_t *ent);
-void Raid_CmdOpen(edict_t *ent);                                                         // dev: loot_raid
-bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t &spot); // arena spot away from players
-int32_t Raid_LiveAdds();                                                                 // live monsters other than the raid boss
+void Raid_CmdOpen(edict_t *ent);                                                                                            // dev: loot_raid
+bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t &spot, float min_player_distance = 256.f); // arena spot away from players
+int32_t Raid_LiveAdds();                                                                                                    // live monsters other than the raid boss
 extern const char *const raid_maps[];
 extern const int32_t RAID_MAP_COUNT;
 // arena waves (g_arena.cpp)
@@ -294,6 +294,8 @@ void Arena_PlayerFrame(edict_t *ent);
 void Melee_Cmd(edict_t *ent);
 int32_t Melee_ModifyDamage(edict_t *targ, const vec3_t &point, int32_t damage, bool &crit);
 void Raid_PlayerFrame(edict_t *ent);
+edict_t *Loot_FirstLivePlayer();                                                             // g_loot.cpp: nullptr when everyone is dead
+void Loot_BannerAll(const std::string &text);                                                // g_loot.cpp: centerprint to every player
 edict_t *Loot_SpawnAlpha(const vec3_t &origin, const vec3_t &angles, const char *classname); // g_loot.cpp
 void Loot_RaidDrops(const vec3_t &where);                                                    // g_loot.cpp
 loot_archetype_t Unique_RaidArch(int32_t index);                                             // g_unique.cpp

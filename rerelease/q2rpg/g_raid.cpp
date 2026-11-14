@@ -157,14 +157,8 @@ void Raid_Leave(edict_t *ent)
 // Spawning
 //==========================================================================
 
-static void Raid_Banner(const std::string &text)
-{
-	for (auto player : active_players())
-		gi.Center_Print(player, text.c_str());
-}
-
 // the arena spot farthest from the players that fits the monster's box
-bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t &spot)
+bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t &spot, float min_player_distance)
 {
 	float best_score = -1.f;
 	bool found = false;
@@ -177,8 +171,9 @@ bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t
 				continue;
 			float nearest_player = 99999.f;
 			for (auto player : active_players())
-				nearest_player = std::min(nearest_player, (player->s.origin - candidate).length());
-			if (nearest_player < 256.f)
+				if (player->health > 0)
+					nearest_player = std::min(nearest_player, (player->s.origin - candidate).length());
+			if (nearest_player < min_player_distance)
 				continue;
 			const float score = farthest ? nearest_player : frandom(1.f);
 			if (score > best_score)
@@ -192,20 +187,12 @@ bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t
 	return found;
 }
 
-static edict_t *Raid_FirstLivePlayer()
-{
-	for (auto player : active_players())
-		if (player->health > 0)
-			return player;
-	return nullptr;
-}
-
 static void Raid_SpawnBoss()
 {
 	vec3_t spot;
 	if (!Raid_FindSpot({-30, -30, 0}, {30, 30, 90}, true, spot))
 		return;
-	edict_t *target = Raid_FirstLivePlayer();
+	edict_t *target = Loot_FirstLivePlayer();
 	const float yaw = target ? vectoyaw(target->s.origin - spot) : 0.f;
 	edict_t *boss = CreateMonster(spot, {0, yaw, 0}, RAID_BOSS_CLASS);
 	if (!boss || !boss->inuse)
@@ -218,8 +205,7 @@ static void Raid_SpawnBoss()
 	const float health_mult = RAID_HEALTH_MULT * (1.f + RAID_COOP_HEALTH_PER_PLAYER * std::max(0, players - 1));
 	boss->health = std::max(1, (int32_t)(boss->health * health_mult));
 	boss->max_health = boss->health;
-	boss->loot_omega = true; // red health bar and Omega tag
-	boss->loot_elite = true;
+	boss->loot_omega = true; // red health bar and Omega tag; not loot_elite, so no Alpha speed and no Alpha credit
 
 	level.loot_raid_boss = boss;
 	level.loot_raid_boss_count = boss->spawn_count;
@@ -230,7 +216,7 @@ static void Raid_SpawnBoss()
 		FoundTarget(boss);
 	}
 	gi.sound(boss, CHAN_AUTO, gi.soundindex("world/klaxon2.wav"), 1, ATTN_NONE, 0);
-	Raid_Banner(G_Fmt("{} HAS COME", RAID_BOSS_NAME).data());
+	Loot_BannerAll(G_Fmt("{} HAS COME", RAID_BOSS_NAME).data());
 }
 
 int32_t Raid_LiveAdds()
@@ -247,7 +233,7 @@ int32_t Raid_LiveAdds()
 
 static void Raid_SpawnAdds(int32_t count)
 {
-	edict_t *target = Raid_FirstLivePlayer();
+	edict_t *target = Loot_FirstLivePlayer();
 	for (int32_t i = 0; i < count && Raid_LiveAdds() < RAID_MAX_ADDS; i++)
 	{
 		const char *classname = raid_add_classes[irandom((int32_t)q_countof(raid_add_classes))];
@@ -293,7 +279,7 @@ static void Raid_Shockwave(edict_t *boss)
 static void Raid_EnterPhase(edict_t *boss, int32_t phase)
 {
 	level.loot_raid_phase = phase;
-	edict_t *opener = Raid_FirstLivePlayer();
+	edict_t *opener = Loot_FirstLivePlayer();
 	if (opener)
 		Loot_LogEvent(opener, G_Fmt("RAID phase {}", phase).data());
 
@@ -301,22 +287,22 @@ static void Raid_EnterPhase(edict_t *boss, int32_t phase)
 	{
 		level.loot_raid_shield_element = 1 + irandom(LOOT_ELEM_COUNT - 1);
 		Raid_SpawnAdds(2);
-		Raid_Banner(G_Fmt("{} raises a {} shield\nOnly {} hits fully", RAID_BOSS_NAME, Loot_ElementName((loot_element_t)level.loot_raid_shield_element),
-		                  Loot_ElementName((loot_element_t)level.loot_raid_shield_element))
-		                .data());
+		Loot_BannerAll(G_Fmt("{} raises a {} shield\nOnly {} hits fully", RAID_BOSS_NAME, Loot_ElementName((loot_element_t)level.loot_raid_shield_element),
+		                     Loot_ElementName((loot_element_t)level.loot_raid_shield_element))
+		                   .data());
 	}
 	else if (phase == 2)
 	{
 		boss->loot_alpha_traits |= LOOT_TRAIT_SWIFT;
 		level.loot_raid_next_shock = level.time + RAID_SHOCK_INTERVAL;
 		level.loot_raid_shock_warned = false;
-		Raid_Banner(G_Fmt("{} is ENRAGED\nJump over the shockwaves!", RAID_BOSS_NAME).data());
+		Loot_BannerAll(G_Fmt("{} is ENRAGED\nJump over the shockwaves!", RAID_BOSS_NAME).data());
 	}
 	else if (phase == 3)
 	{
 		level.loot_raid_shield_element = 0;
 		level.loot_raid_next_wave = level.time;
-		Raid_Banner(G_Fmt("LAST STAND\n{}'s shield is down: +20% damage", RAID_BOSS_NAME).data());
+		Loot_BannerAll(G_Fmt("LAST STAND\n{}'s shield is down: +20% damage", RAID_BOSS_NAME).data());
 	}
 }
 
@@ -331,15 +317,15 @@ static void Raid_Reward(edict_t *ent, const vec3_t &where)
 	const float clear_seconds = (level.time - level.loot_raid_start_time).seconds();
 	Loot_LogEvent(ent, G_Fmt("RAID cleared  {:.0f}s", clear_seconds).data());
 	gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/secret.wav"), 1, ATTN_NONE, 0);
-	Raid_Banner(G_Fmt("{} FALLS\nCleared in {}:{:02}\nGrab the loot: back in {:.0f}s", RAID_BOSS_NAME, (int32_t)clear_seconds / 60,
-	                  (int32_t)clear_seconds % 60, RAID_RETURN_DELAY.seconds())
-	                .data());
+	Loot_BannerAll(G_Fmt("{} FALLS\nCleared in {}:{:02}\nGrab the loot: back in {:.0f}s", RAID_BOSS_NAME, (int32_t)clear_seconds / 60,
+	                     (int32_t)clear_seconds % 60, RAID_RETURN_DELAY.seconds())
+	                   .data());
 }
 
 // Loot_SetStats, every player every frame; level logic runs on the first live player
 void Raid_PlayerFrame(edict_t *ent)
 {
-	if (!Raid_InRaid() || level.intermissiontime || ent->health <= 0 || ent != Raid_FirstLivePlayer())
+	if (!Raid_InRaid() || level.intermissiontime || ent->health <= 0 || ent != Loot_FirstLivePlayer())
 		return;
 
 	if (level.loot_raid_cleared)
@@ -353,7 +339,7 @@ void Raid_PlayerFrame(edict_t *ent)
 	if (level.loot_raid_spawn_time == 0_ms)
 	{
 		level.loot_raid_spawn_time = level.time + RAID_ARRIVAL_DELAY;
-		Raid_Banner(G_Fmt("RAID\n{} is coming", RAID_BOSS_NAME).data());
+		Loot_BannerAll(G_Fmt("RAID\n{} is coming", RAID_BOSS_NAME).data());
 		return;
 	}
 	if (!level.loot_raid_boss)
@@ -387,7 +373,7 @@ void Raid_PlayerFrame(edict_t *ent)
 		{
 			level.loot_raid_shock_warned = true;
 			gi.sound(boss, CHAN_AUTO, gi.soundindex("world/klaxon2.wav"), 1, ATTN_NONE, 0);
-			Raid_Banner("SHOCKWAVE - JUMP!");
+			Loot_BannerAll("SHOCKWAVE - JUMP!");
 		}
 		if (level.time >= level.loot_raid_next_shock)
 		{

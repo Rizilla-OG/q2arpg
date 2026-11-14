@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <random>
+#include <ctime>
 
 static void NGPlus_SpawnBounty();
 
@@ -15,11 +16,28 @@ static constexpr const char *NGPLUS_FALLBACK_START = "base1";    // saves from b
 bool G_CanSave();                                                // g_save.cpp
 static constexpr const char *NGPLUS_VIDEO_SAVE = "q2rpg_ngplus"; // save slot that carries the NG+ run across the ending video
 
-// q2rpg: set while the ending video plays; the engine restarts the game DLL after a video,
-// so the next map spawn loads NGPLUS_VIDEO_SAVE to get the NG+ run back
+// q2rpg: set while the ending video plays to "<start map> <unix time>"; the engine restarts the
+// game DLL after a video, so the next map spawn loads NGPLUS_VIDEO_SAVE to get the NG+ run back.
+// Only that map, and only soon after: quitting during the video and starting another game
+// must not drop the player into the old run.
+constexpr int64_t NGPLUS_RELOAD_WINDOW_SECONDS = 15 * 60;
+
 static cvar_t *NGPlus_ReloadCvar()
 {
-	return gi.cvar("g_ngplus_reload", "0", CVAR_NOFLAGS);
+	return gi.cvar("g_ngplus_reload", "", CVAR_NOFLAGS);
+}
+
+// true once, on the first map spawn after the video, when it's the NG+ start map
+static bool NGPlus_TakeReload()
+{
+	const char *value = NGPlus_ReloadCvar()->string;
+	if (!value || !value[0] || !strcmp(value, "0"))
+		return false;
+	char start_map[MAX_QPATH] = {};
+	long long started = 0;
+	const bool parsed = sscanf(value, "%63s %lld", start_map, &started) == 2;
+	gi.cvar_set("g_ngplus_reload", ""); // one shot, whatever map this is
+	return parsed && !Q_strcasecmp(start_map, level.mapname) && (int64_t)time(nullptr) - started <= NGPLUS_RELOAD_WINDOW_SECONDS;
 }
 
 // Saves made before NG+ existed have no start map; they are base campaign runs.
@@ -35,9 +53,8 @@ void NGPlus_OnMapSpawn()
 	if (deathmatch->integer)
 		return;
 	// q2rpg: the ending video just finished: bring the NG+ run back
-	if (NGPlus_ReloadCvar()->integer)
+	if (NGPlus_TakeReload())
 	{
-		gi.cvar_set("g_ngplus_reload", "0");
 		gi.AddCommandString(G_Fmt("load {}\n", NGPLUS_VIDEO_SAVE).data());
 		return;
 	}
@@ -551,7 +568,7 @@ void NGPlus_Frame(edict_t *ent)
 		const std::string video = game.loot_ngplus_video;
 		game.loot_ngplus_video[0] = '\0'; // cleared before saving, so the reload doesn't play it again
 		gi.AddCommandString(G_Fmt("save {}\n", NGPLUS_VIDEO_SAVE).data());
-		gi.cvar_set("g_ngplus_reload", "1");
+		gi.cvar_set("g_ngplus_reload", G_Fmt("{} {}", game.loot_start_map, (long long)time(nullptr)).data());
 		gi.AddCommandString(G_Fmt("gamemap \"*{}+*{}\"\n", video, game.loot_start_map).data());
 		return;
 	}
@@ -583,8 +600,7 @@ void NGPlus_Frame(edict_t *ent)
 	if (banner.empty())
 		return;
 
-	for (auto player : active_players())
-		gi.Center_Print(player, banner.c_str());
+	Loot_BannerAll(banner.c_str());
 }
 
 // Map modifier name for loot_stats ("" when none).

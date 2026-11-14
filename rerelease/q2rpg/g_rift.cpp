@@ -305,8 +305,7 @@ static void Rift_Reward(edict_t *ent, const vec3_t &where)
 
 	Loot_LogEvent(ent, G_Fmt("RIFT cleared  tier {}", tier).data());
 	gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/secret.wav"), 1, ATTN_NONE, 0);
-	for (auto player : active_players())
-		gi.Center_Print(player, G_Fmt("RIFT CLEARED - tier {} unlocked\nGrab the loot: back in {:.0f}s", tier + 1, RIFT_RETURN_DELAY.seconds()).data());
+	Loot_BannerAll(G_Fmt("RIFT CLEARED - tier {} unlocked\nGrab the loot: back in {:.0f}s", tier + 1, RIFT_RETURN_DELAY.seconds()).data());
 }
 
 void Rift_PlayerFrame(edict_t *ent)
@@ -324,21 +323,13 @@ void Rift_PlayerFrame(edict_t *ent)
 		return;
 
 	// level logic runs once per frame, on the first live player
-	for (auto player : active_players())
-	{
-		if (player->health > 0)
-		{
-			if (player != ent)
-				return;
-			break;
-		}
-	}
+	if (ent != Loot_FirstLivePlayer())
+		return;
 
 	if (!level.loot_rift_announced)
 	{
 		level.loot_rift_announced = true;
-		for (auto player : active_players())
-			gi.Center_Print(player, G_Fmt("RIFT - TIER {}\nKill {:.0f}% of the monsters to summon the guardian", Rift_Tier(), RIFT_CLEAR_SHARE * 100.f).data());
+		Loot_BannerAll(G_Fmt("RIFT - TIER {}\nKill {:.0f}% of the monsters to summon the guardian", Rift_Tier(), RIFT_CLEAR_SHARE * 100.f).data());
 	}
 
 	if (level.loot_rift_cleared)
@@ -356,8 +347,7 @@ void Rift_PlayerFrame(edict_t *ent)
 		if (step > level.loot_rift_progress_shown && step < 10)
 		{
 			level.loot_rift_progress_shown = step;
-			for (auto player : active_players())
-				gi.Center_Print(player, G_Fmt("Rift {}%", step * 10).data());
+			Loot_BannerAll(G_Fmt("Rift {}%", step * 10).data());
 		}
 		if (share >= RIFT_CLEAR_SHARE)
 		{
@@ -367,8 +357,7 @@ void Rift_PlayerFrame(edict_t *ent)
 				level.loot_rift_guardian = guardian;
 				level.loot_rift_guardian_count = guardian->spawn_count;
 				gi.sound(ent, CHAN_AUTO, gi.soundindex("world/klaxon2.wav"), 1, ATTN_NONE, 0);
-				for (auto player : active_players())
-					gi.Center_Print(player, "THE RIFT GUARDIAN APPEARS");
+				Loot_BannerAll("THE RIFT GUARDIAN APPEARS");
 			}
 		}
 		return;

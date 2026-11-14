@@ -1025,6 +1025,16 @@ void Weapon_Repeating(edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST
 	else if (Weapon_HandleReady(ent, FRAME_FIRE_FIRST, FRAME_IDLE_FIRST, FRAME_IDLE_LAST, pause_frames) == READY_CHANGING)
 		return;
 
+	// q2rpg: a reload started mid-burst stops the burst (the fire loop never checked)
+	if (ent->client->weaponstate == WEAPON_FIRING && Loot_IsReloading(ent))
+	{
+		ent->client->weaponstate = WEAPON_READY;
+		ent->client->ps.gunframe = FRAME_IDLE_FIRST;
+		ent->client->weapon_fire_buffered = false;
+		ent->client->weapon_sound = 0; // minigun spin
+		return;
+	}
+
 	if (ent->client->weaponstate == WEAPON_FIRING && ent->client->weapon_think_time <= level.time)
 	{
 		ent->client->last_firing_time = level.time + COOP_DAMAGE_FIRING_TIME;

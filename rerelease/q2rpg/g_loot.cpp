@@ -1398,6 +1398,33 @@ static bool Loot_IsStatusMod(const mod_t &mod)
 	       mod.id == MOD_LOOT_FREEZE || mod.id == MOD_LOOT_EXPLODE;
 }
 
+static loot_weapon_t *Loot_HitGun(edict_t *inflictor, edict_t *attacker, const mod_t &mod);
+
+// q2rpg: element of a player hit: status ticks by kind, grenade mods carry theirs, guns theirs, melee none
+static loot_element_t Loot_HitElement(edict_t *inflictor, edict_t *attacker, const mod_t &mod)
+{
+	switch (mod.id)
+	{
+		case MOD_LOOT_BURN:
+			return LOOT_ELEM_FIRE;
+		case MOD_LOOT_SHOCK:
+			return LOOT_ELEM_SHOCK;
+		case MOD_LOOT_MELT:
+			return LOOT_ELEM_CORROSIVE;
+		case MOD_LOOT_FREEZE:
+			return LOOT_ELEM_CRYO;
+		case MOD_LOOT_EXPLODE:
+			return LOOT_ELEM_EXPLOSIVE;
+		case MOD_LOOT_GRENADE:
+			return inflictor && inflictor->loot_grenade.valid ? inflictor->loot_grenade.element : LOOT_ELEM_NONE;
+		default: // guns; melee, turret and slam have no gun, so no element
+		{
+			const loot_weapon_t *gun = Loot_HitGun(inflictor, attacker, mod);
+			return gun ? gun->element : LOOT_ELEM_NONE;
+		}
+	}
+}
+
 // q2rpg: the gun behind a player hit: projectiles carry the gun that fired them,
 // hitscan uses the held gun; status ticks and grenade mods have no gun
 static loot_weapon_t *Loot_HitGun(edict_t *inflictor, edict_t *attacker, const mod_t &mod)
@@ -1639,6 +1666,15 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 	if (!damage || deathmatch->integer || !(targ->svflags & SVF_MONSTER) || targ->health <= 0)
 		return damage;
 
+	// q2rpg: raid boss element shield / last stand, for every player damage source
+	if (attacker && attacker->client && Raid_IsBoss(targ))
+	{
+		const float raid_mult = Raid_DamageMult(targ, Loot_HitElement(inflictor, attacker, mod));
+		damage = raid_mult < 1.0f ? (int32_t)(damage * raid_mult) : (int32_t)ceilf(damage * raid_mult); // a cut rounds down, so small ticks can't slip past the shield
+		if (damage <= 0)
+			return 0;
+	}
+
 	// corroded targets take extra damage from everything
 	if (targ->loot_status.active && targ->loot_status.melt_end > level.time)
 		damage = (int32_t)ceilf(damage * 1.25f);
@@ -1703,7 +1739,6 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 
 	// Close Quarters / Conductor
 	damage = (int32_t)ceilf(damage * Skill_OutgoingMult(attacker, targ));
-	damage = (int32_t)ceilf(damage * Raid_DamageMult(targ, gun->element)); // q2rpg: raid boss shield / last stand
 
 	// shock cuts through power armor
 	if (gun->element == LOOT_ELEM_SHOCK && targ->monsterinfo.power_armor_type != IT_NULL && targ->monsterinfo.power_armor_power > 0)
@@ -3117,7 +3152,7 @@ void Loot_AwardXP(edict_t *monster, edict_t *attacker)
 	const int32_t mlevel = std::max(1, monster->loot_mlevel);
 	// stock health, +8% per monster level (not the 12% health scaling, so XP doesn't snowball)
 	float xp_scale = 1.0f + 0.08f * (mlevel - 1);
-	if (monster->loot_elite)
+	if (monster->loot_elite || Raid_IsBoss(monster)) // q2rpg: the raid boss pays like an Omega without being an Alpha
 		xp_scale *= monster->loot_omega ? 4.f : 2.5f;
 	xp_scale *= 1 + game.loot_ngplus; // NG+: early maps' weak monsters still level a high character
 	xp_scale *= NGPlus_XPMult();      // Bloodthirsty
@@ -3384,9 +3419,18 @@ static void Loot_SendInventory(edict_t *ent)
 	std::string s = "loot_dim xl 16 "; // dim backdrop first so text draws on top
 	int32_t y = 16;
 
+	// a row that would pass the 1024-char layout limit is left out (the engine would cut the string)
+	constexpr size_t LAYOUT_BUDGET = 1000;
+	bool page_full = false;
 	auto row = [&](const std::string &text, int32_t height = 10)
 	{
-		s += G_Fmt("yv {} loot_str \"{}\" ", y, text).data();
+		const std::string next = G_Fmt("yv {} loot_str \"{}\" ", y, text).data();
+		if (page_full || s.size() + next.size() > LAYOUT_BUDGET)
+		{
+			page_full = true; // rows after a missing one are left out too
+			return;
+		}
+		s += next;
 		y += height;
 	};
 
@@ -3446,10 +3490,7 @@ static void Loot_SendInventory(edict_t *ent)
 		if (relic.valid)
 			row(G_Fmt("^aRELIC^w|{}: {}", relic.name, Relic_EffectLine(relic)).data(), 13);
 
-		// the key hint goes when the page is full, to stay under the 1024-char layout limit
-		const std::string hint_row = "^a[1-4] equip  [G] drop  [I] gun details";
-		if (s.size() + hint_row.size() + 40 < 1000)
-			row(hint_row);
+		row("^a[1-4] equip  [G] drop  [I] gun details"); // left out when the page is full
 		if (g_loot_debug->integer)
 			gi.Com_PrintFmt("[loot] loadout layout {} chars\n", s.size());
 	}
@@ -4128,6 +4169,22 @@ edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char 
 	return monster;
 }
 
+// q2rpg: first living player (rifts, raids and the arena run their level logic on them once per frame)
+edict_t *Loot_FirstLivePlayer()
+{
+	for (auto player : active_players())
+		if (player->health > 0)
+			return player;
+	return nullptr;
+}
+
+// q2rpg: centerprint to every player
+void Loot_BannerAll(const std::string &text)
+{
+	for (auto player : active_players())
+		gi.Center_Print(player, text.c_str());
+}
+
 // q2rpg: an Alpha (never an Omega) for raid adds; nullptr if it didn't fit
 edict_t *Loot_SpawnAlpha(const vec3_t &origin, const vec3_t &angles, const char *classname)
 {
@@ -4279,23 +4336,25 @@ void Loot_ChestDrops(const vec3_t &where, bool red_chest, edict_t *owner, edict_
 
 // q2rpg: side mission reward: one gear piece at the player's feet, at least min_rarity.
 // 70% gun, 15% relic, 15% class mod.
-void Loot_MissionDrop(edict_t *player, loot_rarity_t min_rarity)
+void Loot_MissionDrop(edict_t *player, loot_rarity_t min_rarity, edict_t *source)
 {
+	if (!source)
+		source = player;
 	loot_drop_owner = Loot_PerPlayerDrops() ? player : nullptr;
 	const int32_t level = Loot_ZoneLevel();
 	const float luck = 1.0f + Loot_ZoneLuck() + NGPlus_LuckBonus() + Relic_LuckBonus(player) + 1.0f;
 	const loot_rarity_t rarity = std::max(min_rarity, Loot_RollRarity(luck));
 	const float kind_roll = frandom();
 	if (kind_roll < 0.15f)
-		Relic_SpawnDrop(player, Relic_Roll(rarity, level, (uint32_t)mt_rand()), false);
+		Relic_SpawnDrop(source, Relic_Roll(rarity, level, (uint32_t)mt_rand()), false);
 	else if (kind_roll < 0.30f)
-		ClassMod_SpawnDrop(player, ClassMod_Roll(rarity, level, (uint32_t)mt_rand(), ClassMod_DropTree(player)), false);
+		ClassMod_SpawnDrop(source, ClassMod_Roll(rarity, level, (uint32_t)mt_rand(), ClassMod_DropTree(player)), false);
 	else
 	{
 		const loot_archetype_t arch = Loot_RollArchetype(rarity);
 		loot_weapon_t gun = Loot_Roll(arch, std::max(rarity, loot_archs[arch].min_rarity), (uint32_t)mt_rand());
 		Loot_SetLevel(gun, level);
-		Loot_SpawnDrop(player, gun, false);
+		Loot_SpawnDrop(source, gun, false);
 	}
 	loot_drop_owner = nullptr;
 }

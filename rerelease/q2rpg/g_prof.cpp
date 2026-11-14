@@ -9,13 +9,26 @@ constexpr float PROF_FIRST_LEVEL_KILLS = 20.f; // kills for level 1
 constexpr float PROF_KILL_GROWTH = 1.25f;      // each level needs this much more than the last
 constexpr float PROF_BONUS_PER_LEVEL = 0.01f;
 
-// total kills needed to reach this level
+// total kills needed to reach each level, built once (Prof_Level runs on every shot and hit)
+static const std::array<int32_t, PROF_MAX_LEVEL + 1> &Prof_Thresholds()
+{
+	static const std::array<int32_t, PROF_MAX_LEVEL + 1> thresholds = []
+	{
+		std::array<int32_t, PROF_MAX_LEVEL + 1> table{};
+		float total = 0.f, step = PROF_FIRST_LEVEL_KILLS;
+		for (int32_t level = 1; level <= PROF_MAX_LEVEL; level++, step *= PROF_KILL_GROWTH)
+		{
+			total += roundf(step);
+			table[level] = (int32_t)total;
+		}
+		return table;
+	}();
+	return thresholds;
+}
+
 int32_t Prof_KillsForLevel(int32_t level)
 {
-	float total = 0.f, step = PROF_FIRST_LEVEL_KILLS;
-	for (int32_t i = 0; i < level; i++, step *= PROF_KILL_GROWTH)
-		total += roundf(step);
-	return (int32_t)total;
+	return Prof_Thresholds()[std::clamp(level, 0, PROF_MAX_LEVEL)];
 }
 
 int32_t Prof_Level(const edict_t *ent, int32_t archetype)

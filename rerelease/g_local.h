@@ -1213,6 +1213,7 @@ struct level_locals_t
 	loot_grenade_t loot_vendor_grenade; // q2rpg
 	loot_classmod_t loot_vendor_classmod; // q2rpg
 	std::array<loot_mission_t, LOOT_MISSION_OFFERS> loot_missions; // q2rpg: this map's side mission offers
+	std::array<uint32_t, LOOT_MISSION_OFFERS> loot_mission_done_by; // q2rpg: players who finished each offer (bit per player); kept with the map so a revisit can't repay it
 	int32_t loot_vendor_rerolls; // q2rpg: stock rerolls bought on this map (price climbs)
 	int32_t loot_reinforcements_paid; // q2rpg: called-in reinforcements (medic commander, carrier...) that paid out on this map
 	bool loot_rift_announced;          // q2rpg: rift banner shown
@@ -2885,7 +2886,6 @@ struct client_persistant_t
 	loot_relic_t loot_relic;       // q2rpg: equipped relic
 	loot_mission_t loot_mission;   // q2rpg: active side mission (valid = running)
 	char loot_mission_map[MAX_QPATH]; // q2rpg: map the mission state belongs to; a new map drops it
-	int32_t loot_mission_done_mask;   // q2rpg: offers finished on that map (bit per offer)
 	int32_t loot_mission_taken;       // q2rpg: offer index of the active mission
 	std::array<loot_stash_slot_t, LOOT_STASH_SLOTS> loot_stash; // q2rpg: stash (vendor page 4)
 	int32_t loot_stash_bought; // q2rpg: extra 4-slot rows bought at Lv 60

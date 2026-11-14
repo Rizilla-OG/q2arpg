@@ -260,8 +260,6 @@ THINK(loot_cash_think)(edict_t *self)->void
 	self->nextthink = level.time + 100_ms;
 }
 
-static void Vendor_SpawnCash(edict_t *monster, float amount, edict_t *owner);
-
 void Vendor_DropCash(edict_t *monster, edict_t *attacker)
 {
 	if (deathmatch->integer || !attacker || !attacker->client)
@@ -273,8 +271,8 @@ void Vendor_DropCash(edict_t *monster, edict_t *attacker)
 	const int32_t mlevel = std::max(1, monster->loot_mlevel);
 	float amount = (5.f + base_health * 0.15f) * (1.0f + 0.1f * (mlevel - 1)) * frandom(0.75f, 1.25f);
 	if (monster->monsterinfo.aiflags & AI_SPAWNED_MASK)
-		amount *= LOOT_REINFORCEMENT_PAY_MULT; // called-in reinforcements
-	if (monster->loot_elite)
+		amount *= LOOT_REINFORCEMENT_PAY_MULT;       // called-in reinforcements
+	if (monster->loot_elite || Raid_IsBoss(monster)) // q2rpg: the raid boss pays like an Omega
 		amount *= monster->loot_omega ? 6.f : 3.f;
 	if (Loot_IsBossTier(monster))
 		amount *= 5.f;
@@ -284,13 +282,14 @@ void Vendor_DropCash(edict_t *monster, edict_t *attacker)
 	if (Loot_PerPlayerDrops())
 	{
 		for (auto player : active_players())
-			Vendor_SpawnCash(monster, amount, player);
+			Vendor_SpawnCashPile(monster, amount, player);
 	}
 	else
-		Vendor_SpawnCash(monster, amount, nullptr);
+		Vendor_SpawnCashPile(monster, amount, nullptr);
 }
 
-static void Vendor_SpawnCash(edict_t *monster, float amount, edict_t *owner)
+// a cash pile tossed from source (monster, chest, raid, arena); owner = coop player it's instanced for
+void Vendor_SpawnCashPile(edict_t *monster, float amount, edict_t *owner)
 {
 	edict_t *cash = G_Spawn();
 	cash->classname = "loot_cash";
@@ -311,11 +310,6 @@ static void Vendor_SpawnCash(edict_t *monster, float amount, edict_t *owner)
 	cash->nextthink = level.time + 500_ms; // let the drop fountain play first
 	Loot_InstanceFor(cash, owner);
 	gi.linkentity(cash);
-}
-
-void Vendor_SpawnCashPile(edict_t *source, float amount, edict_t *owner)
-{
-	Vendor_SpawnCash(source, amount, owner);
 }
 
 //==========================================================================
@@ -559,7 +553,7 @@ static void Vendor_SendStash(edict_t *ent)
 	line("string", "Empty: store floor item, else held gun. Full: take out");
 	y += 6;
 	const char *next = page + 1 < pages ? "next page" : cl->loot_stash_only ? "page 1"
-	                                                                        : "back";
+	                                                                        : "missions";
 	line("string2", G_Fmt("[1-8] store / take  [9] {}  [{}] close", next, cl->loot_stash_only ? "B" : "V").data());
 	Loot_SendLayout(ent, s);
 }

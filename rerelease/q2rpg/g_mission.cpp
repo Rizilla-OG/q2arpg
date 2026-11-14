@@ -44,6 +44,7 @@ void Mission_MapSpawn()
 {
 	for (loot_mission_t &offer : level.loot_missions)
 		offer = {};
+	level.loot_mission_done_by.fill(0);
 	if (deathmatch->integer || Rift_InRift() || level.total_monsters < MISSION_MIN_MONSTERS)
 		return;
 
@@ -151,7 +152,16 @@ static void Mission_CheckMap(edict_t *ent)
 		return;
 	Q_strlcpy(pers.loot_mission_map, level.mapname, sizeof(pers.loot_mission_map));
 	pers.loot_mission = {};
-	pers.loot_mission_done_mask = 0;
+}
+
+static uint32_t Mission_PlayerBit(const edict_t *ent)
+{
+	return 1u << ((ent->s.number - 1) & 31);
+}
+
+static bool Mission_DoneBy(const edict_t *ent, int32_t offer)
+{
+	return offer >= 0 && offer < LOOT_MISSION_OFFERS && (level.loot_mission_done_by[offer] & Mission_PlayerBit(ent));
 }
 
 void Mission_Frame(edict_t *ent)
@@ -176,7 +186,8 @@ static void Mission_Complete(edict_t *ent)
 	client_persistant_t &pers = ent->client->pers;
 	const loot_mission_t mission = pers.loot_mission;
 	pers.loot_mission = {};
-	pers.loot_mission_done_mask |= 1 << pers.loot_mission_taken;
+	if (pers.loot_mission_taken >= 0 && pers.loot_mission_taken < LOOT_MISSION_OFFERS)
+		level.loot_mission_done_by[pers.loot_mission_taken] |= Mission_PlayerBit(ent);
 
 	const int32_t xp = Mission_RewardXP(ent, mission);
 	const int32_t cash = Mission_RewardCash(mission);
@@ -295,7 +306,7 @@ void Mission_SendPage(edict_t *ent)
 		if (!offer.valid)
 			continue;
 		any_offer = true;
-		const bool done = pers.loot_mission_done_mask & (1 << i);
+		const bool done = Mission_DoneBy(ent, i);
 		const bool active = pers.loot_mission.valid && pers.loot_mission_taken == i;
 		const char *state = done ? "  DONE" : active ? "  ACTIVE"
 		                                             : "";
@@ -320,7 +331,7 @@ void Mission_Take(edict_t *ent, int32_t n)
 	const int32_t index = n - 1;
 	if (index < 0 || index >= LOOT_MISSION_OFFERS || !level.loot_missions[index].valid)
 		return;
-	if (pers.loot_mission_done_mask & (1 << index))
+	if (Mission_DoneBy(ent, index))
 	{
 		gi.Center_Print(ent, "Already done");
 		return;

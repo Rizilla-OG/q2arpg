@@ -900,6 +900,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_vendor_grenade), // q2rpg
 	FIELD_AUTO(loot_vendor_classmod), // q2rpg
 	FIELD_AUTO(loot_missions), // q2rpg
+	FIELD_AUTO(loot_mission_done_by), // q2rpg
 	FIELD_AUTO(loot_vendor_rerolls), // q2rpg
 	FIELD_AUTO(loot_reinforcements_paid), // q2rpg
 	FIELD_AUTO(loot_rift_announced), // q2rpg
@@ -1082,7 +1083,6 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_relic),
 	FIELD_AUTO(loot_mission),
 	FIELD_AUTO(loot_mission_map),
-	FIELD_AUTO(loot_mission_done_mask),
 	FIELD_AUTO(loot_mission_taken),
 	FIELD_AUTO(loot_stash),
 	FIELD_AUTO(loot_stash_bought),

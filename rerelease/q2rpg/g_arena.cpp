@@ -32,12 +32,6 @@ int32_t Arena_OpenPrice(edict_t *ent)
 	return 500 + 50 * std::max(1, ent->client->pers.loot_level);
 }
 
-static void Arena_Banner(const std::string &text)
-{
-	for (auto player : active_players())
-		gi.Center_Print(player, text.c_str());
-}
-
 //==========================================================================
 // Vendor (Workshop item 6)
 //==========================================================================
@@ -139,31 +133,36 @@ static const char *Arena_PickMonster(int32_t wave)
 	return arena_pool_late[pick - mid];
 }
 
-static edict_t *Arena_FirstLivePlayer()
-{
-	for (auto player : active_players())
-		if (player->health > 0)
-			return player;
-	return nullptr;
-}
+// failed tries in a row; after a few, spots closer to players are allowed (not saved: only pacing)
+static int32_t arena_failed_spawns;
 
 static void Arena_SpawnOne(bool omega)
 {
-	level.loot_arena_to_spawn--; // counts the try, so a spot that never fits can't stall the wave
+	// only a monster that really appears counts toward the wave, so a wave can't clear empty
 	vec3_t spot;
-	if (!Raid_FindSpot({-24, -24, -24}, {24, 24, 40}, false, spot))
-		return;
-	const vec3_t angles = {0, frandom(360.f), 0};
-	edict_t *monster = omega ? Loot_SpawnOmega(spot, angles, arena_omegas[irandom((int32_t)q_countof(arena_omegas))])
-	                         : CreateMonster(spot, angles, Arena_PickMonster(level.loot_arena_wave));
+	// after failed tries, closer spots: 256 -> 96 -> anywhere, so a wave can't hang
+	const float min_player_distance = arena_failed_spawns >= 15 ? 0.f : arena_failed_spawns >= 5 ? 96.f
+	                                                                                             : 256.f;
+	edict_t *monster = nullptr;
+	if (Raid_FindSpot({-24, -24, -24}, {24, 24, 40}, false, spot, min_player_distance))
+	{
+		const vec3_t angles = {0, frandom(360.f), 0};
+		monster = omega ? Loot_SpawnOmega(spot, angles, arena_omegas[irandom((int32_t)q_countof(arena_omegas))])
+		                : CreateMonster(spot, angles, Arena_PickMonster(level.loot_arena_wave));
+	}
 	if (!monster || !monster->inuse)
+	{
+		arena_failed_spawns++;
 		return;
+	}
+	arena_failed_spawns = 0;
+	level.loot_arena_to_spawn--;
 
 	const float health_mult = 1.0f + ARENA_HEALTH_PER_WAVE * (level.loot_arena_wave - 1);
 	monster->health = std::max(1, (int32_t)(monster->health * health_mult));
 	monster->max_health = monster->health;
 	SpawnGrow_Spawn(monster->s.origin, 24.f, 64.f);
-	if (edict_t *target = Arena_FirstLivePlayer())
+	if (edict_t *target = Loot_FirstLivePlayer())
 	{
 		monster->enemy = target;
 		FoundTarget(monster);
@@ -173,13 +172,14 @@ static void Arena_SpawnOne(bool omega)
 static void Arena_StartWave()
 {
 	level.loot_arena_wave++;
+	arena_failed_spawns = 0;
 	level.loot_arena_to_spawn = Arena_WaveSize(level.loot_arena_wave);
 	level.loot_arena_next_spawn = level.time;
 	level.loot_arena_break_end = 0_ms;
 	gi.sound(world, CHAN_AUTO, gi.soundindex("world/klaxon2.wav"), 1, ATTN_NONE, 0);
-	Arena_Banner(G_Fmt("WAVE {}/{}{}", level.loot_arena_wave, ARENA_WAVES, level.loot_arena_wave % 5 == 0 ? "\nAn Alpha Omega joins the fight" : "").data());
+	Loot_BannerAll(G_Fmt("WAVE {}/{}{}", level.loot_arena_wave, ARENA_WAVES, level.loot_arena_wave % 5 == 0 ? "\nAn Alpha Omega joins the fight" : "").data());
 
-	// every 5th wave: an Omega first
+	// every 5th wave: an Omega first (if it can't fit, a regular monster takes its place)
 	if (level.loot_arena_wave % 5 == 0)
 	{
 		level.loot_arena_to_spawn++;
@@ -193,31 +193,46 @@ static void Arena_WaveCleared(edict_t *ent)
 	game.loot_arena_best = std::max(game.loot_arena_best, wave);
 	Loot_LogEvent(ent, G_Fmt("ARENA wave {} cleared", wave).data());
 
-	// cash every wave, gear every 3rd
+	// cash every wave, gear every 3rd; in coop each player gets their own (instanced)
 	const float cash = (50.f + 20.f * Loot_ZoneLevel()) * 0.5f * wave * NGPlus_CashMult();
-	Vendor_SpawnCashPile(ent, cash, nullptr);
 	const bool gear_wave = wave % 3 == 0;
-	if (gear_wave)
-		Loot_MissionDrop(ent, wave >= 15 ? LOOT_RARITY_LEGENDARY : wave >= 9 ? LOOT_RARITY_EPIC
-		                                                                     : LOOT_RARITY_RARE);
+	const loot_rarity_t gear_rarity = wave >= 15 ? LOOT_RARITY_LEGENDARY : wave >= 9 ? LOOT_RARITY_EPIC
+	                                                                                 : LOOT_RARITY_RARE;
+	// coop: one instanced set per player, dead ones too, tossed from the live player who cleared it;
+	// shared drops: one set at that live player
+	if (Loot_PerPlayerDrops())
+	{
+		for (auto player : active_players())
+		{
+			Vendor_SpawnCashPile(ent, cash, player);
+			if (gear_wave)
+				Loot_MissionDrop(player, gear_rarity, ent);
+		}
+	}
+	else
+	{
+		Vendor_SpawnCashPile(ent, cash, nullptr);
+		if (gear_wave)
+			Loot_MissionDrop(ent, gear_rarity, ent);
+	}
 
 	if (wave >= ARENA_WAVES)
 	{
 		level.loot_arena_done = true;
 		level.loot_arena_return_time = level.time + ARENA_RETURN_DELAY;
 		gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/secret.wav"), 1, ATTN_NONE, 0);
-		Arena_Banner(G_Fmt("ARENA CHAMPION\nAll {} waves cleared\nBack in {:.0f}s", ARENA_WAVES, ARENA_RETURN_DELAY.seconds()).data());
+		Loot_BannerAll(G_Fmt("ARENA CHAMPION\nAll {} waves cleared\nBack in {:.0f}s", ARENA_WAVES, ARENA_RETURN_DELAY.seconds()).data());
 		Loot_LogEvent(ent, "ARENA champion");
 		return;
 	}
 	level.loot_arena_break_end = level.time + ARENA_BREAK;
-	Arena_Banner(G_Fmt("Wave {} cleared{}\nNext wave in {:.0f}s  (vendor item 6: leave)", wave, gear_wave ? "  +gear" : "", ARENA_BREAK.seconds()).data());
+	Loot_BannerAll(G_Fmt("Wave {} cleared{}\nNext wave in {:.0f}s  (vendor item 6: leave)", wave, gear_wave ? "  +gear" : "", ARENA_BREAK.seconds()).data());
 }
 
 // Loot_SetStats, every player every frame; level logic runs on the first live player
 void Arena_PlayerFrame(edict_t *ent)
 {
-	if (!Arena_InArena() || level.intermissiontime || ent->health <= 0 || ent != Arena_FirstLivePlayer())
+	if (!Arena_InArena() || level.intermissiontime || ent->health <= 0 || ent != Loot_FirstLivePlayer())
 		return;
 
 	if (level.loot_arena_done)
@@ -232,7 +247,7 @@ void Arena_PlayerFrame(edict_t *ent)
 	{
 		level.loot_droprate_mult = ARENA_DROP_RATE;
 		level.loot_arena_break_end = level.time + ARENA_FIRST_DELAY;
-		Arena_Banner(G_Fmt("ARENA\n{} waves. Leave any time with vendor item 6", ARENA_WAVES).data());
+		Loot_BannerAll(G_Fmt("ARENA\n{} waves. Leave any time with vendor item 6", ARENA_WAVES).data());
 		return;
 	}
 
