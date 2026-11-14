@@ -1024,6 +1024,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_stash),
 	FIELD_AUTO(loot_stash_bought),
 	FIELD_AUTO(loot_filter),
+	FIELD_AUTO(loot_prof_kills),
 	FIELD_AUTO(loot_tree),
 	FIELD_AUTO(loot_skill_ranks),
 	FIELD_AUTO(loot_money),

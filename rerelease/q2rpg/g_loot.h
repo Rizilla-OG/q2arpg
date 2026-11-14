@@ -246,8 +246,14 @@ edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char 
 void Loot_RiftDrops(const vec3_t &where, int32_t count, int32_t tier);                       // g_loot.cpp: rift reward burst
 void Loot_ChestDrops(const vec3_t &where, bool red_chest, edict_t *owner, edict_t *opener);  // g_loot.cpp: loot chest burst
 void Vendor_SpawnCashPile(edict_t *source, float amount, edict_t *owner);                    // g_vendor.cpp: a cash pile tossed from source
-void Chest_CmdList(edict_t *ent);                                                            // g_chest.cpp: dev list of chests
-void Chest_MapSpawn();                                                                       // g_chest.cpp: random chests, end of SpawnEntities
+const char *Loot_ArchName(loot_archetype_t archetype);                                       // gun type name ("Pistol")
+int32_t Prof_Level(const edict_t *ent, int32_t archetype);                                   // g_prof.cpp: weapon proficiency 0-15
+float Prof_Mult(const edict_t *ent, int32_t archetype);                                      // 1 + 1% per proficiency level
+void Prof_OnKill(edict_t *attacker, int32_t archetype);
+std::string Prof_DetailsRow(const edict_t *ent, int32_t archetype);
+void Prof_CmdList(edict_t *ent);
+void Chest_CmdList(edict_t *ent); // g_chest.cpp: dev list of chests
+void Chest_MapSpawn();            // g_chest.cpp: random chests, end of SpawnEntities
 
 // loot visual effects (g_lootfx.cpp)
 void LootFx_RarityBeam(edict_t *item, loot_rarity_t rarity);                  // replaces any beam the item has

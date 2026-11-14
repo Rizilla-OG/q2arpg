@@ -491,6 +491,12 @@ const char *Loot_MakerShortName(loot_maker_t maker)
 	return loot_makers[maker < LOOT_MAKER_COUNT ? maker : 0].short_name;
 }
 
+// q2rpg: gun type name ("Pistol"), data-file renames included
+const char *Loot_ArchName(loot_archetype_t archetype)
+{
+	return loot_archs[archetype < LOOT_ARCH_COUNT ? archetype : 0].name;
+}
+
 const char *Loot_MakerName(loot_maker_t maker)
 {
 	return loot_makers[maker < LOOT_MAKER_COUNT ? maker : 0].name;
@@ -1243,7 +1249,8 @@ bool Loot_TryReload(edict_t *ent)
 
 	cl->loot_reloading = true;
 	cl->loot_reload_start = level.time;
-	cl->loot_reload_end = level.time + gtime_t::from_sec(gun->reload_time * Skill_ReloadMult(ent) / Loot_UpgradeMult(ent, LOOT_UPGRADE_RELOAD, 0.05f));
+	cl->loot_reload_end = level.time + gtime_t::from_sec(gun->reload_time * Skill_ReloadMult(ent) / Loot_UpgradeMult(ent, LOOT_UPGRADE_RELOAD, 0.05f) /
+	                                                     Prof_Mult(ent, gun->archetype)); // q2rpg: proficiency
 	gi.sound(ent, CHAN_AUTO, gi.soundindex("weapons/noammo.wav"), 1, ATTN_NORM, 0);
 	return true;
 }
@@ -1315,8 +1322,8 @@ int32_t Loot_Spread(edict_t *ent, int32_t spread)
 	loot_weapon_t *gun = Loot_Active(ent);
 	if (!gun)
 		return spread;
-	const float zoomed = ent->client->loot_zoom_applied ? 0.7f : 1.0f; // steadier while scoped
-	return (int32_t)(spread * gun->spread_mult * Skill_SpreadMult(ent) * zoomed);
+	const float zoomed = ent->client->loot_zoom_applied ? 0.7f : 1.0f;                                             // steadier while scoped
+	return (int32_t)(spread * gun->spread_mult * Skill_SpreadMult(ent) * zoomed / Prof_Mult(ent, gun->archetype)); // q2rpg: proficiency
 }
 
 float Loot_ProjSpeed(edict_t *ent)
@@ -1678,8 +1685,8 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 	// top quarter of the bounding box counts as the head
 	if (force_crit || (!(dflags & DAMAGE_RADIUS) && point[2] >= targ->absmax[2] - targ->size[2] * 0.25f))
 	{
-		damage = (int32_t)(damage * (Loot_CritMult(*gun) + Skill_CritBonus(attacker) + Challenge_BadgeCritBonus(attacker) +
-		                             0.05f * attacker->client->pers.loot_upgrades[LOOT_UPGRADE_CRIT]));
+		damage = (int32_t)(damage * (Loot_CritMult(*gun) + Skill_CritBonus(attacker) + Challenge_BadgeCritBonus(attacker) + 0.05f * attacker->client->pers.loot_upgrades[LOOT_UPGRADE_CRIT]) *
+		                   Prof_Mult(attacker, gun->archetype)); // q2rpg: proficiency
 		loot_last_hit_crit = true;
 	}
 
@@ -3412,6 +3419,7 @@ static void Loot_SendInventory(edict_t *ent)
 			if (g->pellets_bonus)
 				extra += G_Fmt("|Pellets|+{}", g->pellets_bonus).data();
 			row(extra, 13);
+			row(Prof_DetailsRow(ent, g->archetype)); // q2rpg: weapon proficiency
 			if (g->element)
 				row(G_Fmt("Element|{}  {:.0f}% chance per hit", Loot_ElementName(g->element), Loot_ElemChance(*g) * 100.f).data());
 			if (g->unique)
@@ -4426,6 +4434,11 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 			Loot_SetLevel(gun, std::max(1, ent->client->pers.loot_level));
 			Loot_SpawnDrop(ent, gun, true);
 		}
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_prof"))
+	{
+		Prof_CmdList(ent); // anyone: just a status list
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_chests"))

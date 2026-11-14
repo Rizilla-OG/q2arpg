@@ -199,6 +199,7 @@ void Challenge_OnKill(edict_t *monster, edict_t *attacker)
 		Challenge_Add(attacker, CH_SKILL_KILLS, 1);
 
 	const int32_t arch = monster->loot_hit_arch - 1;
+	Prof_OnKill(attacker, arch); // q2rpg: weapon proficiency
 	if (arch == LOOT_ARCH_PISTOL)
 		Challenge_Add(attacker, CH_PISTOL_KILLS, 1);
 	else if (arch == LOOT_ARCH_SHOTGUN || arch == LOOT_ARCH_SCATTERGUN)
