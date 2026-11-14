@@ -15,7 +15,7 @@ constexpr float CHEST_START_CLEARANCE = 400.f; // no chests this close to a play
 constexpr float CHEST_SPACING = 800.f;         // chests at least this far apart
 constexpr float CHEST_OFFSET = 40.f;           // beside the item, not on top of it
 constexpr int32_t CHEST_MIN_MONSTERS = 8;      // skip tiny maps (cutscene / ending maps)
-constexpr float CHEST_MODEL_SCALE = 1.5f;
+constexpr float CHEST_MODEL_SCALE = 2.5f;
 static const vec3_t CHEST_MINS = {-16, -16, -16};
 static const vec3_t CHEST_MAXS = {16, 16, 16};
 
@@ -53,7 +53,7 @@ static void Chest_Setup(edict_t *chest, bool red_chest)
 {
 	chest->classname = "loot_chest";
 	chest->style = red_chest ? 1 : 0;
-	gi.setmodel(chest, "models/items/pack/tris.md2");
+	gi.setmodel(chest, "models/items/ammo/bullets/medium/tris.md2");
 	chest->s.scale = CHEST_MODEL_SCALE;
 	chest->s.effects = EF_COLOR_SHELL;
 	chest->s.renderfx = RF_GLOW | (red_chest ? RF_SHELL_RED : (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE)); // red or white

@@ -53,6 +53,13 @@ A grenade mod. Keys: `loot_rarity` (as above) and `loot_grenade`: `Frag`,
 `Cluster`, `Sticky`, `Vortex`, `Leech`, `Hopper` or `Airburst` (leave out for
 random).
 
+### `item_loot_chest` (point)
+
+A loot chest; players open it by walking into it. `loot_rarity` `2` or higher
+makes it a red chest (a guaranteed Rare-or-better gun, always some gear, 3x
+cash); anything lower is a white chest. The loot rolls at the party's level
+when it's opened. In coop each player opens it once for their own loot.
+
 ### `target_loot_drop` (point)
 
 Drops a gun every time it's triggered, popping out like a monster drop. Give
@@ -65,6 +72,7 @@ keys as `item_loot_gun`. To drop only once, trigger it from a `trigger_once`.
 |---|---|---|
 | `worldspawn` | `loot_nomodifier` `1` | No New Game+ map modifier on this map. |
 | `worldspawn` | `loot_novendor` `1` | The vendor won't open on this map (selling with `X` still works). Good for boss arenas. |
+| `worldspawn` | `loot_nochests` `1` | No random loot chests on this map (placed `item_loot_chest` entities still appear). |
 | `worldspawn` | `loot_modifier` | Force a map modifier by name: `Alpha Surge`, `Gold Rush`, `Loot Frenzy`, `Glass Cannon`, `Reinforcements`, `Elemental Storm`, `Bounty`, `Fortified` or `Bloodthirsty`. Works in any game, not just New Game+, and wins over `loot_nomodifier`. Good for a "loot vault" map. |
 | `worldspawn` | `loot_level_bonus` | Monsters on this map are N levels higher (for hard maps and secret levels). |
 | `worldspawn` | `loot_droprate` | Loot drop multiplier for this map, e.g. `2` for double, `0` for none (Alphas too). Doesn't affect bosses' fixed drops. |

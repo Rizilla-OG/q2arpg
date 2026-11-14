@@ -30,6 +30,11 @@
         0 : "Open (normal)"
         1 : "Closed on this map"
     ]
+    loot_nochests(Choices) : "Q2ARPG: random loot chests" : 0 =
+    [
+        0 : "Place some (normal)"
+        1 : "None on this map"
+    ]
     loot_modifier(Choices) : "Q2ARPG: force a map modifier (any game, overrides loot_nomodifier)" : "" =
     [
         "" : "None forced"
@@ -283,6 +288,16 @@
         3 : "Epic"
         4 : "Legendary"
         5 : "Mythic (New Game+ only, else Legendary)"
+    ]
+]
+
+// Q2ARPG: a loot chest; walk into it to open (loot rolls at the party's level when opened)
+@PointClass base(EditorFlags) color(232 200 60) size(-16 -16 -16, 16 16 16) model({ "path": ":models/items/ammo/bullets/medium/tris.md2", "scale": 2.5 }) = item_loot_chest : "Q2ARPG: loot chest"
+[
+    loot_rarity(Choices) : "Chest" : 0 =
+    [
+        0 : "White chest"
+        2 : "Red chest (guaranteed Rare+ gun, gear, 3x cash)"
     ]
 ]
 
