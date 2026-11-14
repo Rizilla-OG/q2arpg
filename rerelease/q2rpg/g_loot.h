@@ -276,7 +276,20 @@ int32_t Raid_OpenPrice();
 bool Raid_CanOpen(edict_t *ent);
 void Raid_Open(edict_t *ent);
 void Raid_Leave(edict_t *ent);
-void Raid_CmdOpen(edict_t *ent); // dev: loot_raid
+void Raid_CmdOpen(edict_t *ent);                                                         // dev: loot_raid
+bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t &spot); // arena spot away from players
+int32_t Raid_LiveAdds();                                                                 // live monsters other than the raid boss
+extern const char *const raid_maps[];
+extern const int32_t RAID_MAP_COUNT;
+// arena waves (g_arena.cpp)
+bool Arena_InArena();
+std::string Arena_VendorLine(edict_t *ent, bool &can_use);
+int32_t Arena_OpenPrice(edict_t *ent);
+bool Arena_CanOpen(edict_t *ent);
+void Arena_Open(edict_t *ent);
+void Arena_Leave(edict_t *ent);
+void Arena_CmdOpen(edict_t *ent); // dev: loot_arena [wave]
+void Arena_PlayerFrame(edict_t *ent);
 // melee (g_melee.cpp)
 void Melee_Cmd(edict_t *ent);
 int32_t Melee_ModifyDamage(edict_t *targ, const vec3_t &point, int32_t damage, bool &crit);

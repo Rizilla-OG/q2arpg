@@ -455,8 +455,14 @@ static void Vendor_SendWorkshop(edict_t *ent)
 	const bool raid_affordable = Raid_InRaid() || Raid_OpenPrice() <= money;
 	line(raid_usable && raid_affordable ? "string2" : "string", "5  " + raid_text);
 
+	// q2rpg: arena waves
+	bool arena_usable = false;
+	const std::string arena_text = Arena_VendorLine(ent, arena_usable);
+	const bool arena_affordable = Arena_InArena() || Arena_OpenPrice(ent) <= money;
+	line(arena_usable && arena_affordable ? "string2" : "string", "6  " + arena_text);
+
 	y += 6;
-	line("string2", "[1-5] buy  [9] stash >  [V] close");
+	line("string2", "[1-6] buy  [9] stash >  [V] close");
 	Loot_SendLayout(ent, s);
 }
 
@@ -891,6 +897,19 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 		classmod = {};
 		ClassMod_Give(ent, bought);
 		cl->loot_shop_time = 0_ms;
+		return;
+	}
+
+	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP && n == 6)
+	{
+		if (Arena_InArena())
+		{
+			Arena_Leave(ent);
+			return;
+		}
+		if (!Arena_CanOpen(ent) || !Vendor_Pay(ent, Arena_OpenPrice(ent)))
+			return;
+		Arena_Open(ent);
 		return;
 	}
 

@@ -14,9 +14,9 @@
 // Tuning
 //==========================================================================
 
-static const char *const raid_maps[] = {"q2dm1", "q2dm2", "q2dm4", // q2dm3 dropped: lava arena
-                                        "q2dm5", "q2dm6", "q2dm7", "q2dm8"};
-constexpr int32_t RAID_MAP_COUNT = (int32_t)q_countof(raid_maps);
+const char *const raid_maps[] = {"q2dm1", "q2dm2", "q2dm4", // q2dm3 dropped: lava arena
+                                 "q2dm5", "q2dm6", "q2dm7", "q2dm8"};
+const int32_t RAID_MAP_COUNT = (int32_t)q_countof(raid_maps);
 
 constexpr int32_t RAID_MIN_LEVEL = LOOT_MAX_LEVEL + LOOT_NGPLUS_LEVEL_CAP_BONUS; // 60
 constexpr int32_t RAID_PRICE = 25000;
@@ -102,7 +102,7 @@ int32_t Raid_OpenPrice()
 
 bool Raid_CanOpen(edict_t *ent)
 {
-	if (deathmatch->integer || Raid_InRaid() || Rift_InRift() || level.intermissiontime || ent->health <= 0 ||
+	if (deathmatch->integer || Raid_InRaid() || Rift_InRift() || Arena_InArena() || level.intermissiontime || ent->health <= 0 ||
 	    ent->client->pers.loot_level < RAID_MIN_LEVEL || Raid_ClearedThisCycle())
 		return false;
 	for (int32_t i = 0; i < RAID_MAP_COUNT; i++)
@@ -164,7 +164,7 @@ static void Raid_Banner(const std::string &text)
 }
 
 // the arena spot farthest from the players that fits the monster's box
-static bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t &spot)
+bool Raid_FindSpot(const vec3_t &mins, const vec3_t &maxs, bool farthest, vec3_t &spot)
 {
 	float best_score = -1.f;
 	bool found = false;
@@ -233,7 +233,7 @@ static void Raid_SpawnBoss()
 	Raid_Banner(G_Fmt("{} HAS COME", RAID_BOSS_NAME).data());
 }
 
-static int32_t Raid_LiveAdds()
+int32_t Raid_LiveAdds()
 {
 	int32_t adds = 0;
 	for (uint32_t i = game.maxclients + 1; i < globals.num_edicts; i++)

@@ -1184,6 +1184,10 @@ struct game_locals_t
 	char loot_raid_map[MAX_QPATH];
 	uint32_t loot_raid_used_mask;      // arena maps used this unit
 	int32_t loot_raid_cleared_cycle;   // NG+ cycle + 1 of the last clear (one clear per cycle)
+	// q2rpg: arena waves (g_arena.cpp); shares the raid arena maps and used mask
+	bool loot_arena_active;
+	char loot_arena_map[MAX_QPATH];
+	int32_t loot_arena_best;           // best wave cleared
 };
 
 constexpr size_t MAX_HEALTH_BARS = 2;
@@ -1229,6 +1233,13 @@ struct level_locals_t
 	bool loot_raid_cleared;
 	gtime_t loot_raid_return_time;
 	gtime_t loot_raid_start_time;      // boss arrival, for the clear time
+	// q2rpg: arena waves (g_arena.cpp)
+	int32_t loot_arena_wave;           // current wave (0 = not started)
+	int32_t loot_arena_to_spawn;       // monsters of this wave still to spawn
+	gtime_t loot_arena_next_spawn;
+	gtime_t loot_arena_break_end;      // next wave starts at this time (0 = wave running)
+	bool loot_arena_done;              // all waves cleared
+	gtime_t loot_arena_return_time;
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
 	bool loot_novendor;			 // q2rpg: worldspawn loot_novendor 1, the shop won't open on this map
 	bool loot_nochests;			 // q2rpg: worldspawn loot_nochests 1, no random loot chests (spawn time only)

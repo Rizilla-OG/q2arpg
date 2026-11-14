@@ -3731,7 +3731,8 @@ void Loot_SetStats(edict_t *ent)
 		return;
 
 	Rift_PlayerFrame(ent);
-	Raid_PlayerFrame(ent); // q2rpg
+	Raid_PlayerFrame(ent);  // q2rpg
+	Arena_PlayerFrame(ent); // q2rpg
 
 	// mapper's worldspawn loot_start_level: lift players who come in below it
 	if (std::min(level.loot_start_level, Loot_LevelCap()) > cl->pers.loot_level && ent->health > 0) // capped, or it would heal every frame
@@ -4582,6 +4583,12 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 	if (!Q_strcasecmp(cmd, "loot_melee"))
 	{
 		Melee_Cmd(ent);
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_arena"))
+	{
+		if (Loot_CheatCheck(ent))
+			Arena_CmdOpen(ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_raid"))
