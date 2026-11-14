@@ -141,6 +141,29 @@ struct loot_shield_t
 	char name[48];
 };
 
+// q2rpg: relics (g_relic.cpp): a fifth gear piece with one passive effect, any tree.
+enum loot_relic_type_t : int32_t
+{
+	LOOT_RELIC_ELEMENT,       // one element: more proc chance and proc damage
+	LOOT_RELIC_FORTUNE,       // more cash and better loot rarity
+	LOOT_RELIC_QUARTERMASTER, // slow reserve ammo regen for the held gun
+	LOOT_RELIC_LEECH,         // heal a share of gun damage dealt
+	LOOT_RELIC_DEMOLITION,    // more grenade damage
+	LOOT_RELIC_TYPE_COUNT
+};
+
+struct loot_relic_t
+{
+	bool valid;
+	uint32_t seed;
+	int32_t level; // only sets the price
+	loot_rarity_t rarity;
+	loot_relic_type_t type;
+	loot_element_t element; // LOOT_RELIC_ELEMENT only
+
+	char name[48];
+};
+
 // Grenade mods (g_grenade.cpp): one equipped, thrown with the "grenade" command (Q)
 enum loot_grenade_type_t : uint8_t
 {
@@ -336,6 +359,7 @@ struct loot_stash_slot_t
 	loot_shield_t shield;
 	loot_grenade_t grenade;
 	loot_classmod_t classmod;
+	loot_relic_t relic;
 };
 
 // time-to-kill stat buckets (loot_stats_t::ttk_*)

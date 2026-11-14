@@ -629,6 +629,7 @@ void Grenade_Throw(edict_t *ent)
 	const float arc = 200.f + (stats.type == LOOT_GRENADE_AIRBURST ? AIRBURST_ARC : 0.f); // airburst lobs high
 	const vec3_t velocity = forward * stats.speed + up * arc * (level.gravity / 800.f);
 
+	stats.damage *= Relic_GrenadeMult(ent); // q2rpg: Demolition relic, once per throw (bomblets inherit it)
 	Grenade_Spawn(ent, start, velocity, stats, stats.type);
 	level.loot_stats.grenades_thrown[stats.type]++;
 	gi.sound(ent, CHAN_WEAPON, gi.soundindex("weapons/hgrent1a.wav"), 1, ATTN_NORM, 0);

@@ -1343,6 +1343,7 @@ void Loot_Think(edict_t *ent)
 	gclient_t *cl = ent->client;
 
 	Unique_Frame(ent); // Spin Cycle ramp
+	Relic_Think(ent);  // q2rpg: Quartermaster relic ammo
 
 	// burst trigger: hold fire during the pause; releasing resets the burst
 	if (cl->loot_burst_pause > level.time + 1_sec)
@@ -1708,6 +1709,7 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 	chance = chance * Skill_ProcChanceMult(attacker) + (element ? Skill_ProcChanceBonus(attacker) : 0.f);
 	Unique_Element(attacker, *gun, element, chance); // Dragonmouth / Prism
 	chance *= NGPlus_ProcChanceMult();               // Elemental Storm
+	chance *= Relic_ElementMult(attacker, element);  // q2rpg: Element relic
 
 	if (!element && Skill_Attune(attacker))
 	{
@@ -1717,10 +1719,10 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 
 	if (element && frandom() < chance)
 	{
-		element = Skill_ProcElement(attacker, element);                              // Prism Heart
-		damage = (int32_t)ceilf(damage * Skill_FusionMult(attacker, targ, element)); // Fusion, before the new status lands
-		Loot_ApplyStatus(targ, attacker, element, damage);
-		LootFx_ProcLight(attacker, element); // gun procs only, not turret / slam / spread
+		element = Skill_ProcElement(attacker, element);                                                      // Prism Heart
+		damage = (int32_t)ceilf(damage * Skill_FusionMult(attacker, targ, element));                         // Fusion, before the new status lands
+		Loot_ApplyStatus(targ, attacker, element, (int32_t)(damage * Relic_ElementMult(attacker, element))); // q2rpg: Element relic
+		LootFx_ProcLight(attacker, element);                                                                 // gun procs only, not turret / slam / spread
 
 		if (g_loot_debug->integer)
 			gi.Com_PrintFmt("[loot] {} proc on {} (hit {}, burn {:.1f} melt {:.1f} shock {:.1f} chill {} frozen {})\n", Loot_ElementName(element),
@@ -1729,6 +1731,7 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 	}
 
 	damage = Unique_OnHit(targ, attacker, *gun, damage, mod); // Lancer, Bulwark, Tick Tock, Executioner
+	Relic_OnGunHit(attacker, std::min(damage, targ->health)); // q2rpg: Leech relic, overkill doesn't heal
 
 	return damage;
 }
@@ -2044,7 +2047,7 @@ int32_t Loot_ShieldAbsorb(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 
 bool Loot_IsLootItem(const edict_t *item)
 {
-	return item->loot.valid || item->loot_shield.valid || item->loot_grenade.valid || item->loot_classmod.valid;
+	return item->loot.valid || item->loot_shield.valid || item->loot_grenade.valid || item->loot_classmod.valid || item->loot_relic.valid;
 }
 
 void Loot_ApplyVisuals(edict_t *item)
@@ -2056,6 +2059,8 @@ void Loot_ApplyVisuals(edict_t *item)
 		rarity = item->loot_grenade.rarity;
 	else if (item->loot_classmod.valid)
 		rarity = item->loot_classmod.rarity;
+	else if (item->loot_relic.valid)
+		rarity = item->loot_relic.rarity;
 	// rarity shows as a beam so the shell doesn't hide the gun model
 	item->s.renderfx &= ~(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 	item->s.effects &= ~EF_COLOR_SHELL;
@@ -2310,6 +2315,29 @@ edict_t *Grenade_SpawnDrop(edict_t *source, const loot_grenade_t &grenade, bool 
 	return drop;
 }
 
+// q2rpg: relics lie on the floor as the pyramid key (keys are never auto-picked: Loot_Touch takes them)
+edict_t *Relic_SpawnDrop(edict_t *source, const loot_relic_t &relic, bool from_player, bool apply_filter)
+{
+	if (apply_filter && !from_player && Loot_DropFiltered(relic.rarity))
+		return nullptr;
+	edict_t *drop = Drop_Item(source, GetItemByIndex(IT_KEY_PYRAMID));
+
+	drop->loot_relic = relic;
+	drop->svflags &= ~SVF_INSTANCED;
+
+	if (from_player)
+		drop->spawnflags |= SPAWNFLAG_ITEM_DROPPED_PLAYER;
+	else
+	{
+		drop->velocity = {crandom() * 150.f, crandom() * 150.f, 250.f + frandom(150.f)};
+		Loot_InstanceFor(drop, loot_drop_owner);
+	}
+
+	Loot_ApplyVisuals(drop);
+	gi.linkentity(drop);
+	return drop;
+}
+
 // class mods lie on the floor as a data CD (keys are never auto-picked: Loot_Touch takes them)
 edict_t *ClassMod_SpawnDrop(edict_t *source, const loot_classmod_t &mod, bool from_player, bool apply_filter)
 {
@@ -2486,7 +2514,7 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 
 	const float hp = Loot_MonsterBaseHealth(monster);
 	const bool boss = Loot_IsBossTier(monster);
-	float luck = hp / 400.f + g_loot_rarity_bonus->value + Loot_ZoneLuck() + NGPlus_LuckBonus();
+	float luck = hp / 400.f + g_loot_rarity_bonus->value + Loot_ZoneLuck() + NGPlus_LuckBonus() + Relic_LuckBonus(loot_drop_owner); // q2rpg: Fortune relic
 	if (monster->loot_elite)
 		luck += 1.5f;
 	int32_t count;
@@ -2545,6 +2573,13 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 		{
 			ClassMod_SpawnDrop(monster, ClassMod_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand(), ClassMod_DropTree(loot_drop_owner)),
 			                   false, true);
+			continue;
+		}
+
+		// and some are relics
+		if (frandom() < 0.06f)
+		{
+			Relic_SpawnDrop(monster, Relic_Roll(Loot_RollRarity(luck), std::max(1, monster->loot_mlevel), (uint32_t)mt_rand()), false, true);
 			continue;
 		}
 
@@ -3393,8 +3428,16 @@ static void Loot_SendInventory(edict_t *ent)
 		const loot_classmod_t &classmod = cl->pers.loot_classmod;
 		if (classmod.valid)
 			row(G_Fmt("^aCLASS^w|{}: {}", classmod.name, ClassMod_BriefLine(classmod)).data(), 13);
+		const loot_relic_t &relic = cl->pers.loot_relic;
+		if (relic.valid)
+			row(G_Fmt("^aRELIC^w|{}: {}", relic.name, Relic_EffectLine(relic)).data(), 13);
 
-		row("^a[1-4] equip  [G] drop  [I] gun details");
+		// the key hint goes when the page is full, to stay under the 1024-char layout limit
+		const std::string hint_row = "^a[1-4] equip  [G] drop  [I] gun details";
+		if (s.size() + hint_row.size() + 40 < 1000)
+			row(hint_row);
+		if (g_loot_debug->integer)
+			gi.Com_PrintFmt("[loot] loadout layout {} chars\n", s.size());
 	}
 	else
 	{
@@ -3822,6 +3865,8 @@ void Loot_SetStats(edict_t *ent)
 			Grenade_SendCard(ent, target->loot_grenade);
 		else if (target->loot_classmod.valid)
 			ClassMod_SendCard(ent, target->loot_classmod);
+		else if (target->loot_relic.valid)
+			Relic_SendCard(ent, target->loot_relic);
 		else
 			Loot_SendCard(ent, target->loot);
 		cl->loot_card_sent = target;
@@ -3907,6 +3952,8 @@ static void Loot_Cmd_Take(edict_t *ent)
 	const loot_grenade_t grenade = target->loot_grenade;
 	const bool is_classmod = target->loot_classmod.valid;
 	const loot_classmod_t classmod = target->loot_classmod;
+	const bool is_relic = target->loot_relic.valid;
+	const loot_relic_t relic = target->loot_relic;
 	const loot_weapon_t gun = target->loot;
 
 	if (target->target)
@@ -3921,6 +3968,8 @@ static void Loot_Cmd_Take(edict_t *ent)
 		Grenade_Give(ent, grenade);
 	else if (is_classmod)
 		ClassMod_Give(ent, classmod);
+	else if (is_relic)
+		Relic_Give(ent, relic);
 	else
 		Loot_GiveGun(ent, gun);
 }
@@ -4100,7 +4149,7 @@ void Loot_ChestDrops(const vec3_t &where, bool red_chest, edict_t *owner, edict_
 	loot_drop_owner = owner;
 
 	const int32_t level = Loot_ZoneLevel();
-	const float luck = 1.0f + Loot_ZoneLuck() + NGPlus_LuckBonus() + (red_chest ? 1.0f : 0.5f);
+	const float luck = 1.0f + Loot_ZoneLuck() + NGPlus_LuckBonus() + Relic_LuckBonus(opener) + (red_chest ? 1.0f : 0.5f);
 
 	if (red_chest)
 	{
@@ -4121,9 +4170,11 @@ void Loot_ChestDrops(const vec3_t &where, bool red_chest, edict_t *owner, edict_
 	if (red_chest || frandom() < 0.5f)
 	{
 		const float gear_roll = frandom();
-		if (red_chest && gear_roll < 0.34f)
+		if (red_chest && gear_roll < 0.25f)
 			ClassMod_SpawnDrop(source, ClassMod_Roll(Loot_RollRarity(luck), level, (uint32_t)mt_rand(), ClassMod_DropTree(owner)), false);
-		else if (gear_roll < 0.67f && Loot_ShieldsAvailable())
+		else if (gear_roll < 0.5f)
+			Relic_SpawnDrop(source, Relic_Roll(Loot_RollRarity(luck), level, (uint32_t)mt_rand()), false);
+		else if (gear_roll < 0.75f && Loot_ShieldsAvailable())
 			Loot_SpawnShieldDrop(source, Loot_RollShield(Loot_RollRarity(luck), level, (uint32_t)mt_rand()), false);
 		else
 			Grenade_SpawnDrop(source, Grenade_Roll(Loot_RollRarity(luck), level, (uint32_t)mt_rand(), -1), false);
@@ -4475,6 +4526,17 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 			const int32_t want_type = gi.argc() >= 2 ? std::clamp(atoi(gi.argv(1)), 0, LOOT_GRENADE_TYPE_COUNT - 1) : -1;
 			const loot_grenade_t grenade = Grenade_Roll((loot_rarity_t)r, std::max(1, ent->client->pers.loot_level), (uint32_t)mt_rand(), want_type);
 			Grenade_SpawnDrop(ent, grenade, true);
+		}
+		return true;
+	}
+	// dev: relic at your feet; loot_relic [rarity 0-5] [type 0-4: element fortune quartermaster leech demolition]
+	if (!Q_strcasecmp(cmd, "loot_relic"))
+	{
+		if (Loot_CheatCheck(ent))
+		{
+			const int32_t rarity = gi.argc() >= 2 ? std::clamp(atoi(gi.argv(1)), 0, LOOT_RARITY_COUNT - 1) : (int32_t)Loot_RollRarity(0.f);
+			const int32_t type = gi.argc() >= 3 ? atoi(gi.argv(2)) : -1;
+			Relic_SpawnDrop(ent, Relic_Roll((loot_rarity_t)rarity, std::max(1, ent->client->pers.loot_level), (uint32_t)mt_rand(), type), true);
 		}
 		return true;
 	}

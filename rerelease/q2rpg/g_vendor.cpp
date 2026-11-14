@@ -50,6 +50,11 @@ static int32_t Vendor_ClassModValue(const loot_classmod_t &mod)
 	return std::max(1, (int32_t)(Vendor_LevelBase(mod.level) * vendor_prices.rarity_value[mod.rarity < LOOT_RARITY_COUNT ? mod.rarity : 0] * 1.2f));
 }
 
+static int32_t Vendor_RelicValue(const loot_relic_t &relic)
+{
+	return std::max(1, (int32_t)(Vendor_LevelBase(relic.level) * vendor_prices.rarity_value[relic.rarity < LOOT_RARITY_COUNT ? relic.rarity : 0] * 1.2f));
+}
+
 static int32_t Vendor_SellPrice(int32_t value)
 {
 	return std::max(1, (int32_t)(value * vendor_prices.sell_fraction));
@@ -184,7 +189,7 @@ static void Vendor_ApplyUpgrade(edict_t *ent, int32_t upgrade)
 
 static void Vendor_TakeCash(edict_t *self, edict_t *other)
 {
-	const int32_t amount = (int32_t)(self->count * Challenge_BadgeCashMult(other)); // Payday badge
+	const int32_t amount = (int32_t)(self->count * Challenge_BadgeCashMult(other) * Relic_CashMult(other)); // Payday badge, Fortune relic
 	other->client->pers.loot_money += amount;
 	level.loot_stats.cash_taken += amount;
 	Challenge_OnCash(other, amount);
@@ -457,7 +462,7 @@ static bool Vendor_Pay(edict_t *ent, int32_t price);
 
 static bool Vendor_StashSlotUsed(const loot_stash_slot_t &slot)
 {
-	return slot.gun.valid || slot.shield.valid || slot.grenade.valid || slot.classmod.valid;
+	return slot.gun.valid || slot.shield.valid || slot.grenade.valid || slot.classmod.valid || slot.relic.valid;
 }
 
 // one line: kind, name, level and rarity
@@ -471,6 +476,8 @@ static std::string Vendor_StashLine(const loot_stash_slot_t &slot)
 		return G_Fmt("Grenade {}  L{} {}", slot.grenade.name, slot.grenade.level, Loot_RarityName(slot.grenade.rarity)).data();
 	if (slot.classmod.valid)
 		return G_Fmt("Class   {}  {} {}", slot.classmod.name, Loot_RarityName(slot.classmod.rarity), Skill_TreeName(slot.classmod.tree)).data();
+	if (slot.relic.valid)
+		return G_Fmt("Relic   {}  {} {}", slot.relic.name, Loot_RarityName(slot.relic.rarity), Relic_TypeName(slot.relic)).data();
 	return "- empty -";
 }
 
@@ -550,10 +557,11 @@ static void Vendor_StashFromFloor(edict_t *ent, edict_t *floor, loot_stash_slot_
 	gclient_t *cl = ent->client;
 	if (floor->target)
 		G_UseTargets(floor, ent); // placed loot fires its targets like a pickup
-	slot.gun = floor->loot.valid && !floor->loot_shield.valid && !floor->loot_grenade.valid && !floor->loot_classmod.valid ? floor->loot : loot_weapon_t{};
+	slot.gun = floor->loot.valid && !floor->loot_shield.valid && !floor->loot_grenade.valid && !floor->loot_classmod.valid && !floor->loot_relic.valid ? floor->loot : loot_weapon_t{};
 	slot.shield = floor->loot_shield;
 	slot.grenade = floor->loot_grenade;
 	slot.classmod = floor->loot_classmod;
+	slot.relic = floor->loot_relic;
 	G_FreeEdict(floor);
 	cl->loot_touch_ent = nullptr;
 	cl->loot_card_sent = nullptr;
@@ -604,6 +612,8 @@ static void Vendor_StashTake(edict_t *ent, loot_stash_slot_t &slot)
 		Grenade_Give(ent, taken.grenade);
 	else if (taken.classmod.valid)
 		ClassMod_Give(ent, taken.classmod);
+	else if (taken.relic.valid)
+		Relic_Give(ent, taken.relic);
 }
 
 static void Vendor_StashUse(edict_t *ent, int32_t n)
@@ -994,6 +1004,11 @@ static void Vendor_Sell(edict_t *ent)
 		{
 			price = Vendor_SellPrice(Vendor_ClassModValue(floor->loot_classmod));
 			name = floor->loot_classmod.name;
+		}
+		else if (floor->loot_relic.valid)
+		{
+			price = Vendor_SellPrice(Vendor_RelicValue(floor->loot_relic));
+			name = floor->loot_relic.name;
 		}
 		else
 		{

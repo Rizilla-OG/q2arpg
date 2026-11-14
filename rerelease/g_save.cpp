@@ -745,13 +745,29 @@ SAVE_STRUCT_END
 
 MAKE_STRUCT_SAVE_DEDUCER(loot_classmod_t);
 
+// q2rpg: relic
+#define DECLARE_SAVE_STRUCT loot_relic_t
+SAVE_STRUCT_START
+	FIELD_AUTO(valid),
+	FIELD_AUTO(seed),
+	FIELD_AUTO(level),
+	FIELD_AUTO(rarity),
+	FIELD_AUTO(type),
+	FIELD_AUTO(element),
+	FIELD_AUTO(name)
+SAVE_STRUCT_END
+#undef DECLARE_SAVE_STRUCT
+
+MAKE_STRUCT_SAVE_DEDUCER(loot_relic_t);
+
 // q2rpg: one stash slot
 #define DECLARE_SAVE_STRUCT loot_stash_slot_t
 SAVE_STRUCT_START
 	FIELD_AUTO(gun),
 	FIELD_AUTO(shield),
 	FIELD_AUTO(grenade),
-	FIELD_AUTO(classmod)
+	FIELD_AUTO(classmod),
+	FIELD_AUTO(relic)
 SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT
 
@@ -1021,6 +1037,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_shields_unlocked),
 	FIELD_AUTO(loot_grenade),
 	FIELD_AUTO(loot_classmod),
+	FIELD_AUTO(loot_relic),
 	FIELD_AUTO(loot_stash),
 	FIELD_AUTO(loot_stash_bought),
 	FIELD_AUTO(loot_filter),
@@ -1309,6 +1326,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_shield), // q2rpg
 	FIELD_AUTO(loot_grenade), // q2rpg
 	FIELD_AUTO(loot_classmod), // q2rpg
+	FIELD_AUTO(loot_relic), // q2rpg
 	FIELD_AUTO(loot_stuck_to), // q2rpg
 	FIELD_AUTO(loot_stuck_offset), // q2rpg
 	FIELD_AUTO(loot_status), // q2rpg

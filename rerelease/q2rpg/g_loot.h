@@ -222,6 +222,20 @@ std::string ClassMod_BriefLine(const loot_classmod_t &mod);        // "+2 Hollow
 int32_t ClassMod_Bonus(edict_t *ent, int32_t tree, int32_t skill); // bonus ranks from the equipped mod
 int32_t ClassMod_DropTree(edict_t *owner);                         // tree to roll a drop for
 
+// relics (g_relic.cpp)
+loot_relic_t Relic_Roll(loot_rarity_t rarity, int32_t level, uint32_t seed, int32_t forced_type = -1);
+edict_t *Relic_SpawnDrop(edict_t *source, const loot_relic_t &relic, bool from_player, bool apply_filter = false); // g_loot.cpp
+void Relic_Give(edict_t *ent, const loot_relic_t &relic);
+void Relic_SendCard(edict_t *ent, const loot_relic_t &relic);
+std::string Relic_EffectLine(const loot_relic_t &relic); // "+18% grenade damage"
+const char *Relic_TypeName(const loot_relic_t &relic);   // "Demolition"
+float Relic_ElementMult(const edict_t *ent, loot_element_t element);
+float Relic_CashMult(const edict_t *ent);
+float Relic_LuckBonus(const edict_t *ent); // nullptr = first player
+float Relic_GrenadeMult(const edict_t *ent);
+void Relic_OnGunHit(edict_t *attacker, int32_t damage);
+void Relic_Think(edict_t *ent);
+
 // skill table access for class mods (g_skills.cpp)
 const char *Skill_TreeName(int32_t tree);
 const char *Skill_Name(int32_t tree, int32_t skill);

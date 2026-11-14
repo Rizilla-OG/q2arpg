@@ -2852,6 +2852,7 @@ struct client_persistant_t
 	bool loot_shields_unlocked;
 	loot_grenade_t loot_grenade; // q2rpg: equipped grenade mod
 	loot_classmod_t loot_classmod; // q2rpg: equipped class mod
+	loot_relic_t loot_relic;       // q2rpg: equipped relic
 	std::array<loot_stash_slot_t, LOOT_STASH_SLOTS> loot_stash; // q2rpg: stash (vendor page 4)
 	int32_t loot_stash_bought; // q2rpg: extra 4-slot rows bought at Lv 60
 	std::array<int32_t, LOOT_ARCH_COUNT> loot_prof_kills; // q2rpg: weapon proficiency kills per gun type
@@ -2956,6 +2957,8 @@ struct gclient_t
 	gtime_t loot_shield_snd_time;
 	gtime_t loot_grenade_next; // q2rpg: grenade throw cooldown
 	gtime_t loot_zoomies_end;  // q2rpg: Ava pistol speed burst runs until this time
+	gtime_t loot_relic_ammo_time; // q2rpg: next Quartermaster relic ammo tick
+	float loot_relic_heal_carry;  // q2rpg: Leech relic heal fraction not yet given
 	gtime_t loot_pistol_last_shot;    // q2rpg: semi-auto pistol: time of the last shot
 	bool loot_pistol_click_buffered; // q2rpg: semi-auto pistol: a click came in during the cooldown
 	// q2rpg: skills (transient)
@@ -3335,6 +3338,7 @@ struct edict_t
 	loot_shield_t loot_shield; // q2rpg: rolled shield on a floor item
 	loot_grenade_t loot_grenade; // q2rpg: grenade mod on a floor item; live grenade stats on a thrown one
 	loot_classmod_t loot_classmod; // q2rpg: class mod on a floor item
+	loot_relic_t loot_relic;       // q2rpg: relic on a floor item
 	edict_t *loot_stuck_to;		 // q2rpg: Sticky grenade target
 	vec3_t loot_stuck_offset;	 // q2rpg: Sticky grenade offset from the target
 	loot_status_t loot_status; // q2rpg: elemental effects on monsters
