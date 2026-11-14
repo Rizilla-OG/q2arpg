@@ -449,8 +449,14 @@ static void Vendor_SendWorkshop(edict_t *ent)
 	const bool rift_affordable = Rift_InRift() || Rift_OpenPrice() <= money;
 	line(rift_usable && rift_affordable ? "string2" : "string", "4  " + rift_text);
 
+	// q2rpg: raid (Lv 60 endgame)
+	bool raid_usable = false;
+	const std::string raid_text = Raid_VendorLine(ent, raid_usable);
+	const bool raid_affordable = Raid_InRaid() || Raid_OpenPrice() <= money;
+	line(raid_usable && raid_affordable ? "string2" : "string", "5  " + raid_text);
+
 	y += 6;
-	line("string2", "[1-4] buy  [9] stash >  [V] close");
+	line("string2", "[1-5] buy  [9] stash >  [V] close");
 	Loot_SendLayout(ent, s);
 }
 
@@ -888,8 +894,23 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 		return;
 	}
 
+	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP && n == 5)
+	{
+		if (Raid_InRaid())
+		{
+			Raid_Leave(ent);
+			return;
+		}
+		if (!Raid_CanOpen(ent) || !Vendor_Pay(ent, Raid_OpenPrice()))
+			return;
+		Raid_Open(ent);
+		return;
+	}
+
 	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP && n == 4)
 	{
+		if (Raid_InRaid())
+			return; // no rift from inside a raid
 		if (Rift_InRift())
 		{
 			Rift_Leave(ent);

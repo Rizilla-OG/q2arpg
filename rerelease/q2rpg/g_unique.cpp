@@ -38,6 +38,10 @@ static const unique_def_t unique_defs[LOOT_UNIQUE_COUNT] = {
     {"Supernova", "no tendrils; bigger blast with all three elements"},
     // memorial unique: never rolls, only the Lost Station duck gives it
     {"Ava", "Zoomies: kills give a speed burst"},
+    // raid uniques: only the raid boss drops them
+    {"Kingslayer", "+50% damage to bosses and Alpha Omegas"},
+    {"Bloodmoon", "kills heal 5% of your max health"},
+    {"Stormheart", "15% of hits chain-shock nearby monsters"},
 };
 static_assert(LOOT_UNIQUE_SUPERNOVA == LOOT_ARCH_COUNT * 2, "second uniques follow the first ones in archetype order");
 
@@ -103,6 +107,20 @@ void Unique_MakeAva(loot_weapon_t &gun)
 	Q_strlcpy(gun.name, unique_defs[LOOT_UNIQUE_AVA].name, sizeof(gun.name));
 }
 
+// q2rpg: raid uniques: index 0-2 = Kingslayer (Rail Rifle), Bloodmoon (SMG), Stormheart (Plasma Caster)
+static const loot_archetype_t raid_unique_archs[LOOT_RAID_UNIQUES] = {LOOT_ARCH_RAIL, LOOT_ARCH_SMG, LOOT_ARCH_PLASMA};
+
+loot_archetype_t Unique_RaidArch(int32_t index)
+{
+	return raid_unique_archs[std::clamp(index, 0, LOOT_RAID_UNIQUES - 1)];
+}
+
+void Unique_MakeRaid(loot_weapon_t &gun, int32_t index)
+{
+	gun.unique = LOOT_UNIQUE_KINGSLAYER + std::clamp(index, 0, LOOT_RAID_UNIQUES - 1);
+	G_FmtTo(gun.name, "{} {}", unique_defs[gun.unique].name, unique_arch_names[gun.archetype < LOOT_ARCH_COUNT ? gun.archetype : 0]);
+}
+
 const char *Unique_Tribute(int32_t unique)
 {
 	return unique == LOOT_UNIQUE_AVA ? AVA_TRIBUTE : nullptr;
@@ -111,7 +129,12 @@ const char *Unique_Tribute(int32_t unique)
 // kill with Ava in hand: start (or restart) the Zoomies burst
 void Unique_OnKill(edict_t *killer)
 {
-	if (!killer || !killer->client || Unique_Active(killer) != LOOT_UNIQUE_AVA)
+	if (!killer || !killer->client)
+		return;
+	// q2rpg: Bloodmoon: kills heal 5% max health
+	if (Unique_Active(killer) == LOOT_UNIQUE_BLOODMOON && killer->health > 0)
+		killer->health = std::min(killer->max_health, killer->health + std::max(1, killer->max_health / 20));
+	if (Unique_Active(killer) != LOOT_UNIQUE_AVA)
 		return;
 	killer->client->loot_zoomies_end = level.time + AVA_ZOOMIES_TIME;
 }
@@ -766,6 +789,16 @@ int32_t Unique_OnHit(edict_t *targ, edict_t *attacker, const loot_weapon_t &gun,
 				gi.multicast(targ->s.origin, MULTICAST_PVS, false);
 				gi.sound(targ, CHAN_AUTO, gi.soundindex("misc/talk1.wav"), 1.f, ATTN_NORM, 0);
 			}
+			break;
+
+		case LOOT_UNIQUE_KINGSLAYER:
+			if (Loot_IsBossTier(targ) || targ->loot_omega)
+				damage = (int32_t)ceilf(damage * 1.5f);
+			break;
+
+		case LOOT_UNIQUE_STORMHEART:
+			if (frandom() < 0.15f)
+				Unique_Lancer(targ, attacker, damage);
 			break;
 
 		case LOOT_UNIQUE_EXECUTIONER:

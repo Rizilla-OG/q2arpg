@@ -1178,6 +1178,11 @@ struct game_locals_t
 	vec3_t loot_rift_return_origin;
 	vec3_t loot_rift_return_angles;
 	bool loot_rift_return_pending;     // put players back at the origin once the return map loads
+	// q2rpg: raid (g_raid.cpp); shares the rift return spot fields above
+	bool loot_raid_active;             // a raid is open (we're in it, or on the way)
+	char loot_raid_map[MAX_QPATH];
+	uint32_t loot_raid_used_mask;      // arena maps used this unit
+	int32_t loot_raid_cleared_cycle;   // NG+ cycle + 1 of the last clear (one clear per cycle)
 };
 
 constexpr size_t MAX_HEALTH_BARS = 2;
@@ -1211,6 +1216,18 @@ struct level_locals_t
 	int32_t loot_rift_guardian_count;  // q2rpg: its spawn_count (edicts get reused)
 	bool loot_rift_cleared;            // q2rpg: guardian dead, loot paid
 	gtime_t loot_rift_return_time;     // q2rpg: auto return after a clear
+	// q2rpg: raid (g_raid.cpp)
+	edict_t *loot_raid_boss;
+	int32_t loot_raid_boss_count;      // its spawn_count (edicts get reused)
+	int32_t loot_raid_phase;           // 0 full health, 1 <=75%, 2 <=50%, 3 <=25%
+	gtime_t loot_raid_spawn_time;      // boss arrives at this time
+	gtime_t loot_raid_next_wave;       // phase 3 add waves
+	gtime_t loot_raid_next_shock;      // phase 2+ shockwave
+	bool loot_raid_shock_warned;
+	int32_t loot_raid_shield_element;  // element shield: only this element hits fully (0 none)
+	bool loot_raid_cleared;
+	gtime_t loot_raid_return_time;
+	gtime_t loot_raid_start_time;      // boss arrival, for the clear time
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
 	bool loot_novendor;			 // q2rpg: worldspawn loot_novendor 1, the shop won't open on this map
 	bool loot_nochests;			 // q2rpg: worldspawn loot_nochests 1, no random loot chests (spawn time only)

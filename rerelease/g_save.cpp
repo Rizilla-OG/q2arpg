@@ -874,6 +874,10 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_rift_return_origin), // q2rpg
 	FIELD_AUTO(loot_rift_return_angles), // q2rpg
 	FIELD_AUTO(loot_rift_return_pending), // q2rpg
+	FIELD_AUTO(loot_raid_active), // q2rpg
+	FIELD_AUTO(loot_raid_map), // q2rpg
+	FIELD_AUTO(loot_raid_used_mask), // q2rpg
+	FIELD_AUTO(loot_raid_cleared_cycle), // q2rpg
 
 	FIELD_AUTO(autosaved),
 	FIELD_AUTO(level_entries)
@@ -898,6 +902,17 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_rift_announced), // q2rpg
 	FIELD_AUTO(loot_rift_progress_shown), // q2rpg
 	FIELD_AUTO(loot_rift_guardian), // q2rpg
+	FIELD_AUTO(loot_raid_boss), // q2rpg
+	FIELD_AUTO(loot_raid_boss_count), // q2rpg
+	FIELD_AUTO(loot_raid_phase), // q2rpg
+	FIELD_AUTO(loot_raid_spawn_time), // q2rpg
+	FIELD_AUTO(loot_raid_next_wave), // q2rpg
+	FIELD_AUTO(loot_raid_next_shock), // q2rpg
+	FIELD_AUTO(loot_raid_shock_warned), // q2rpg
+	FIELD_AUTO(loot_raid_shield_element), // q2rpg
+	FIELD_AUTO(loot_raid_cleared), // q2rpg
+	FIELD_AUTO(loot_raid_return_time), // q2rpg
+	FIELD_AUTO(loot_raid_start_time), // q2rpg
 	FIELD_AUTO(loot_rift_guardian_count), // q2rpg
 	FIELD_AUTO(loot_rift_cleared), // q2rpg
 	FIELD_AUTO(loot_rift_return_time), // q2rpg

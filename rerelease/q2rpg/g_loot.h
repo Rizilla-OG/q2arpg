@@ -263,7 +263,25 @@ std::string Rift_VendorLine(edict_t *ent, bool &can_use);
 bool Rift_CanOpen(edict_t *ent);
 void Rift_Open(edict_t *ent);
 void Rift_Leave(edict_t *ent);
-void Rift_OnExitLevel();                                                                     // ExitLevel, before the gamemap command
+void Rift_OnExitLevel();                // ExitLevel, before the gamemap command
+void Rift_SaveReturnSpot(edict_t *ent); // shared with raids
+const char *Rift_ReturnChangemap();
+void Rift_CloseMenus();
+// raid (g_raid.cpp)
+bool Raid_InRaid();
+bool Raid_IsBoss(const edict_t *monster);
+float Raid_DamageMult(const edict_t *targ, loot_element_t hit_element);
+std::string Raid_VendorLine(edict_t *ent, bool &can_use);
+int32_t Raid_OpenPrice();
+bool Raid_CanOpen(edict_t *ent);
+void Raid_Open(edict_t *ent);
+void Raid_Leave(edict_t *ent);
+void Raid_CmdOpen(edict_t *ent); // dev: loot_raid
+void Raid_PlayerFrame(edict_t *ent);
+edict_t *Loot_SpawnAlpha(const vec3_t &origin, const vec3_t &angles, const char *classname); // g_loot.cpp
+void Loot_RaidDrops(const vec3_t &where);                                                    // g_loot.cpp
+loot_archetype_t Unique_RaidArch(int32_t index);                                             // g_unique.cpp
+void Unique_MakeRaid(loot_weapon_t &gun, int32_t index);
 void Rift_PlayerFrame(edict_t *ent);                                                         // Loot_SetStats
 vec3_t Loot_SpotAhead(edict_t *ent, float yaw, float distance, float pull_back);             // g_loot.cpp: spawn spot in front of a player
 edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char *classname); // g_loot.cpp; nullptr if it didn't fit

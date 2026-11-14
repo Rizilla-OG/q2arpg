@@ -303,6 +303,10 @@ enum loot_unique_t : uint8_t
 	LOOT_UNIQUE_SUPERNOVA,   // bfg: no tendrils, bigger blast, all three statuses
 
 	LOOT_UNIQUE_AVA, // pistol: memorial gun from the Lost Station duck; kills give a speed burst (Zoomies)
+	// q2rpg: raid uniques, only from the raid boss (g_raid.cpp)
+	LOOT_UNIQUE_KINGSLAYER, // rail: +50% damage to bosses and Alpha Omegas
+	LOOT_UNIQUE_BLOODMOON,  // smg: kills heal 5% max health
+	LOOT_UNIQUE_STORMHEART, // plasma: 15% of hits chain-shock nearby monsters
 
 	LOOT_UNIQUE_COUNT
 };
@@ -365,6 +369,7 @@ enum loot_mission_type_t : int32_t
 	LOOT_MISSION_TYPE_COUNT
 };
 constexpr int32_t LOOT_MISSION_OFFERS = 2;
+constexpr int32_t LOOT_RAID_UNIQUES = 3; // q2rpg: Kingslayer, Bloodmoon, Stormheart
 
 struct loot_mission_t
 {

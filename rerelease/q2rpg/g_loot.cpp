@@ -1694,6 +1694,7 @@ int32_t Loot_ModifyDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, 
 
 	// Close Quarters / Conductor
 	damage = (int32_t)ceilf(damage * Skill_OutgoingMult(attacker, targ));
+	damage = (int32_t)ceilf(damage * Raid_DamageMult(targ, gun->element)); // q2rpg: raid boss shield / last stand
 
 	// shock cuts through power armor
 	if (gun->element == LOOT_ELEM_SHOCK && targ->monsterinfo.power_armor_type != IT_NULL && targ->monsterinfo.power_armor_power > 0)
@@ -2604,6 +2605,8 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 // Coop rolls the whole drop once per player (instanced); otherwise one shared roll.
 void Loot_MonsterDrop(edict_t *monster)
 {
+	if (Raid_IsBoss(monster)) // q2rpg: the raid pays its own burst (Raid_Reward)
+		return;
 	if (!Loot_PerPlayerDrops())
 	{
 		Loot_MonsterDropRoll(monster);
@@ -2919,6 +2922,7 @@ static float Loot_EliteLevelMult()
 }
 
 static bool loot_force_omega; // set around CreateMonster by loot_spawnmonster
+static bool loot_force_alpha; // q2rpg: set around CreateMonster by Loot_SpawnAlpha (raid adds)
 
 // Called from monster_start before max_health is set; the stock code
 // right after scales the bounding box by s.scale.
@@ -2982,11 +2986,11 @@ void Loot_ScaleMonster(edict_t *monster)
 	// badass variant
 	vec3_t elite_origin;
 	const bool force_omega = loot_force_omega || monster->loot_map_elite >= 2; // loot_spawnmonster ... omega, or mapper loot_elite 2
-	if (!boss && !monster->s.scale && (force_omega || monster->loot_map_elite == 1 || frandom() < g_loot_elite_chance->value * Loot_EliteLevelMult() * NGPlus_EliteChanceMult() * Loot_MapMult(::level.loot_elite_mult)) &&
+	if (!boss && !monster->s.scale && (force_omega || loot_force_alpha || monster->loot_map_elite == 1 || frandom() < g_loot_elite_chance->value * Loot_EliteLevelMult() * NGPlus_EliteChanceMult() * Loot_MapMult(::level.loot_elite_mult)) &&
 	    Loot_EliteFits(monster, elite_origin))
 	{
 		// Alpha Omega: NG+ only, 15% of Alphas; +2 more levels, 3 traits, x5 health, guaranteed Legendary
-		const bool omega = force_omega || (game.loot_ngplus > 0 && frandom() < LOOT_OMEGA_CHANCE);
+		const bool omega = force_omega || (!loot_force_alpha && game.loot_ngplus > 0 && frandom() < LOOT_OMEGA_CHANCE);
 		level += Loot_MakeElite(monster, elite_origin, omega); // before monster_start scales mins/maxs
 	}
 
@@ -3718,6 +3722,7 @@ void Loot_SetStats(edict_t *ent)
 		return;
 
 	Rift_PlayerFrame(ent);
+	Raid_PlayerFrame(ent); // q2rpg
 
 	// mapper's worldspawn loot_start_level: lift players who come in below it
 	if (std::min(level.loot_start_level, Loot_LevelCap()) > cl->pers.loot_level && ent->health > 0) // capped, or it would heal every frame
@@ -4111,6 +4116,52 @@ edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char 
 		return nullptr;
 	}
 	return monster;
+}
+
+// q2rpg: an Alpha (never an Omega) for raid adds; nullptr if it didn't fit
+edict_t *Loot_SpawnAlpha(const vec3_t &origin, const vec3_t &angles, const char *classname)
+{
+	loot_force_alpha = true;
+	edict_t *monster = CreateMonster(origin, angles, classname);
+	loot_force_alpha = false;
+	if (!monster || !monster->inuse)
+		return nullptr;
+	return monster;
+}
+
+// q2rpg: raid reward burst: 2 Legendaries (30% one is Mythic), a relic and a class mod (Epic+),
+// 25% a raid unique, and a big cash pile. Shared drops, like rift rewards.
+void Loot_RaidDrops(const vec3_t &where)
+{
+	edict_t *source = G_Spawn();
+	source->s.origin = where + vec3_t{0, 0, 24};
+	gi.linkentity(source);
+	loot_drop_owner = nullptr;
+
+	const int32_t level = Loot_ZoneLevel();
+	const float luck = 2.0f + Loot_ZoneLuck() + NGPlus_LuckBonus() + Relic_LuckBonus(nullptr);
+	const int32_t mythic_index = frandom() < 0.3f ? irandom(2) : -1;
+	for (int32_t i = 0; i < 2; i++)
+	{
+		loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(LOOT_ARCH_COUNT), i == mythic_index ? LOOT_RARITY_MYTHIC : LOOT_RARITY_LEGENDARY, (uint32_t)mt_rand());
+		Loot_SetLevel(gun, level);
+		Loot_SpawnDrop(source, gun, false);
+	}
+	const loot_rarity_t gear_rarity = std::max(LOOT_RARITY_EPIC, Loot_RollRarity(luck));
+	Relic_SpawnDrop(source, Relic_Roll(gear_rarity, level, (uint32_t)mt_rand()), false);
+	ClassMod_SpawnDrop(source, ClassMod_Roll(std::max(LOOT_RARITY_EPIC, Loot_RollRarity(luck)), level, (uint32_t)mt_rand(), ClassMod_DropTree(nullptr)), false);
+
+	if (frandom() < 0.25f)
+	{
+		const int32_t unique_index = irandom(LOOT_RAID_UNIQUES);
+		loot_weapon_t gun = Loot_Roll(Unique_RaidArch(unique_index), LOOT_RARITY_LEGENDARY, (uint32_t)mt_rand());
+		Unique_MakeRaid(gun, unique_index);
+		Loot_SetLevel(gun, level);
+		Loot_SpawnDrop(source, gun, false);
+	}
+
+	Vendor_SpawnCashPile(source, (50.f + 20.f * level) * 20.f * NGPlus_CashMult(), nullptr);
+	G_FreeEdict(source);
 }
 
 // Rift reward: `count` drops tossed from `where`; the first is Legendary (Mythic 20% + 2%/tier).
@@ -4517,6 +4568,12 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 			Loot_SetLevel(gun, std::max(1, ent->client->pers.loot_level));
 			Loot_SpawnDrop(ent, gun, true);
 		}
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_raid"))
+	{
+		if (Loot_CheatCheck(ent))
+			Raid_CmdOpen(ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_prof"))

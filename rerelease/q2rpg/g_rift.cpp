@@ -110,7 +110,7 @@ std::string Rift_VendorLine(edict_t *ent, bool &can_use)
 }
 
 // "map$spot" back to where the rift was opened
-static const char *Rift_ReturnChangemap()
+const char *Rift_ReturnChangemap()
 {
 	static char changemap[MAX_QPATH * 2];
 	if (game.loot_rift_return_spot[0])
@@ -120,7 +120,7 @@ static const char *Rift_ReturnChangemap()
 	return changemap;
 }
 
-static void Rift_CloseMenus()
+void Rift_CloseMenus()
 {
 	for (auto player : active_players())
 	{
@@ -144,7 +144,7 @@ void Rift_Leave(edict_t *ent)
 // Returns false when no rift can open (the vendor then charges nothing).
 bool Rift_CanOpen(edict_t *ent)
 {
-	if (deathmatch->integer || Rift_InRift() || level.intermissiontime || ent->health <= 0 || ent->client->pers.loot_level < RIFT_MIN_LEVEL)
+	if (deathmatch->integer || Rift_InRift() || Raid_InRaid() || level.intermissiontime || ent->health <= 0 || ent->client->pers.loot_level < RIFT_MIN_LEVEL)
 		return false;
 	for (int32_t i = 0; i < RIFT_MAP_COUNT; i++)
 		if (!(game.loot_rift_used_mask & (1u << i)))
@@ -165,7 +165,21 @@ void Rift_Open(edict_t *ent)
 		return;
 	const int32_t pick = free_maps[irandom(free_count)];
 
-	// remember where to come back to: this map, a start spot that exists here, and the exact position
+	Rift_SaveReturnSpot(ent);
+	game.loot_rift_tier = Rift_Tier();
+	game.loot_rift_active = true;
+	game.loot_rift_used_mask |= 1u << pick;
+	Q_strlcpy(game.loot_rift_map, rift_maps[pick], sizeof(game.loot_rift_map));
+
+	Loot_LogEvent(ent, G_Fmt("RIFT open  tier {}  {}", game.loot_rift_tier, game.loot_rift_map).data());
+	Rift_CloseMenus();
+	BeginIntermission(CreateTargetChangeLevel(game.loot_rift_map));
+}
+
+// q2rpg: remember where to come back to (rifts and raids): this map, a start spot that exists
+// here, and the exact position
+void Rift_SaveReturnSpot(edict_t *ent)
+{
 	Q_strlcpy(game.loot_rift_return_map, level.mapname, sizeof(game.loot_rift_return_map));
 	game.loot_rift_return_spot[0] = '\0';
 	bool plain_start = false;
@@ -183,15 +197,6 @@ void Rift_Open(edict_t *ent)
 		game.loot_rift_return_spot[0] = '\0';
 	game.loot_rift_return_origin = ent->s.origin;
 	game.loot_rift_return_angles = ent->client->v_angle;
-
-	game.loot_rift_tier = Rift_Tier();
-	game.loot_rift_active = true;
-	game.loot_rift_used_mask |= 1u << pick;
-	Q_strlcpy(game.loot_rift_map, rift_maps[pick], sizeof(game.loot_rift_map));
-
-	Loot_LogEvent(ent, G_Fmt("RIFT open  tier {}  {}", game.loot_rift_tier, game.loot_rift_map).data());
-	Rift_CloseMenus();
-	BeginIntermission(CreateTargetChangeLevel(game.loot_rift_map));
 }
 
 //==========================================================================
@@ -205,9 +210,10 @@ void Rift_OnExitLevel()
 	if (deathmatch->integer || !level.changemap)
 		return;
 
-	if (Rift_InRift())
+	if (Rift_InRift() || Raid_InRaid()) // q2rpg: raids go home the same way
 	{
 		game.loot_rift_active = false;
+		game.loot_raid_active = false;
 		game.loot_rift_return_pending = true;
 		level.changemap = Rift_ReturnChangemap();
 		// the rift map's own exit may clear inventory or end its unit: never on the way home
@@ -217,7 +223,10 @@ void Rift_OnExitLevel()
 	}
 
 	if (level.changemap[0] == '*' || strstr(level.changemap, "+*"))
+	{
 		game.loot_rift_used_mask = 0;
+		game.loot_raid_used_mask = 0;
+	}
 }
 
 //==========================================================================
