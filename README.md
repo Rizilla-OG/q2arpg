@@ -8,7 +8,7 @@ A looter-boomer-shooter mod for the Quake II rerelease (2023). Every gun is roll
 with a rarity, a maker, parts and sometimes an element. Level up, pick a skill
 tree, shop at vendors, chase challenges, and replay the campaign in New Game+.
 
-**Version 0.9.5 (public alpha).** The version is shown in the console when
+**Version 0.9.666 (public alpha).** The version is shown in the console when
 the mod loads. See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
 Download the latest release: https://github.com/Rizilla-OG/q2arpg/releases
 
@@ -74,12 +74,12 @@ The mod sets these binds in `q2rpg/autoexec.cfg`:
 | `X` | Sell the loot you're standing on, else your active gun (press twice) |
 | `B` | Send the loot you're standing on to your stash, else open your stash (free) |
 | `L` | Loot filter: hide low-rarity monster drops (press to cycle: off, Common, Uncommon and below, Rare and below) |
-| `L` | Loot filter: hide Common, Uncommon, or Rare-and-below monster drops (press to cycle) |
 | `V` | Vendor (first visit per map is free) |
 | `K` | Skills (press again for the NG+ tier-4 page) |
 | `J` | Challenges |
 | `F` | Action skill |
 | `Q` | Throw grenade |
+| `Z` | Melee strike |
 | `R` | Reload |
 | Hold right mouse | Zoom |
 | `1`–`9` | Weapon slots; pick skills / shop items while a screen is open |
@@ -91,7 +91,15 @@ Controller binds exist for split-screen but are **beta**.
 - **Guns** drop from monsters in six rarities: Common, Uncommon (green),
   Rare (blue), Epic (purple), Legendary (gold) and, in NG+ only, Mythic.
   Floor loot shows a colored beam for its rarity. Walk over a gun to see
-  its card and compare it with yours.
+  its card and compare it with yours. Pistols are semi-auto: each maker has
+  its own click speed.
+- **Loot chests:** every map hides one or two white chests and sometimes a
+  red one. Walk into a chest to open it.
+- **Weapon proficiency:** kills with a gun type level it up to 15, for a
+  little more accuracy, reload speed and crit damage with that type
+  (`loot_prof` in the console lists them).
+- **Melee** (`Z`): a quick strike that grows with your level; your gun's
+  stock part and the Juggernaut tree make it hit harder.
 - **Elements:** fire burns, shock staggers and cuts power armor, corrosive
   melts and makes targets take more damage, cryo slows and then freezes
   (frozen kills shatter), explosive procs set off a blast. Afflicted
@@ -103,6 +111,9 @@ Controller binds exist for split-screen but are **beta**.
 - **Shields** absorb damage and recharge; some have special effects.
 - **Class mods** add bonus ranks to up to 3 skills of one tree, even past
   a skill's max.
+- **Relics** are a fifth gear piece with one passive effect for any tree:
+  element boosts, more cash and luck, ammo regen, life steal or grenade
+  damage.
 - **Grenade mods** change what `Q` throws (Frag, Cluster, Sticky, Vortex,
   Leech, Hopper, Airburst). Hand grenades are the ammo. Legendary mods get a
   twist, and each skill tree boosts grenades its own way.
@@ -122,9 +133,17 @@ Controller binds exist for split-screen but are **beta**.
   better loot, Mythic gear, Alpha traits, map modifiers, a level cap of 60
   and a fourth skill row. Each map rolls a modifier, shown when you enter;
   reloading keeps it.
+- **Side missions** (the vendor's Missions page, `9` past the stash): two
+  per map, such as killing a monster kind, Alphas, headshots or a spree.
+  They pay XP, cash and gear.
+- **Arena** (level 15, workshop item 6): up to 15 waves of monsters in an
+  arena, with cash every wave and gear every third. Leave any time.
 - **Rifts** (level 60, workshop item 4): a random Quake 64 map at your rift
   tier. Kill 70% of it to summon a guardian; beat it for a loot burst and
   the next tier. You return right where you left.
+- **Raid** (level 60, workshop item 5): fight the Hollow King, a three-phase
+  raid boss with its own loot and three raid-only uniques. One clear per
+  New Game+ cycle.
 
 ### Co-op
 
@@ -197,7 +216,7 @@ Q2ARPG works with custom maps and campaigns: put your `.bsp` files in the
 `q2rpg/maps/` folder and loot, XP, cash, elites, challenges and map modifiers
 apply automatically. Mappers can also tag monsters as Alphas, Omegas or
 bosses (with their own signature guns), place guns, shields and grenade mods,
-drop loot from triggers, tune each map (monster levels, drop rate, Alpha
+drop loot from triggers, place loot chests, tune each map (monster levels, drop rate, Alpha
 chance, a forced modifier, a starting level), turn off the vendor or
 modifiers, and end a custom campaign into New Game+. The zip includes a
 TrenchBroom game config with all of it, and an example map (`map q2rpg_example`)

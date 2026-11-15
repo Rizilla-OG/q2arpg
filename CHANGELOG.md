@@ -2,6 +2,8 @@
 
 ## Unreleased (next update)
 
+## 0.9.666
+
 - Fixed: reloading an SMG, Minigun or Plasma Caster while holding the trigger no longer keeps it firing through the reload.
 - Fixes from a code review of the new features: a side mission waits during a trip to a rift, raid or arena (kills there don't count); missions that can't be finished any more (too few of those monsters left, chest opened, no Alphas) say "too few left" and can't be taken, and an active one that gets stuck says so; a Spree that ran out of time shows 0 again; arena monsters that get stuck are moved back into the fight after 45 s so the wave can end; raid adds are always Alphas; the raid boss no longer counts as an Omega kill; a finished side mission stays done when you come back to its map; the raid boss's element shield and last stand cover melee, grenades and status damage too, and the boss no longer starts at Alpha speed; arena waves can't clear without monsters or get stuck, and in coop every player gets their own wave rewards; the ending-video reload only fires on the New Game+ start map right after the video; a very full loadout screen leaves rows out instead of breaking; the last stash page's 9 key now says it goes to Missions.
 - New: the **arena**, a horde mode from level 15. Item 6 on the vendor's Workshop page sends you to an arena for up to 15 waves that grow bigger and tougher, with an Alpha Omega every 5th wave. Every cleared wave drops cash and every 3rd wave drops gear (Rare and up, better from wave 9 and 15). Leave any time with item 6 and keep your loot; dying sends you back to wave 1. Monsters there drop half as much loot.
