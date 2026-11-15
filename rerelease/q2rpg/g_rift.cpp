@@ -144,7 +144,7 @@ void Rift_Leave(edict_t *ent)
 // Returns false when no rift can open (the vendor then charges nothing).
 bool Rift_CanOpen(edict_t *ent)
 {
-	if (deathmatch->integer || Rift_InRift() || Raid_InRaid() || Arena_InArena() || level.intermissiontime || ent->health <= 0 || ent->client->pers.loot_level < RIFT_MIN_LEVEL)
+	if (deathmatch->integer || Loot_OnSideTrip() || level.intermissiontime || ent->health <= 0 || ent->client->pers.loot_level < RIFT_MIN_LEVEL)
 		return false;
 	for (int32_t i = 0; i < RIFT_MAP_COUNT; i++)
 		if (!(game.loot_rift_used_mask & (1u << i)))
@@ -210,7 +210,7 @@ void Rift_OnExitLevel()
 	if (deathmatch->integer || !level.changemap)
 		return;
 
-	if (Rift_InRift() || Raid_InRaid() || Arena_InArena()) // q2rpg: raids and the arena go home the same way
+	if (Loot_OnSideTrip()) // q2rpg: raids and the arena go home the same way
 	{
 		game.loot_rift_active = false;
 		game.loot_raid_active = false;

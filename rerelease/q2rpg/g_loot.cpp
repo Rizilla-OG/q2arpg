@@ -2849,7 +2849,7 @@ bool Loot_IsBossTier(const edict_t *monster)
 // Death spawns: a dying monster may bring 1-3 more of its kind
 // Frees a monster that was just spawned but can't stay (no room, not the elite we wanted).
 // monster_start already counted it; take it back out so the kill count can still reach the total.
-static void Loot_DiscardSpawnedMonster(edict_t *monster)
+void Loot_DiscardSpawnedMonster(edict_t *monster)
 {
 	if (!(monster->monsterinfo.aiflags & AI_DO_NOT_COUNT) && level.total_monsters > 0)
 		level.total_monsters--;
@@ -3152,7 +3152,9 @@ void Loot_AwardXP(edict_t *monster, edict_t *attacker)
 	const int32_t mlevel = std::max(1, monster->loot_mlevel);
 	// stock health, +8% per monster level (not the 12% health scaling, so XP doesn't snowball)
 	float xp_scale = 1.0f + 0.08f * (mlevel - 1);
-	if (monster->loot_elite || Raid_IsBoss(monster)) // q2rpg: the raid boss pays like an Omega without being an Alpha
+	if (Raid_IsBoss(monster)) // q2rpg: the raid boss pays like an Omega without being one
+		xp_scale *= 4.f;
+	else if (monster->loot_elite)
 		xp_scale *= monster->loot_omega ? 4.f : 2.5f;
 	xp_scale *= 1 + game.loot_ngplus; // NG+: early maps' weak monsters still level a high character
 	xp_scale *= NGPlus_XPMult();      // Bloodthirsty
@@ -3568,21 +3570,27 @@ static void Loot_SetHudString(edict_t *ent, int32_t cs, char *cache, size_t cach
 }
 
 // "monster_soldier_light" -> "Soldier Light"
-static void Loot_MonsterName(const edict_t *mon, char (&out)[32])
+void Loot_ClassDisplayName(const char *classname, char *out, size_t out_size)
 {
-	const char *src = mon->classname ? mon->classname : "";
+	const char *src = classname ? classname : "";
 	if (!strncmp(src, "monster_", 8))
 		src += 8;
 
 	size_t n = 0;
 	bool upper = true;
-	for (; *src && n < sizeof(out) - 1; src++)
+	for (; *src && n + 1 < out_size; src++)
 	{
 		char c = *src == '_' ? ' ' : *src;
 		out[n++] = upper ? (char)toupper((unsigned char)c) : c;
 		upper = c == ' ';
 	}
-	out[n] = '\0';
+	if (out_size)
+		out[n] = '\0';
+}
+
+static void Loot_MonsterName(const edict_t *mon, char (&out)[32])
+{
+	Loot_ClassDisplayName(mon->classname, out, sizeof(out));
 }
 
 static void Loot_TargetLine(edict_t *ent, char (&line)[48])
@@ -3619,8 +3627,8 @@ static void Loot_TargetLine(edict_t *ent, char (&line)[48])
 
 	char traits[24];
 	NGPlus_TraitNames(t, traits);
-	G_FmtTo(line, "Lv {} {}{}{}{}", std::max(1, t->loot_mlevel), t->loot_omega ? "^oOmega^w " : t->loot_elite ? "Alpha "
-	                                                                                                          : "",
+	G_FmtTo(line, "Lv {} {}{}{}{}", std::max(1, t->loot_mlevel), (t->loot_omega || t->loot_hud_omega) ? "^oOmega^w " : t->loot_elite ? "Alpha "
+	                                                                                                                                 : "",
 	        traits, name, status);
 }
 
@@ -3728,7 +3736,7 @@ static void Loot_ShieldFrame(edict_t *ent)
 
 static bool Loot_BarValid(const edict_t *t)
 {
-	return t && t->inuse && (t->svflags & SVF_MONSTER) && !(t->monsterinfo.aiflags & AI_GOOD_GUY) && t->health > 0 && !t->deadflag;
+	return Loot_IsLiveMonster(t);
 }
 
 // Packs the overhead health bar target into stats for cg_loot.cpp.
@@ -3759,7 +3767,7 @@ static void Loot_SetBarStats(edict_t *ent)
 
 	const float frac = std::clamp((float)t->health / std::max(1, t->max_health), 0.f, 1.f);
 	// bits: 15 bar shown, 14 Omega, 8-13 health 0-63, 7 Alpha, 0-6 level
-	const uint16_t info = 0x8000 | (t->loot_omega ? 0x4000 : 0) | ((uint16_t)(frac * 63.f) << 8) | (t->loot_elite ? 0x80 : 0) | (uint16_t)std::clamp(t->loot_mlevel, 1, 127);
+	const uint16_t info = 0x8000 | ((t->loot_omega || t->loot_hud_omega) ? 0x4000 : 0) | ((uint16_t)(frac * 63.f) << 8) | (t->loot_elite ? 0x80 : 0) | (uint16_t)std::clamp(t->loot_mlevel, 1, 127);
 	cl->ps.stats[STAT_LOOT_BAR_INFO] = (int16_t)info;
 }
 
@@ -4169,6 +4177,18 @@ edict_t *Loot_SpawnOmega(const vec3_t &origin, const vec3_t &angles, const char 
 	return monster;
 }
 
+// q2rpg: a monster that's alive and in play
+bool Loot_IsLiveMonster(const edict_t *e)
+{
+	return e && e->inuse && (e->svflags & SVF_MONSTER) && e->health > 0 && !e->deadflag && !(e->monsterinfo.aiflags & AI_GOOD_GUY);
+}
+
+// q2rpg: on a rift, raid or arena trip (missions wait, no trip opens inside another)
+bool Loot_OnSideTrip()
+{
+	return Rift_InRift() || Raid_InRaid() || Arena_InArena();
+}
+
 // q2rpg: first living player (rifts, raids and the arena run their level logic on them once per frame)
 edict_t *Loot_FirstLivePlayer()
 {
@@ -4193,6 +4213,11 @@ edict_t *Loot_SpawnAlpha(const vec3_t &origin, const vec3_t &angles, const char 
 	loot_force_alpha = false;
 	if (!monster || !monster->inuse)
 		return nullptr;
+	if (!monster->loot_elite) // the Alpha box didn't fit: no plain stand-in
+	{
+		Loot_DiscardSpawnedMonster(monster);
+		return nullptr;
+	}
 	return monster;
 }
 

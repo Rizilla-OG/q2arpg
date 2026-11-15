@@ -489,7 +489,7 @@ void M_SetEffects(edict_t *ent)
 		ent->s.renderfx |= (renderfx_t)ent->loot_status.shell;
 	}
 	// q2rpg: Alpha Omega pulses gold (on 0.5s / off 0.5s) unless a status glow shows
-	else if (ent->loot_omega && ent->health > 0 && (level.time.milliseconds() / 500) % 2 == 0)
+	else if ((ent->loot_omega || ent->loot_hud_omega) && ent->health > 0 && (level.time.milliseconds() / 500) % 2 == 0)
 	{
 		ent->s.effects |= EF_COLOR_SHELL;
 		ent->s.renderfx |= RF_SHELL_RED | RF_SHELL_GREEN;

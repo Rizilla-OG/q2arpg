@@ -283,6 +283,9 @@ extern const char *const raid_maps[];
 extern const int32_t RAID_MAP_COUNT;
 // arena waves (g_arena.cpp)
 bool Arena_InArena();
+bool Arena_TripPossible(edict_t *ent); // g_raid.cpp: shared by raid and arena
+void Arena_TravelTo(edict_t *ent, bool &active, char (&map_name)[MAX_QPATH], const char *log_tag);
+void Arena_TravelHome(edict_t *ent, const std::string &log_line);
 std::string Arena_VendorLine(edict_t *ent, bool &can_use);
 int32_t Arena_OpenPrice(edict_t *ent);
 bool Arena_CanOpen(edict_t *ent);
@@ -294,6 +297,10 @@ void Arena_PlayerFrame(edict_t *ent);
 void Melee_Cmd(edict_t *ent);
 int32_t Melee_ModifyDamage(edict_t *targ, const vec3_t &point, int32_t damage, bool &crit);
 void Raid_PlayerFrame(edict_t *ent);
+void Loot_ClassDisplayName(const char *classname, char *out, size_t out_size); // "monster_soldier_light" -> "Soldier Light"
+bool Loot_IsLiveMonster(const edict_t *e);
+bool Loot_OnSideTrip();                                                                      // g_loot.cpp: in a rift, raid or arena
+void Loot_DiscardSpawnedMonster(edict_t *monster);                                           // g_loot.cpp: free it and fix the monster count       // g_loot.cpp: alive and in play
 edict_t *Loot_FirstLivePlayer();                                                             // g_loot.cpp: nullptr when everyone is dead
 void Loot_BannerAll(const std::string &text);                                                // g_loot.cpp: centerprint to every player
 edict_t *Loot_SpawnAlpha(const vec3_t &origin, const vec3_t &angles, const char *classname); // g_loot.cpp

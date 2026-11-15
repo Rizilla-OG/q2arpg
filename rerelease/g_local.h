@@ -1241,6 +1241,9 @@ struct level_locals_t
 	gtime_t loot_arena_break_end;      // next wave starts at this time (0 = wave running)
 	bool loot_arena_done;              // all waves cleared
 	gtime_t loot_arena_return_time;
+	int32_t loot_arena_last_live;      // live monsters last frame, to spot a stalled wave
+	int32_t loot_arena_last_health;    // their total health last frame (damage is progress)
+	gtime_t loot_arena_progress_time;  // last time a monster spawned or died
 	int32_t loot_map_mod;		 // q2rpg: loot_map_mod_t rolled for this map in NG+
 	bool loot_novendor;			 // q2rpg: worldspawn loot_novendor 1, the shop won't open on this map
 	bool loot_nochests;			 // q2rpg: worldspawn loot_nochests 1, no random loot chests (spawn time only)
@@ -3383,6 +3386,7 @@ struct edict_t
 	loot_weapon_t loot_shot_gun; // q2rpg: copy of the gun that fired this projectile (element / crit on hit)
 	bool loot_elite;			// q2rpg: badass variant
 	bool loot_omega;			// q2rpg: NG+ Alpha Omega (also loot_elite)
+	bool loot_hud_omega;		// q2rpg: show the Omega tag and red bar without being one (raid boss)
 	int32_t loot_map_elite;		// q2rpg: mapper key loot_elite: 1 Alpha, 2 Omega
 	int32_t loot_map_boss;		// q2rpg: mapper key loot_boss: 1 mini-boss, 2 unit boss
 	int32_t loot_map_nodrop;	// q2rpg: mapper key loot_nodrop 1: no XP, cash, loot or challenge credit

@@ -17,6 +17,7 @@
 const char *const raid_maps[] = {"q2dm1", "q2dm2", "q2dm4", // q2dm3 dropped: lava arena
                                  "q2dm5", "q2dm6", "q2dm7", "q2dm8"};
 const int32_t RAID_MAP_COUNT = (int32_t)q_countof(raid_maps);
+static_assert(q_countof(raid_maps) <= 32, "arena used mask and free_maps are 32 wide");
 
 constexpr int32_t RAID_MIN_LEVEL = LOOT_MAX_LEVEL + LOOT_NGPLUS_LEVEL_CAP_BONUS; // 60
 constexpr int32_t RAID_PRICE = 25000;
@@ -100,21 +101,26 @@ int32_t Raid_OpenPrice()
 	return RAID_PRICE;
 }
 
-bool Raid_CanOpen(edict_t *ent)
+//==========================================================================
+// Arena maps, shared by the raid and the arena waves (g_arena.cpp)
+//==========================================================================
+
+// no rift / raid / arena already running, and an unused arena map this unit
+bool Arena_TripPossible(edict_t *ent)
 {
-	if (deathmatch->integer || Raid_InRaid() || Rift_InRift() || Arena_InArena() || level.intermissiontime || ent->health <= 0 ||
-	    ent->client->pers.loot_level < RAID_MIN_LEVEL || Raid_ClearedThisCycle())
+	if (deathmatch->integer || Loot_OnSideTrip() || level.intermissiontime || ent->health <= 0)
 		return false;
 	for (int32_t i = 0; i < RAID_MAP_COUNT; i++)
 		if (!(game.loot_raid_used_mask & (1u << i)))
 			return true;
-	gi.Center_Print(ent, "No raid arenas left in this unit.\nFinish the unit to reopen them.");
+	gi.Center_Print(ent, "No arenas left in this unit.\nFinish the unit to reopen them.");
 	return false;
 }
 
-void Raid_Open(edict_t *ent)
+// pick an unused arena map, remember the way home, and go; active / map_name are the trip's game state
+void Arena_TravelTo(edict_t *ent, bool &active, char (&map_name)[MAX_QPATH], const char *log_tag)
 {
-	int32_t free_maps[RAID_MAP_COUNT];
+	int32_t free_maps[32];
 	int32_t free_count = 0;
 	for (int32_t i = 0; i < RAID_MAP_COUNT; i++)
 		if (!(game.loot_raid_used_mask & (1u << i)))
@@ -124,13 +130,33 @@ void Raid_Open(edict_t *ent)
 	const int32_t pick = free_maps[irandom(free_count)];
 
 	Rift_SaveReturnSpot(ent);
-	game.loot_raid_active = true;
+	active = true;
 	game.loot_raid_used_mask |= 1u << pick;
-	Q_strlcpy(game.loot_raid_map, raid_maps[pick], sizeof(game.loot_raid_map));
+	Q_strlcpy(map_name, raid_maps[pick], sizeof(map_name));
 
-	Loot_LogEvent(ent, G_Fmt("RAID open  {}", game.loot_raid_map).data());
+	Loot_LogEvent(ent, G_Fmt("{} open  {}", log_tag, map_name).data());
 	Rift_CloseMenus();
-	BeginIntermission(CreateTargetChangeLevel(game.loot_raid_map));
+	BeginIntermission(CreateTargetChangeLevel(map_name));
+}
+
+// back to where the trip started (Rift_OnExitLevel clears the trip state)
+void Arena_TravelHome(edict_t *ent, const std::string &log_line)
+{
+	Loot_LogEvent(ent, log_line);
+	Rift_CloseMenus();
+	BeginIntermission(CreateTargetChangeLevel(Rift_ReturnChangemap()));
+}
+
+bool Raid_CanOpen(edict_t *ent)
+{
+	if (ent->client->pers.loot_level < RAID_MIN_LEVEL || Raid_ClearedThisCycle())
+		return false;
+	return Arena_TripPossible(ent);
+}
+
+void Raid_Open(edict_t *ent)
+{
+	Arena_TravelTo(ent, game.loot_raid_active, game.loot_raid_map, "RAID");
 }
 
 // dev: loot_raid opens a raid now, skipping the level, price and once-per-cycle checks
@@ -148,9 +174,7 @@ void Raid_Leave(edict_t *ent)
 {
 	if (!Raid_InRaid() || level.intermissiontime)
 		return;
-	Loot_LogEvent(ent, G_Fmt("RAID left{}", level.loot_raid_cleared ? "  (cleared)" : "").data());
-	Rift_CloseMenus();
-	BeginIntermission(CreateTargetChangeLevel(Rift_ReturnChangemap()));
+	Arena_TravelHome(ent, G_Fmt("RAID left{}", level.loot_raid_cleared ? "  (cleared)" : "").data());
 }
 
 //==========================================================================
@@ -205,7 +229,7 @@ static void Raid_SpawnBoss()
 	const float health_mult = RAID_HEALTH_MULT * (1.f + RAID_COOP_HEALTH_PER_PLAYER * std::max(0, players - 1));
 	boss->health = std::max(1, (int32_t)(boss->health * health_mult));
 	boss->max_health = boss->health;
-	boss->loot_omega = true; // red health bar and Omega tag; not loot_elite, so no Alpha speed and no Alpha credit
+	boss->loot_hud_omega = true; // red bar and Omega tag only: not an Alpha or Omega for speed, drops or credit
 
 	level.loot_raid_boss = boss;
 	level.loot_raid_boss_count = boss->spawn_count;
@@ -225,7 +249,7 @@ int32_t Raid_LiveAdds()
 	for (uint32_t i = game.maxclients + 1; i < globals.num_edicts; i++)
 	{
 		const edict_t *e = &g_edicts[i];
-		if (e->inuse && (e->svflags & SVF_MONSTER) && e->health > 0 && !e->deadflag && e != level.loot_raid_boss)
+		if (Loot_IsLiveMonster(e) && e != level.loot_raid_boss)
 			adds++;
 	}
 	return adds;
@@ -236,11 +260,16 @@ static void Raid_SpawnAdds(int32_t count)
 	edict_t *target = Loot_FirstLivePlayer();
 	for (int32_t i = 0; i < count && Raid_LiveAdds() < RAID_MAX_ADDS; i++)
 	{
-		const char *classname = raid_add_classes[irandom((int32_t)q_countof(raid_add_classes))];
-		vec3_t spot;
-		if (!Raid_FindSpot({-24, -24, -24}, {24, 24, 40}, false, spot))
-			return;
-		edict_t *add = Loot_SpawnAlpha(spot, {0, frandom(360.f), 0}, classname);
+		// a few tries per add: Alphas are scaled up, so a spot or kind that doesn't fit gets another go
+		edict_t *add = nullptr;
+		for (int32_t attempt = 0; attempt < 4 && !add; attempt++)
+		{
+			const char *classname = raid_add_classes[irandom((int32_t)q_countof(raid_add_classes))];
+			vec3_t spot;
+			const bool big_box = attempt < 2; // Alpha-sized first, then a regular box on tight maps
+			if (Raid_FindSpot(big_box ? vec3_t{-40, -40, -24} : vec3_t{-24, -24, -24}, big_box ? vec3_t{40, 40, 72} : vec3_t{24, 24, 40}, false, spot))
+				add = Loot_SpawnAlpha(spot, {0, frandom(360.f), 0}, classname);
+		}
 		if (!add)
 			continue;
 		SpawnGrow_Spawn(add->s.origin, 24.f, 64.f);

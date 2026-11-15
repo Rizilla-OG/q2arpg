@@ -923,6 +923,9 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_arena_break_end), // q2rpg
 	FIELD_AUTO(loot_arena_done), // q2rpg
 	FIELD_AUTO(loot_arena_return_time), // q2rpg
+	FIELD_AUTO(loot_arena_last_live), // q2rpg
+	FIELD_AUTO(loot_arena_last_health), // q2rpg
+	FIELD_AUTO(loot_arena_progress_time), // q2rpg
 	FIELD_AUTO(loot_rift_guardian_count), // q2rpg
 	FIELD_AUTO(loot_rift_cleared), // q2rpg
 	FIELD_AUTO(loot_rift_return_time), // q2rpg
@@ -1381,6 +1384,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_shot_gun), // q2rpg
 	FIELD_AUTO(loot_elite), // q2rpg
 	FIELD_AUTO(loot_omega), // q2rpg
+	FIELD_AUTO(loot_hud_omega), // q2rpg
 	FIELD_AUTO(loot_map_elite), // q2rpg
 	FIELD_AUTO(loot_map_boss), // q2rpg
 	FIELD_AUTO(loot_map_nodrop), // q2rpg

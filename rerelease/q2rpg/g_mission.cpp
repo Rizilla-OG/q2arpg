@@ -19,21 +19,10 @@ static const float mission_xp_share[] = {0.10f, 0.15f, 0.22f}; // of the XP to t
 static const float mission_cash_mult[] = {1.0f, 1.5f, 2.2f};
 static const loot_rarity_t mission_min_rarity[] = {LOOT_RARITY_UNCOMMON, LOOT_RARITY_RARE, LOOT_RARITY_EPIC};
 
-// "monster_soldier_light" -> "Soldier Light"
-static void Mission_MonsterName(const char *classname, char (&out)[24])
+// a monster whose kill counts for missions: alive, and pays on death (no mapper loot_nodrop, not medic-revived)
+static bool Mission_CountsAsTarget(const edict_t *e)
 {
-	const char *src = classname;
-	if (!strncmp(src, "monster_", 8))
-		src += 8;
-	size_t n = 0;
-	bool upper = true;
-	for (; *src && n < sizeof(out) - 1; src++)
-	{
-		const char c = *src == '_' ? ' ' : *src;
-		out[n++] = upper ? (char)toupper((unsigned char)c) : c;
-		upper = c == ' ';
-	}
-	out[n] = '\0';
+	return Loot_IsLiveMonster(e) && !e->loot_map_nodrop && !e->loot_revived;
 }
 
 //==========================================================================
@@ -53,7 +42,7 @@ void Mission_MapSpawn()
 	for (uint32_t i = game.maxclients + 1; i < globals.num_edicts; i++)
 	{
 		const edict_t *e = &g_edicts[i];
-		if (!e->inuse || !(e->svflags & SVF_MONSTER) || e->health <= 0 || !e->classname || Loot_IsBossTier(e))
+		if (!Mission_CountsAsTarget(e) || !e->classname || Loot_IsBossTier(e))
 			continue;
 		bool found = false;
 		for (auto &kind : kinds)
@@ -73,7 +62,7 @@ void Mission_MapSpawn()
 	std::vector<loot_mission_type_t> types;
 	if (!kinds.empty())
 		types.push_back(LOOT_MISSION_KILL_KIND);
-	if (level.total_monsters >= MISSION_ALPHA_MIN_MONSTERS)
+	if (level.total_monsters >= MISSION_ALPHA_MIN_MONSTERS) // from the seeded count only, so offers stay the same after a restart
 		types.push_back(LOOT_MISSION_ALPHAS);
 	types.push_back(LOOT_MISSION_HEADSHOTS);
 	types.push_back(LOOT_MISSION_ELEMENT);
@@ -96,10 +85,10 @@ void Mission_MapSpawn()
 			case LOOT_MISSION_KILL_KIND:
 			{
 				const auto &kind = kinds[rng() % kinds.size()];
-				offer.goal = std::clamp((int32_t)(kind.second * 0.6f), 4, 12);
+				offer.goal = std::clamp((int32_t)(kind.second * 0.6f), 3, 12); // 4+ on the map, so some can die first
 				offer.difficulty = 0;
 				Q_strlcpy(offer.monster_class, kind.first, sizeof(offer.monster_class));
-				Mission_MonsterName(kind.first, offer.short_label);
+				Loot_ClassDisplayName(kind.first, offer.short_label, sizeof(offer.short_label));
 				G_FmtTo(offer.label, "Kill {} {}", offer.goal, offer.short_label);
 				break;
 			}
@@ -144,14 +133,18 @@ void Mission_MapSpawn()
 // Player state
 //==========================================================================
 
-// mission state belongs to one map; entering another drops it
-static void Mission_CheckMap(edict_t *ent)
+// Mission state belongs to one map; entering another drops it. Rifts, raids and the arena are
+// side trips: the mission waits for the way back. Returns true when the state is this map's.
+static bool Mission_CheckMap(edict_t *ent)
 {
 	client_persistant_t &pers = ent->client->pers;
 	if (!Q_strcasecmp(pers.loot_mission_map, level.mapname))
-		return;
+		return true;
+	if (Loot_OnSideTrip())
+		return false;
 	Q_strlcpy(pers.loot_mission_map, level.mapname, sizeof(pers.loot_mission_map));
 	pers.loot_mission = {};
+	return true;
 }
 
 static uint32_t Mission_PlayerBit(const edict_t *ent)
@@ -168,7 +161,13 @@ void Mission_Frame(edict_t *ent)
 {
 	if (deathmatch->integer)
 		return;
-	Mission_CheckMap(ent);
+	if (!Mission_CheckMap(ent))
+		return;
+	// a Spree run that ran out of time starts over (a start in the future: the map was reloaded)
+	loot_mission_t &mission = ent->client->pers.loot_mission;
+	if (mission.valid && mission.type == LOOT_MISSION_SPREE && mission.progress > 0 &&
+	    (level.time > ent->client->loot_mission_spree_start + MISSION_SPREE_WINDOW || ent->client->loot_mission_spree_start > level.time))
+		mission.progress = 0;
 }
 
 static int32_t Mission_RewardXP(edict_t *ent, const loot_mission_t &mission)
@@ -214,9 +213,9 @@ void Mission_OnKill(edict_t *monster, edict_t *attacker)
 {
 	if (deathmatch->integer || !attacker || !attacker->client || !monster)
 		return;
-	Mission_CheckMap(attacker);
 	loot_mission_t &mission = attacker->client->pers.loot_mission;
-	if (!mission.valid)
+	// only on the mission's own map: rift, raid and arena kills don't count
+	if (!Mission_CheckMap(attacker) || !mission.valid)
 		return;
 
 	switch (mission.type)
@@ -256,8 +255,7 @@ void Mission_OnChestOpened(edict_t *player)
 {
 	if (deathmatch->integer || !player || !player->client)
 		return;
-	Mission_CheckMap(player);
-	if (player->client->pers.loot_mission.valid && player->client->pers.loot_mission.type == LOOT_MISSION_CHEST)
+	if (Mission_CheckMap(player) && player->client->pers.loot_mission.valid && player->client->pers.loot_mission.type == LOOT_MISSION_CHEST)
 		Mission_Progress(player, 1);
 }
 
@@ -273,6 +271,34 @@ std::string Mission_HudText(edict_t *ent)
 		return G_Fmt("  Mission {}/{} {} {:.0f}s", mission.progress, mission.goal, mission.short_label, seconds_left).data();
 	}
 	return G_Fmt("  Mission {}/{} {}", mission.progress, mission.goal, mission.short_label).data();
+}
+
+// Whether the offer can still be done: kill-kind and Alphas need enough fitting monsters alive for
+// the goal, the chest one an unopened chest; headshot, element and spree kills need any target.
+static bool Mission_Reachable(edict_t *ent, const loot_mission_t &offer)
+{
+	if (offer.type == LOOT_MISSION_CHEST)
+	{
+		for (edict_t *e = nullptr; (e = G_FindByString<&edict_t::classname>(e, "loot_chest"));)
+			if (!Loot_HiddenFrom(e, ent))
+				return true;
+		return false;
+	}
+	const bool needs_count = offer.type == LOOT_MISSION_KILL_KIND || offer.type == LOOT_MISSION_ALPHAS;
+	const int32_t needed = needs_count ? std::max(1, offer.goal - (offer.valid ? offer.progress : 0)) : 1;
+	int32_t left = 0;
+	for (uint32_t i = game.maxclients + 1; i < globals.num_edicts && left < needed; i++)
+	{
+		const edict_t *e = &g_edicts[i];
+		if (!Mission_CountsAsTarget(e))
+			continue;
+		if (offer.type == LOOT_MISSION_KILL_KIND && !(e->classname && !strcmp(e->classname, offer.monster_class)))
+			continue;
+		if (offer.type == LOOT_MISSION_ALPHAS && !e->loot_elite)
+			continue;
+		left++;
+	}
+	return left >= needed;
 }
 
 //==========================================================================
@@ -295,7 +321,8 @@ void Mission_SendPage(edict_t *ent)
 	y += 6;
 	if (pers.loot_mission.valid)
 	{
-		line("string", G_Fmt("Active: {}  ({}/{})", pers.loot_mission.label, pers.loot_mission.progress, pers.loot_mission.goal).data());
+		const bool stuck = !Mission_Reachable(ent, pers.loot_mission);
+		line("string", G_Fmt("Active: {}  ({}/{}){}", pers.loot_mission.label, pers.loot_mission.progress, pers.loot_mission.goal, stuck ? "  can't finish: take another" : "").data());
 		y += 6;
 	}
 
@@ -308,8 +335,9 @@ void Mission_SendPage(edict_t *ent)
 		any_offer = true;
 		const bool done = Mission_DoneBy(ent, i);
 		const bool active = pers.loot_mission.valid && pers.loot_mission_taken == i;
-		const char *state = done ? "  DONE" : active ? "  ACTIVE"
-		                                             : "";
+		const char *state = done ? "  DONE" : active                       ? "  ACTIVE"
+		                                  : !Mission_Reachable(ent, offer) ? "  (too few left)"
+		                                                                   : "";
 		line(done || active ? "string" : "string2", G_Fmt("{}  {}  ({}){}", i + 1, offer.label, mission_difficulty_names[std::clamp(offer.difficulty, 0, 2)], state).data());
 		line("loot_str", G_Fmt("   Reward: {}${}, {}+ gear", pers.loot_level >= Loot_LevelCap() ? "" : G_Fmt("{} XP, ", Mission_RewardXP(ent, offer)).data(),
 		                       Mission_RewardCash(offer), Loot_RarityName(mission_min_rarity[std::clamp(offer.difficulty, 0, 2)]))
@@ -338,6 +366,12 @@ void Mission_Take(edict_t *ent, int32_t n)
 	}
 	if (pers.loot_mission.valid && pers.loot_mission_taken == index)
 		return;
+
+	if (!Mission_Reachable(ent, level.loot_missions[index]))
+	{
+		gi.Center_Print(ent, "Too few left on this map for that one");
+		return;
+	}
 
 	pers.loot_mission = level.loot_missions[index];
 	pers.loot_mission.progress = 0;

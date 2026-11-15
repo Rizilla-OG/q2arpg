@@ -15,6 +15,7 @@ constexpr gtime_t ARENA_RETURN_DELAY = 30_sec;
 constexpr int32_t ARENA_MAX_ALIVE = 12;
 constexpr float ARENA_HEALTH_PER_WAVE = 0.10f;
 constexpr float ARENA_DROP_RATE = 0.5f;
+constexpr gtime_t ARENA_STALL_TIME = 45_sec; // no spawn, kill or damage this long: leftover monsters (stuck, lost) are moved back into the fight
 
 // monster pools by wave: each wave draws from its pool and the ones before it
 static const char *const arena_pool_early[] = {"monster_soldier_light", "monster_soldier", "monster_infantry", "monster_flyer", "monster_parasite"};
@@ -52,35 +53,14 @@ std::string Arena_VendorLine(edict_t *ent, bool &can_use)
 
 bool Arena_CanOpen(edict_t *ent)
 {
-	if (deathmatch->integer || Arena_InArena() || Raid_InRaid() || Rift_InRift() || level.intermissiontime || ent->health <= 0 ||
-	    ent->client->pers.loot_level < ARENA_MIN_LEVEL)
+	if (ent->client->pers.loot_level < ARENA_MIN_LEVEL)
 		return false;
-	for (int32_t i = 0; i < RAID_MAP_COUNT; i++)
-		if (!(game.loot_raid_used_mask & (1u << i)))
-			return true;
-	gi.Center_Print(ent, "No arenas left in this unit.\nFinish the unit to reopen them.");
-	return false;
+	return Arena_TripPossible(ent);
 }
 
 void Arena_Open(edict_t *ent)
 {
-	int32_t free_maps[32];
-	int32_t free_count = 0;
-	for (int32_t i = 0; i < RAID_MAP_COUNT; i++)
-		if (!(game.loot_raid_used_mask & (1u << i)))
-			free_maps[free_count++] = i;
-	if (!free_count)
-		return;
-	const int32_t pick = free_maps[irandom(free_count)];
-
-	Rift_SaveReturnSpot(ent);
-	game.loot_arena_active = true;
-	game.loot_raid_used_mask |= 1u << pick;
-	Q_strlcpy(game.loot_arena_map, raid_maps[pick], sizeof(game.loot_arena_map));
-
-	Loot_LogEvent(ent, G_Fmt("ARENA open  {}", game.loot_arena_map).data());
-	Rift_CloseMenus();
-	BeginIntermission(CreateTargetChangeLevel(game.loot_arena_map));
+	Arena_TravelTo(ent, game.loot_arena_active, game.loot_arena_map, "ARENA");
 }
 
 // dev: loot_arena [wave] opens the arena now (no level or price check); in the arena, jumps to that wave's break
@@ -105,9 +85,7 @@ void Arena_Leave(edict_t *ent)
 {
 	if (!Arena_InArena() || level.intermissiontime)
 		return;
-	Loot_LogEvent(ent, G_Fmt("ARENA left  wave {}", level.loot_arena_wave).data());
-	Rift_CloseMenus();
-	BeginIntermission(CreateTargetChangeLevel(Rift_ReturnChangemap()));
+	Arena_TravelHome(ent, G_Fmt("ARENA left  wave {}", level.loot_arena_wave).data());
 }
 
 //==========================================================================
@@ -173,6 +151,7 @@ static void Arena_StartWave()
 {
 	level.loot_arena_wave++;
 	arena_failed_spawns = 0;
+	level.loot_arena_progress_time = level.time;
 	level.loot_arena_to_spawn = Arena_WaveSize(level.loot_arena_wave);
 	level.loot_arena_next_spawn = level.time;
 	level.loot_arena_break_end = 0_ms;
@@ -259,13 +238,63 @@ void Arena_PlayerFrame(edict_t *ent)
 		return;
 	}
 
+	// one scan: live monsters and their total health (damage counts as progress too)
+	int32_t live = 0;
+	int32_t live_health = 0;
+	for (uint32_t i = game.maxclients + 1; i < globals.num_edicts; i++)
+	{
+		const edict_t *e = &g_edicts[i];
+		if (!Loot_IsLiveMonster(e))
+			continue;
+		live++;
+		live_health += e->health + (int32_t)e->loot_mshield; // shield damage is progress too
+	}
+
 	// trickle the wave in, a few alive at a time
-	if (level.loot_arena_to_spawn > 0 && level.time >= level.loot_arena_next_spawn && Raid_LiveAdds() < ARENA_MAX_ALIVE)
+	if (level.loot_arena_to_spawn > 0 && level.time >= level.loot_arena_next_spawn && live < ARENA_MAX_ALIVE)
 	{
 		Arena_SpawnOne(false);
 		level.loot_arena_next_spawn = level.time + ARENA_SPAWN_INTERVAL;
+		level.loot_arena_progress_time = level.time;
+		return;
 	}
 
-	if (level.loot_arena_to_spawn <= 0 && Raid_LiveAdds() == 0)
+	// spawns, kills and damage all reset the stall timer
+	if (live != level.loot_arena_last_live || live_health < level.loot_arena_last_health || level.loot_arena_progress_time > level.time)
+		level.loot_arena_progress_time = level.time;
+	level.loot_arena_last_live = live;
+	level.loot_arena_last_health = live_health;
+
+	// a stuck or lost monster can't hold the wave forever: move it back into the fight (no free clear)
+	if (live > 0 && level.time - level.loot_arena_progress_time > ARENA_STALL_TIME)
+	{
+		edict_t *target = Loot_FirstLivePlayer();
+		for (uint32_t i = game.maxclients + 1; i < globals.num_edicts; i++)
+		{
+			edict_t *e = &g_edicts[i];
+			if (!Loot_IsLiveMonster(e))
+				continue;
+			vec3_t spot;
+			if (!Raid_FindSpot(e->mins, e->maxs, false, spot))
+			{
+				Loot_DiscardSpawnedMonster(e); // stuck with nowhere to go: gone, or the wave never ends
+				continue;
+			}
+			e->s.origin = spot;
+			e->s.old_origin = spot;
+			gi.linkentity(e);
+			SpawnGrow_Spawn(spot, 24.f, 64.f);
+			if (target)
+			{
+				e->enemy = target;
+				FoundTarget(e);
+			}
+		}
+		level.loot_arena_progress_time = level.time;
+		Loot_BannerAll("Stragglers return to the arena");
+		return;
+	}
+
+	if (level.loot_arena_to_spawn <= 0 && live == 0)
 		Arena_WaveCleared(ent);
 }

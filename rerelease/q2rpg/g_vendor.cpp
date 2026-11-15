@@ -271,8 +271,10 @@ void Vendor_DropCash(edict_t *monster, edict_t *attacker)
 	const int32_t mlevel = std::max(1, monster->loot_mlevel);
 	float amount = (5.f + base_health * 0.15f) * (1.0f + 0.1f * (mlevel - 1)) * frandom(0.75f, 1.25f);
 	if (monster->monsterinfo.aiflags & AI_SPAWNED_MASK)
-		amount *= LOOT_REINFORCEMENT_PAY_MULT;       // called-in reinforcements
-	if (monster->loot_elite || Raid_IsBoss(monster)) // q2rpg: the raid boss pays like an Omega
+		amount *= LOOT_REINFORCEMENT_PAY_MULT; // called-in reinforcements
+	if (Raid_IsBoss(monster))                  // q2rpg: the raid boss pays like an Omega
+		amount *= 6.f;
+	else if (monster->loot_elite)
 		amount *= monster->loot_omega ? 6.f : 3.f;
 	if (Loot_IsBossTier(monster))
 		amount *= 5.f;
@@ -922,8 +924,6 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 
 	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP && n == 4)
 	{
-		if (Raid_InRaid())
-			return; // no rift from inside a raid
 		if (Rift_InRift())
 		{
 			Rift_Leave(ent);

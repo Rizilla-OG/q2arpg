@@ -55,8 +55,13 @@ void NGPlus_OnMapSpawn()
 	// q2rpg: the ending video just finished: bring the NG+ run back
 	if (NGPlus_TakeReload())
 	{
-		gi.AddCommandString(G_Fmt("load {}\n", NGPLUS_VIDEO_SAVE).data());
-		return;
+		// the engine reset the game state after the video: load the NG+ run back. If it kept it,
+		// there's nothing to load and the map spawns as usual (Bounty and all)
+		if (!(game.loot_ngplus > 0 && !Q_strcasecmp(game.loot_start_map, level.mapname)))
+		{
+			gi.AddCommandString(G_Fmt("load {}\n", NGPLUS_VIDEO_SAVE).data());
+			return;
+		}
 	}
 	if (!game.loot_start_map[0])
 	{
@@ -563,7 +568,7 @@ void NGPlus_Frame(edict_t *ent)
 	// q2rpg: NG+ has started: save it, then play the ending video. The banner waits for the reload.
 	if (game.loot_ngplus_video[0])
 	{
-		if (level.time < 500_ms || !G_CanSave())
+		if (level.time < 500_ms || level.intermissiontime || ent->health <= 0) // G_CanSave's checks, without its per-frame message
 			return;
 		const std::string video = game.loot_ngplus_video;
 		game.loot_ngplus_video[0] = '\0'; // cleared before saving, so the reload doesn't play it again
