@@ -288,9 +288,26 @@ void CG_Loot_DrawMinimap(const player_state_t *ps, const vrect_t &hud_vrect, int
 		panel.size = std::min(hud_vrect.width, hud_vrect.height) * 0.8f * scale;
 		panel.left = (hud_vrect.x + hud_vrect.width * 0.5f) * scale - panel.size * 0.5f;
 		panel.top = (hud_vrect.y + hud_vrect.height * 0.5f) * scale - panel.size * 0.5f;
-		panel.world_x = grid.origin_x + MINIMAP_SIZE * grid.cell_size * 0.5f;
-		panel.world_y = grid.origin_y + MINIMAP_SIZE * grid.cell_size * 0.5f;
-		panel.pixels_per_unit = panel.size / (MINIMAP_SIZE * grid.cell_size);
+		// zoom to the explored cells (plus a 2-cell margin) so a half-explored map fills the panel
+		int32_t min_x = MINIMAP_SIZE, min_y = MINIMAP_SIZE, max_x = -1, max_y = -1;
+		for (int32_t y = 0; y < MINIMAP_SIZE; y++)
+			for (int32_t x = 0; x < MINIMAP_SIZE; x++)
+				if (CellAt(x, y))
+				{
+					min_x = std::min(min_x, x);
+					min_y = std::min(min_y, y);
+					max_x = std::max(max_x, x);
+					max_y = std::max(max_y, y);
+				}
+		if (max_x < 0) // nothing explored yet: the whole grid
+		{
+			min_x = min_y = 0;
+			max_x = max_y = MINIMAP_SIZE - 1;
+		}
+		const float span_cells = (float)std::max({max_x - min_x + 1, max_y - min_y + 1, 12}) + 4.f;
+		panel.world_x = grid.origin_x + (min_x + max_x + 1) * 0.5f * grid.cell_size;
+		panel.world_y = grid.origin_y + (min_y + max_y + 1) * 0.5f * grid.cell_size;
+		panel.pixels_per_unit = panel.size / (span_cells * grid.cell_size);
 	}
 	else
 	{
