@@ -4,8 +4,10 @@
 
 #include <cstdint>
 
-constexpr int32_t MINIMAP_SIZE = 64;             // grid is MINIMAP_SIZE x MINIMAP_SIZE cells
-constexpr int32_t MINIMAP_CELLS_PER_STRING = 48; // 2 chars per cell, 96-char configstrings
+constexpr int32_t MINIMAP_SIZE = 64; // grid is MINIMAP_SIZE x MINIMAP_SIZE cells
+// 2 chars per cell; 94 chars + NUL fit a 96-byte configstring slot. A full 96-char string has no NUL
+// and runs into the next slot when the engine resends configstrings (save load, a client joining).
+constexpr int32_t MINIMAP_CELLS_PER_STRING = 47;
 constexpr int32_t MINIMAP_GRID_STRINGS = (MINIMAP_SIZE * MINIMAP_SIZE + MINIMAP_CELLS_PER_STRING - 1) / MINIMAP_CELLS_PER_STRING;
 constexpr int32_t MINIMAP_HEIGHT_STEP = 24; // floor heights are stored in 24-unit steps
 constexpr int32_t MINIMAP_HEIGHT_STEPS = 128;

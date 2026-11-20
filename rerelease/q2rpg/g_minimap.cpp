@@ -8,6 +8,10 @@
 #include "../g_local.h"
 #include "minimap_shared.h"
 
+static_assert(CONFIG_LOOT_MAP_GRID + MINIMAP_GRID_STRINGS <= CONFIG_LOOT_MAP_GRID_END, "minimap grid configstrings overflow");
+static_assert(MINIMAP_CELLS_PER_STRING * 2 < CS_MAX_STRING_LENGTH, "grid string must leave room for its NUL");
+static_assert(1 + MINIMAP_MAX_ITEMS * 3 < CS_MAX_STRING_LENGTH, "item string must leave room for its NUL");
+
 constexpr int32_t MINIMAP_PROBES_PER_FRAME = 12;  // cells probed per player per server frame
 constexpr int32_t MINIMAP_PROBE_RADIUS = 10;      // in cells
 constexpr int32_t MINIMAP_FLUSHES_PER_FRAME = 6;  // grid configstrings sent per server frame

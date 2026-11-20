@@ -82,10 +82,10 @@ enum
 	CONFIG_LOOT_ACTION_END = CONFIG_LOOT_ACTION + 32,
 
 	// q2rpg: minimap (g_minimap.cpp / cg_minimap.cpp). Grid info "origin_x origin_y cell_size z_min",
-	// the shared explored grid (2 chars per cell, 48 cells per string), and each player's mode + nearby items.
+	// the shared explored grid (2 chars per cell, 47 cells per string), and each player's mode + nearby items.
 	CONFIG_LOOT_MAP_INFO,
 	CONFIG_LOOT_MAP_GRID,
-	CONFIG_LOOT_MAP_GRID_END = CONFIG_LOOT_MAP_GRID + 86,
+	CONFIG_LOOT_MAP_GRID_END = CONFIG_LOOT_MAP_GRID + 88, // MINIMAP_GRID_STRINGS
 	CONFIG_LOOT_MAP_ITEMS,
 	CONFIG_LOOT_MAP_ITEMS_END = CONFIG_LOOT_MAP_ITEMS + 8,
 
