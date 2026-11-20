@@ -794,17 +794,24 @@ loot_rarity_t Loot_RollRarity(float luck)
 	return LOOT_RARITY_COMMON;
 }
 
+// q2rpg: gun types that can drop now; alien tech only turns up in NG+
+int32_t Loot_DropArchCount()
+{
+	return game.loot_ngplus > 0 ? LOOT_ARCH_COUNT : LOOT_ARCH_STOCK_COUNT;
+}
+
 // a weighted random archetype that can roll at this rarity
 static loot_archetype_t Loot_RollArchetype(loot_rarity_t rarity)
 {
+	const int32_t arch_limit = Loot_DropArchCount();
 	int32_t total = 0;
-	for (const auto &a : loot_archs)
-		if (rarity >= a.min_rarity)
-			total += a.weight;
+	for (int32_t i = 0; i < arch_limit; i++)
+		if (rarity >= loot_archs[i].min_rarity)
+			total += loot_archs[i].weight;
 
 	int32_t pick = irandom(total);
 	loot_archetype_t arch = LOOT_ARCH_SHOTGUN;
-	for (int32_t i = 0; i < LOOT_ARCH_COUNT; i++)
+	for (int32_t i = 0; i < arch_limit; i++)
 	{
 		if (rarity < loot_archs[i].min_rarity)
 			continue;
@@ -2583,7 +2590,7 @@ static void Loot_BossDrop(edict_t *monster, const loot_boss_info_t &boss, float 
 	if (game.loot_ngplus > 0)
 	{
 		const loot_rarity_t rarity = frandom() < 0.2f ? LOOT_RARITY_MYTHIC : LOOT_RARITY_LEGENDARY;
-		Loot_BossGun(monster, Loot_Roll((loot_archetype_t)irandom(LOOT_ARCH_COUNT), rarity, (uint32_t)mt_rand()));
+		Loot_BossGun(monster, Loot_Roll((loot_archetype_t)irandom(Loot_DropArchCount()), rarity, (uint32_t)mt_rand()));
 	}
 
 	if (Loot_ShieldsAvailable() && frandom() < boss.shield_chance)
@@ -2680,7 +2687,7 @@ static void Loot_MonsterDropRoll(edict_t *monster)
 	if (monster->loot_omega)
 	{
 		const loot_rarity_t rarity = frandom() < 0.25f ? LOOT_RARITY_MYTHIC : LOOT_RARITY_LEGENDARY;
-		loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(LOOT_ARCH_COUNT), rarity, (uint32_t)mt_rand());
+		loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(Loot_DropArchCount()), rarity, (uint32_t)mt_rand());
 		Loot_SetLevel(gun, std::max(1, monster->loot_mlevel));
 		level.loot_stats.gun_drops[gun.rarity]++;
 		Loot_SpawnDrop(monster, gun, false);
@@ -4278,7 +4285,7 @@ void Loot_RaidDrops(const vec3_t &where)
 	const int32_t mythic_index = frandom() < 0.3f ? irandom(2) : -1;
 	for (int32_t i = 0; i < 2; i++)
 	{
-		loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(LOOT_ARCH_COUNT), i == mythic_index ? LOOT_RARITY_MYTHIC : LOOT_RARITY_LEGENDARY, (uint32_t)mt_rand());
+		loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(Loot_DropArchCount()), i == mythic_index ? LOOT_RARITY_MYTHIC : LOOT_RARITY_LEGENDARY, (uint32_t)mt_rand());
 		Loot_SetLevel(gun, level);
 		Loot_SpawnDrop(source, gun, false);
 	}
@@ -4315,7 +4322,7 @@ void Loot_RiftDrops(const vec3_t &where, int32_t count, int32_t tier)
 		if (i == 0)
 		{
 			const loot_rarity_t rarity = frandom() < 0.2f + 0.02f * tier ? LOOT_RARITY_MYTHIC : LOOT_RARITY_LEGENDARY;
-			loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(LOOT_ARCH_COUNT), rarity, (uint32_t)mt_rand());
+			loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(Loot_DropArchCount()), rarity, (uint32_t)mt_rand());
 			Loot_SetLevel(gun, level);
 			Loot_SpawnDrop(source, gun, false);
 		}

@@ -2,7 +2,7 @@
 
 ## Unreleased (next update)
 
-- Added: alien-tech guns. Military intel has picked up rumors that the Strogg have been modifying our guns, and now two new Rare+ gun types are turning up in the field. The **Ripper** fires bouncing ion discs from cells; Brask barrels and some Epic+ rolls fan out an extra disc. The **Tracker** fires homing shots from slugs and locks onto the monster nearest your crosshair when you miss. They take elements, crits and proficiency like any gun, but have no uniques.
+- Added: alien-tech guns. Military intel has picked up rumors that the Strogg have been modifying our guns, and in NG+ two new Rare+ gun types start turning up in the field. The **Ripper** fires bouncing ion discs from cells; Brask barrels and some Epic+ rolls fan out an extra disc. The **Tracker** fires homing shots from slugs and locks onto the monster nearest your crosshair when you miss. They take elements, crits and proficiency like any gun, but have no uniques.
 
 ## 0.9.666
 

@@ -94,7 +94,7 @@ static void Challenge_GiveReward(edict_t *ent, const challenge_def_t &def)
 		case RW_MYTHIC_GUN:
 		case RW_MYTHIC_ELEMENT:
 		{
-			const loot_archetype_t arch = (loot_archetype_t)(def.arch >= 0 ? def.arch : irandom(LOOT_ARCH_COUNT));
+			const loot_archetype_t arch = (loot_archetype_t)(def.arch >= 0 ? def.arch : irandom(Loot_DropArchCount()));
 			loot_weapon_t gun = Loot_Roll(arch, LOOT_RARITY_MYTHIC, seed);
 			if (def.element)
 				gun.element = def.element; // mythics are always elemental, so the damage trade is already in
@@ -110,7 +110,7 @@ static void Challenge_GiveReward(edict_t *ent, const challenge_def_t &def)
 			break;
 		case RW_SECOND_UNIQUE:
 		{
-			loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(LOOT_ARCH_COUNT), LOOT_RARITY_LEGENDARY, seed);
+			loot_weapon_t gun = Loot_Roll((loot_archetype_t)irandom(Loot_DropArchCount()), LOOT_RARITY_LEGENDARY, seed);
 			Unique_Make(gun, 1);
 			Loot_SetLevel(gun, level);
 			Loot_SpawnDrop(ent, gun, true);

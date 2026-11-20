@@ -41,6 +41,7 @@ int32_t Loot_Spread(edict_t *ent, int32_t spread);
 float Loot_ProjSpeed(edict_t *ent);
 void Loot_RecordDamage(edict_t *targ, edict_t *inflictor, edict_t *attacker, int32_t damage, const mod_t &mod);
 int32_t Loot_Pellets(edict_t *ent, int32_t count);
+int32_t Loot_DropArchCount();                                                      // q2rpg: stock guns before NG+, alien tech after
 edict_t *Loot_TrackerLockOn(edict_t *ent, const vec3_t &start, const vec3_t &dir); // q2rpg: alien Tracker aim assist
 void Loot_Think(edict_t *ent);
 float Loot_ReloadDip(edict_t *ent);
