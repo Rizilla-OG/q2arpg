@@ -480,6 +480,8 @@ void jorgBFG(edict_t *self)
 	vec[2] += self->enemy->viewheight;
 	dir = vec - start;
 	dir.normalize();
+	if (NGPlus_FinalBossEnraged(self)) // q2rpg: NG+ leads the shot
+		PredictAim(self, self->enemy, start, 300, true, 0.f, &dir, nullptr);
 	gi.sound(self, CHAN_WEAPON, sound_bfg_fire, 1, ATTN_NORM, 0);
 	monster_fire_bfg(self, start, dir, 50, 300, 100, 200, MZ2_JORG_BFG_1);
 }
@@ -490,7 +492,8 @@ void jorg_firebullet_right(edict_t *self)
 	AngleVectors(self->s.angles, forward, right, nullptr);
 	start = M_ProjectFlashSource(self, monster_flash_offset[MZ2_JORG_MACHINEGUN_R1], forward, right);
 	PredictAim(self, self->enemy, start, 0, false, -0.2f, &forward, nullptr);
-	monster_fire_bullet(self, start, forward, 6, 4, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MZ2_JORG_MACHINEGUN_R1);
+	const int32_t spread_div = NGPlus_FinalBossEnraged(self) ? 2 : 1; // q2rpg: NG+ halves chaingun spread
+	monster_fire_bullet(self, start, forward, 6, 4, DEFAULT_BULLET_HSPREAD / spread_div, DEFAULT_BULLET_VSPREAD / spread_div, MZ2_JORG_MACHINEGUN_R1);
 }
 
 void jorg_firebullet_left(edict_t *self)
@@ -499,7 +502,8 @@ void jorg_firebullet_left(edict_t *self)
 	AngleVectors(self->s.angles, forward, right, nullptr);
 	start = M_ProjectFlashSource(self, monster_flash_offset[MZ2_JORG_MACHINEGUN_L1], forward, right);
 	PredictAim(self, self->enemy, start, 0, false, 0.2f, &forward, nullptr);
-	monster_fire_bullet(self, start, forward, 6, 4, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MZ2_JORG_MACHINEGUN_L1);
+	const int32_t spread_div = NGPlus_FinalBossEnraged(self) ? 2 : 1; // q2rpg: NG+ halves chaingun spread
+	monster_fire_bullet(self, start, forward, 6, 4, DEFAULT_BULLET_HSPREAD / spread_div, DEFAULT_BULLET_VSPREAD / spread_div, MZ2_JORG_MACHINEGUN_L1);
 }
 
 void jorg_firebullet(edict_t *self)

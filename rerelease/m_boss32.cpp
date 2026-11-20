@@ -442,6 +442,8 @@ void makronBFG(edict_t *self)
 	vec[2] += self->enemy->viewheight;
 	dir = vec - start;
 	dir.normalize();
+	if (NGPlus_FinalBossEnraged(self)) // q2rpg: NG+ leads the shot
+		PredictAim(self, self->enemy, start, 300, true, 0.f, &dir, nullptr);
 	gi.sound(self, CHAN_VOICE, sound_attack_bfg, 1, ATTN_NORM, 0);
 	monster_fire_bfg(self, start, dir, 50, 300, 100, 300, MZ2_MAKRON_BFG);
 }
@@ -526,6 +528,8 @@ void MakronRailgun(edict_t *self)
 	// calc direction to where we targted
 	dir = self->pos1 - start;
 	dir.normalize();
+	if (NGPlus_FinalBossEnraged(self) && self->enemy) // q2rpg: NG+ fires at where you are now, not the saved spot
+		PredictAim(self, self->enemy, start, 0, true, 0.f, &dir, nullptr);
 
 	monster_fire_railgun(self, start, dir, 50, 100, MZ2_MAKRON_RAILGUN_1);
 }
@@ -554,10 +558,14 @@ void MakronHyperblaster(edict_t *self)
 	{
 		dir[0] = 0;
 	}
+	// q2rpg: NG+ sweeps half as wide, centered on the enemy instead of on its facing
+	const bool enraged = NGPlus_FinalBossEnraged(self) && self->enemy;
+	const float sweep_step = enraged ? 5.f : 10.f;
+	const float sweep_center = enraged ? vectoangles(self->enemy->s.origin - start)[YAW] : self->s.angles[1];
 	if (self->s.frame <= FRAME_attak413)
-		dir[1] = self->s.angles[1] - 10 * (self->s.frame - FRAME_attak413);
+		dir[1] = sweep_center - sweep_step * (self->s.frame - FRAME_attak413);
 	else
-		dir[1] = self->s.angles[1] + 10 * (self->s.frame - FRAME_attak421);
+		dir[1] = sweep_center + sweep_step * (self->s.frame - FRAME_attak421);
 	dir[2] = 0;
 
 	AngleVectors(dir, forward, nullptr, nullptr);

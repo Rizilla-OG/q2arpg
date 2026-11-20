@@ -324,6 +324,16 @@ float NGPlus_ShieldDropMult()
 	return NGPlus_MapMod(LOOT_MAPMOD_FORTIFIED) ? 2.f : 1.f;
 }
 
+// q2rpg: the campaign's final boss (Jorg, then Makron) in NG+: x3 health, x1.5 damage
+// (Loot_MonsterHealthScale / Loot_MonsterDamageScale) and sharper aim (m_boss31 / m_boss32).
+// The raid's Makron and rift monsters keep their own tuning.
+bool NGPlus_FinalBossEnraged(const edict_t *monster)
+{
+	if (deathmatch->integer || game.loot_ngplus <= 0 || !monster || !monster->classname || Raid_InRaid() || Rift_InRift())
+		return false;
+	return !strcmp(monster->classname, "monster_jorg") || !strcmp(monster->classname, "monster_makron");
+}
+
 // q2rpg: smarter monsters in NG+ (AI only; health and damage scale separately).
 // Each cycle counts as one more skill step for AI checks, adds 15% to the dodge
 // reaction chance and lets monsters shrug off 20% of pain flinches (max 60%).

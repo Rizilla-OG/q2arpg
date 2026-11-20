@@ -1692,7 +1692,8 @@ void Loot_ApplyStatus(edict_t *targ, edict_t *attacker, loot_element_t element, 
 // Monster -> player damage: g_loot_monster_damage, +8% per level above 1, NG+ map modifier.
 float Loot_MonsterDamageScale(const edict_t *monster)
 {
-	return std::max(0.f, g_loot_monster_damage->value) * (1.0f + 0.08f * (std::max(1, monster->loot_mlevel) - 1)) * NGPlus_MonsterDamageMult();
+	const float final_boss = NGPlus_FinalBossEnraged(monster) ? NGPLUS_FINAL_BOSS_DAMAGE : 1.f; // q2rpg: NG+ final boss
+	return std::max(0.f, g_loot_monster_damage->value) * (1.0f + 0.08f * (std::max(1, monster->loot_mlevel) - 1)) * NGPlus_MonsterDamageMult() * final_boss;
 }
 
 // Crits, corrosive vulnerability, shock vs power armor, and status procs.
@@ -2878,6 +2879,8 @@ static float Loot_MonsterHealthScale(const edict_t *monster)
 	float scale = std::max(0.1f, g_loot_monster_health->value) * (1.0f + 0.12f * (std::max(1, monster->loot_mlevel) - 1)) * NGPlus_MonsterHealthMult();
 	if (monster->loot_elite)
 		scale *= monster->loot_omega ? LOOT_OMEGA_HEALTH : LOOT_ALPHA_HEALTH;
+	if (NGPlus_FinalBossEnraged(monster)) // q2rpg: NG+ final boss
+		scale *= NGPLUS_FINAL_BOSS_HEALTH;
 	return scale;
 }
 

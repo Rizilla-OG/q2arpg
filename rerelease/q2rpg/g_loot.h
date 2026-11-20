@@ -68,6 +68,8 @@ int32_t Loot_LevelCap(); // player level cap: 50, 60 in NG+
 
 // New Game+ (g_ngplus.cpp)
 constexpr int32_t LOOT_NGPLUS_MONSTER_LEVELS = 10; // extra monster levels per NG+ cycle
+constexpr float NGPLUS_FINAL_BOSS_HEALTH = 3.0f;   // q2rpg: NG+ Jorg / Makron health on top of normal scaling
+constexpr float NGPLUS_FINAL_BOSS_DAMAGE = 1.5f;   // q2rpg: NG+ Jorg / Makron damage on top of normal scaling
 constexpr float LOOT_NGPLUS_LUCK = 0.5f;           // extra rarity luck per NG+ cycle
 void NGPlus_OnGameLoaded();
 void NGPlus_OnMapSpawn();
@@ -87,6 +89,7 @@ float NGPlus_ProcChanceMult();                                            // Ele
 float NGPlus_DropMult();                                                  // Bounty
 float NGPlus_MonsterShieldMult();                                         // Fortified
 float NGPlus_ShieldDropMult();                                            // Fortified
+bool NGPlus_FinalBossEnraged(const edict_t *monster);                     // q2rpg: NG+ Jorg / Makron (not the raid)
 int32_t NGPlus_AISkill();                                                 // q2rpg: skill + NG+ cycle (0-3) for monster AI checks
 float NGPlus_DodgeChance();                                               // q2rpg: chance a monster reacts to an incoming shot
 bool NGPlus_ShrugOffPain();                                               // q2rpg: NG+ monsters sometimes skip the pain flinch
