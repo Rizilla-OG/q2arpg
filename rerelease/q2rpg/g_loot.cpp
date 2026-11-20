@@ -3828,6 +3828,7 @@ static void Loot_SetBarStats(edict_t *ent)
 
 void Loot_SetStats(edict_t *ent)
 {
+	Minimap_Frame(ent); // q2rpg: explore and send the minimap
 	gclient_t *cl = ent->client;
 
 	// loot stats alias the CTF slots; in deathmatch they belong to CTF
@@ -4814,6 +4815,11 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 	if (!Q_strcasecmp(cmd, "loot_spawnmonster"))
 	{
 		Loot_Cmd_SpawnMonster(ent);
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_map"))
+	{
+		Minimap_CycleMode(ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_filter"))

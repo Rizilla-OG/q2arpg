@@ -395,6 +395,10 @@ extern const vendor_prices_t vendor_prices_default;
 extern vendor_prices_t vendor_prices;
 void Loot_LoadData(); // reads q2rpg/loot_data.json, if any, over the built-in tables
 
+// q2rpg: minimap (g_minimap.cpp)
+void Minimap_Frame(edict_t *player);
+void Minimap_CycleMode(edict_t *player);
+
 // q2rpg: character looks (g_looks.cpp)
 void Looks_OverrideSkin(edict_t *ent, char *skin, size_t skin_size);
 void Looks_ApplyAura(edict_t *ent);

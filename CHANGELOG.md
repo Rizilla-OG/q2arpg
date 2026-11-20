@@ -2,6 +2,7 @@
 
 ## Unreleased (next update)
 
+- Added: minimap. A green radar in the top-right corner draws the map as you explore it: floors shaded by height, solid lines for walls, dashed lines for ledges, red for lava and slime. It marks nearby items (health, armor, ammo, weapons, keys, powerups), loot by rarity color (following your loot filter) and chests. Items on another floor show hollow with a tick above or below. No monsters are shown. M cycles corner radar, full-screen map, off. Works on every map, and in co-op for every player; co-op players share the explored map.
 - Changed: the vendor no longer has a stash page in its page cycle; B already opens the stash anywhere for free. Extra stash slots (Lv 60) are bought from the Workshop page, item 7. Pressing B with the vendor open still shows the stash, and B again returns to the shop.
 - Balance: NG+ monsters now get x2 health per cycle (was x1.5); damage stays x1.5. Fights at NG+ 1 took 2-4 seconds a kill at Lv 60.
 - Balance: NG+ monsters fight smarter. Each cycle counts as one higher difficulty step for their AI: they react to incoming shots more often (50% +15% per cycle), dodge more readily, open fire sooner after spotting you, and shrug off 20% of pain flinches per cycle (max 60%). Their health and damage scaling is separate.

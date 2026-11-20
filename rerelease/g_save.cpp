@@ -1091,6 +1091,7 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_stash_bought),
 	FIELD_AUTO(loot_filter),
 	FIELD_AUTO(loot_prof_kills),
+	FIELD_AUTO(loot_map_mode), // q2rpg
 	FIELD_AUTO(loot_look_skin), // q2rpg
 	FIELD_AUTO(loot_look_aura), // q2rpg
 	FIELD_AUTO(loot_tree),

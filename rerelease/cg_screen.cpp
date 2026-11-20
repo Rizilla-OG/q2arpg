@@ -1751,6 +1751,7 @@ extern uint64_t cgame_init_time;
 void CG_Loot_DrawHealthBar(const player_state_t *ps, const vrect_t &hud_vrect, int32_t scale);
 void CG_Loot_DrawShield(const player_state_t *ps, const vrect_t &hud_vrect, const vrect_t &hud_safe, int32_t scale);
 void CG_Loot_DrawDamageNumbers(const player_state_t *ps, const vrect_t &hud_vrect, int32_t scale);
+void CG_Loot_DrawMinimap(const player_state_t *ps, const vrect_t &hud_vrect, int32_t scale, int32_t playernum); // q2rpg
 
 void CG_DrawHUD (int32_t isplit, const cg_server_data_t *data, vrect_t hud_vrect, vrect_t hud_safe, int32_t scale, int32_t playernum, const player_state_t *ps)
 {
@@ -1771,6 +1772,7 @@ void CG_DrawHUD (int32_t isplit, const cg_server_data_t *data, vrect_t hud_vrect
         CG_Loot_DrawHealthBar(ps, hud_vrect, scale); // q2rpg: overhead enemy health bar
         CG_Loot_DrawShield(ps, hud_vrect, hud_safe, scale); // q2rpg: shield bar above health
         CG_Loot_DrawDamageNumbers(ps, hud_vrect, scale); // q2rpg: floating damage numbers
+        CG_Loot_DrawMinimap(ps, hud_vrect, scale, playernum); // q2rpg: explored map + items
         CG_ExecuteLayoutString(cgi.get_configstring(CS_STATUSBAR), hud_vrect, hud_safe, scale, playernum, ps);
     }
 
