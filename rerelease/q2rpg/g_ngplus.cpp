@@ -324,6 +324,27 @@ float NGPlus_ShieldDropMult()
 	return NGPlus_MapMod(LOOT_MAPMOD_FORTIFIED) ? 2.f : 1.f;
 }
 
+// q2rpg: smarter monsters in NG+ (AI only; health and damage scale separately).
+// Each cycle counts as one more skill step for AI checks, adds 15% to the dodge
+// reaction chance and lets monsters shrug off 20% of pain flinches (max 60%).
+int32_t NGPlus_AISkill()
+{
+	const int32_t cycles = deathmatch->integer ? 0 : game.loot_ngplus;
+	return std::clamp(skill->integer + cycles, 0, 3);
+}
+
+float NGPlus_DodgeChance()
+{
+	const int32_t cycles = deathmatch->integer ? 0 : game.loot_ngplus;
+	return std::min(0.9f, 0.5f + 0.15f * cycles);
+}
+
+bool NGPlus_ShrugOffPain()
+{
+	const int32_t cycles = deathmatch->integer ? 0 : game.loot_ngplus;
+	return cycles > 0 && frandom() < std::min(0.6f, 0.2f * cycles);
+}
+
 float NGPlus_XPMult()
 {
 	return NGPlus_MapMod(LOOT_MAPMOD_BLOODTHIRSTY) ? 1.5f : 1.f;

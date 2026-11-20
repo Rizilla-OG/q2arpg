@@ -257,6 +257,8 @@ bool M_ShouldReactToPain(edict_t *self, const mod_t &mod)
 	if (self->monsterinfo.aiflags & (AI_DUCKED | AI_COMBAT_POINT))
 		return false;
 
+	if (mod.id != MOD_CHAINFIST && NGPlus_ShrugOffPain()) // q2rpg: NG+ monsters flinch less
+		return false;
 	return mod.id == MOD_CHAINFIST || skill->integer < 3;
 }
 

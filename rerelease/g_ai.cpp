@@ -503,7 +503,8 @@ void FoundTarget(edict_t *self)
         self->monsterinfo.attack_finished = level.time + 600_ms;
 
     // give easy/medium a little more reaction time
-    self->monsterinfo.attack_finished += skill->integer == 0 ? 400_ms : skill->integer == 1 ? 200_ms : 0_ms;
+    const int32_t ai_skill = NGPlus_AISkill(); // q2rpg: NG+ counts as higher skill
+    self->monsterinfo.attack_finished += ai_skill == 0 ? 400_ms : ai_skill == 1 ? 200_ms : 0_ms;
 
     self->monsterinfo.last_sighting = self->monsterinfo.saved_goal = self->enemy->s.origin;
     self->monsterinfo.trail_time = level.time;

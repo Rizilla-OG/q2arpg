@@ -1291,10 +1291,11 @@ void drawbbox(edict_t *self)
 // [Paril-KEX] returns true if the skill check passes
 inline bool G_SkillCheck(const std::initializer_list<float> &skills)
 {
-	if (skills.size() < skill->integer)
+	const int32_t ai_skill = NGPlus_AISkill(); // q2rpg: NG+ counts as higher skill
+	if (skills.size() <= (size_t)ai_skill)
 		return true;
 
-	const float &skill_switch = *(skills.begin() + skill->integer);
+	const float &skill_switch = *(skills.begin() + ai_skill);
 	return skill_switch == 1.0f ? true : frandom() < skill_switch;
 }
 
@@ -1331,7 +1332,7 @@ MONSTERINFO_DODGE(M_MonsterDodge) (edict_t *self, edict_t *attacker, gtime_t eta
 		return;
 
 	// skill level determination..
-	if (r > 0.50f)
+	if (r > NGPlus_DodgeChance()) // q2rpg: was 0.5; NG+ monsters react more often
 		return;
 
 	if (ducker && tr)

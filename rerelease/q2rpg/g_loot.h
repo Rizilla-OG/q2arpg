@@ -87,6 +87,9 @@ float NGPlus_ProcChanceMult();                                            // Ele
 float NGPlus_DropMult();                                                  // Bounty
 float NGPlus_MonsterShieldMult();                                         // Fortified
 float NGPlus_ShieldDropMult();                                            // Fortified
+int32_t NGPlus_AISkill();                                                 // q2rpg: skill + NG+ cycle (0-3) for monster AI checks
+float NGPlus_DodgeChance();                                               // q2rpg: chance a monster reacts to an incoming shot
+bool NGPlus_ShrugOffPain();                                               // q2rpg: NG+ monsters sometimes skip the pain flinch
 float NGPlus_XPMult();                                                    // Bloodthirsty
 void NGPlus_OnMonsterHitPlayer(edict_t *monster, int32_t damage);         // Bloodthirsty
 bool Loot_PromoteToOmega(edict_t *monster);                               // after monster_start (Bounty); false if it won't fit
