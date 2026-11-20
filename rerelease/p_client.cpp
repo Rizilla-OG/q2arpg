@@ -2620,6 +2620,7 @@ void ClientUserinfoChanged(edict_t *ent, const char *userinfo)
 	// set skin
 	if (!gi.Info_ValueForKey(userinfo, "skin", val, sizeof(val)))
 		Q_strlcpy(val, "male/grunt", sizeof(val));
+	Looks_OverrideSkin(ent, val, sizeof(val)); // q2rpg: character looks
 
 	int playernum = ent - g_edicts - 1;
 

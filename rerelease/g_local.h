@@ -2893,6 +2893,8 @@ struct client_persistant_t
 	std::array<loot_stash_slot_t, LOOT_STASH_SLOTS> loot_stash; // q2rpg: stash (vendor page 4)
 	int32_t loot_stash_bought; // q2rpg: extra 4-slot rows bought at Lv 60
 	std::array<int32_t, LOOT_ARCH_COUNT> loot_prof_kills; // q2rpg: weapon proficiency kills per gun type
+	int32_t loot_look_skin; // q2rpg: character looks skin index (0 = own userinfo skin)
+	int32_t loot_look_aura; // q2rpg: character looks aura index (0 = none)
 	int32_t loot_filter; // q2rpg: loot filter: monster drops below this rarity don't spawn (0 off, max 3)
 	int32_t loot_tree; // loot_tree_t
 	std::array<uint8_t, LOOT_NUM_SKILLS> loot_skill_ranks;
@@ -3004,7 +3006,8 @@ struct gclient_t
 	bool loot_showskills;
 	bool loot_showchallenges; // q2rpg: challenges screen open
 	gtime_t loot_challenges_time;
-	int32_t loot_challenges_page; // q2rpg: 0 or 1 (two pages fit the 1024-char layout limit)
+	bool loot_looks_synced; // q2rpg: chosen skin sent since this spawn (cleared with the rest of the client on respawn / map load)
+	int32_t loot_challenges_page; // q2rpg: 0-1 challenges (two pages fit the 1024-char layout limit), 2 looks
 	gtime_t loot_skills_time;
 	gtime_t loot_action_ready;	   // action skill usable at
 	gtime_t loot_overcharge_end;

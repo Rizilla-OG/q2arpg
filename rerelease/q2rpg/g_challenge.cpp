@@ -304,7 +304,7 @@ static void Challenge_SendScreen(edict_t *ent)
 	// two pages: one doesn't fit the 1024-char layout limit
 	constexpr int32_t per_page = 8;
 	const int32_t page = std::clamp(ent->client->loot_challenges_page, 0, 1);
-	s += G_Fmt("yv {} string2 \"CHALLENGES  {}/2\" ", y, page + 1).data();
+	s += G_Fmt("yv {} string2 \"CHALLENGES  {}/3\" ", y, page + 1).data();
 	y += 16;
 
 	for (int32_t i = page * per_page; i < std::min(LOOT_NUM_CHALLENGES, (page + 1) * per_page); i++)
@@ -344,7 +344,10 @@ bool Challenge_Layout(edict_t *ent)
 
 	if (level.time >= cl->loot_challenges_time || cl->loot_challenges_time > level.time + 1_sec)
 	{
-		Challenge_SendScreen(ent);
+		if (cl->loot_challenges_page == 2) // q2rpg: character looks
+			Loot_SendLayout(ent, Looks_PageLayout(ent));
+		else
+			Challenge_SendScreen(ent);
 		cl->loot_challenges_time = level.time + 500_ms;
 	}
 	return true;
@@ -352,18 +355,24 @@ bool Challenge_Layout(edict_t *ent)
 
 bool Challenge_ClientCommand(edict_t *ent, const char *cmd)
 {
+	gclient_t *cl = ent->client;
+	// q2rpg: number keys pick skin / aura on the looks page
+	if (!Q_strcasecmp(cmd, "slot") && cl->loot_showchallenges && cl->loot_challenges_page == 2)
+	{
+		Looks_Select(ent, atoi(gi.argv(1)));
+		return true;
+	}
 	if (Q_strcasecmp(cmd, "challenges"))
 		return false;
 
-	gclient_t *cl = ent->client;
-	// J: page 1 -> page 2 -> close
+	// J: page 1 -> page 2 -> looks -> close
 	if (!cl->loot_showchallenges)
 	{
 		cl->loot_showchallenges = true;
 		cl->loot_challenges_page = 0;
 	}
-	else if (cl->loot_challenges_page == 0)
-		cl->loot_challenges_page = 1;
+	else if (cl->loot_challenges_page < 2)
+		cl->loot_challenges_page++;
 	else
 		cl->loot_showchallenges = false;
 	cl->loot_showinv = false;

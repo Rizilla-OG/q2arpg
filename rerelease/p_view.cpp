@@ -968,6 +968,8 @@ void G_SetClientEffects(edict_t *ent)
 		ent->s.renderfx |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 	}
 
+	Looks_ApplyAura(ent); // q2rpg: character looks
+
 #if 0
 	// disintegrator stuff
 	if (ent->disintegrator_time)

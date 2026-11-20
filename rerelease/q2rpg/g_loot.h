@@ -388,3 +388,9 @@ struct vendor_prices_t
 extern const vendor_prices_t vendor_prices_default;
 extern vendor_prices_t vendor_prices;
 void Loot_LoadData(); // reads q2rpg/loot_data.json, if any, over the built-in tables
+
+// q2rpg: character looks (g_looks.cpp)
+void Looks_OverrideSkin(edict_t *ent, char *skin, size_t skin_size);
+void Looks_ApplyAura(edict_t *ent);
+void Looks_Select(edict_t *ent, int32_t key);
+std::string Looks_PageLayout(edict_t *ent);
