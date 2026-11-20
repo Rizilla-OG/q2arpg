@@ -4009,7 +4009,7 @@ void Loot_SetStats(edict_t *ent)
 // Commands
 //==========================================================================
 
-static int32_t Loot_FindEmptySlot(gclient_t *cl)
+int32_t Loot_FindEmptySlot(gclient_t *cl)
 {
 	for (int32_t i = 0; i < LOOT_NUM_SLOTS; i++)
 		if (!cl->pers.loot_slots[i].valid)
@@ -4017,7 +4017,7 @@ static int32_t Loot_FindEmptySlot(gclient_t *cl)
 	return -1;
 }
 
-static int32_t Loot_CountGuns(gclient_t *cl)
+int32_t Loot_CountGuns(gclient_t *cl)
 {
 	int32_t n = 0;
 	for (const auto &slot : cl->pers.loot_slots)
@@ -4815,6 +4815,11 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 	if (!Q_strcasecmp(cmd, "loot_spawnmonster"))
 	{
 		Loot_Cmd_SpawnMonster(ent);
+		return true;
+	}
+	if (!Q_strcasecmp(cmd, "loot_give"))
+	{
+		Trade_Give(ent);
 		return true;
 	}
 	if (!Q_strcasecmp(cmd, "loot_map"))

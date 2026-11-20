@@ -585,6 +585,23 @@ static void Vendor_StashFromFloor(edict_t *ent, edict_t *floor, loot_stash_slot_
 	cl->loot_card_sent = nullptr;
 }
 
+// q2rpg: co-op trading puts a gift here when the receiver's gun slots are full
+bool Vendor_StashAddGun(edict_t *ent, const loot_weapon_t &gun)
+{
+	const int32_t open_slots = Vendor_StashOpenSlots(ent);
+	for (int32_t i = 0; i < open_slots; i++)
+	{
+		loot_stash_slot_t &slot = ent->client->pers.loot_stash[i];
+		if (Vendor_StashSlotUsed(slot))
+			continue;
+		slot = {};
+		slot.gun = gun;
+		ent->client->loot_shop_time = 0_ms;
+		return true;
+	}
+	return false;
+}
+
 // Store into an empty slot: the floor item you stand on, else the held gun.
 static void Vendor_StashStore(edict_t *ent, loot_stash_slot_t &slot)
 {

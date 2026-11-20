@@ -2,6 +2,7 @@
 
 ## Unreleased (next update)
 
+- Added: co-op trading. Look at a teammate up close and press H to hand them the gun you're holding. It goes into their first empty slot without switching their weapon, or into their stash if their slots are full. You can't give away your last gun. Dropping a gun with G still works too: anyone can pick it up.
 - Added: minimap. From our friends at Foxhound, we have acquired new radar tech. A green radar in the top-right corner draws the map as you explore it: floors shaded by height, solid lines for walls, dashed lines for ledges, red for lava and slime. It marks nearby items (health, armor, ammo, weapons, keys, powerups), loot by rarity color (following your loot filter) and chests. Items on another floor show hollow with a tick above or below. No monsters are shown. M cycles corner radar, full-screen map, off. Works on every map, and in co-op for every player; co-op players share the explored map.
 - Changed: the vendor no longer has a stash page in its page cycle; B already opens the stash anywhere for free. Extra stash slots (Lv 60) are bought from the Workshop page, item 7. Pressing B with the vendor open still shows the stash, and B again returns to the shop.
 - Balance: NG+ monsters now get x2 health per cycle (was x1.5); damage stays x1.5. Fights at NG+ 1 took 2-4 seconds a kill at Lv 60.
