@@ -239,7 +239,7 @@ static int32_t Looks_CountUnlocked(const edict_t *ent, int32_t count, bool (*unl
 	return total;
 }
 
-// key 6: a stand-in of you appears in front of you for 10 s, slowly turning, wearing the
+// key 6: a stand-in of you appears in front of you for 10 s, jogging a small circle, wearing the
 // current skin and aura (the rerelease has no third-person camera)
 constexpr gtime_t LOOKS_PREVIEW_TIME = 10_sec;
 
@@ -254,8 +254,15 @@ THINK(Looks_PreviewThink)(edict_t *self)->void
 		return;
 	}
 	self->s.skinnum = owner->s.skinnum & 0xFF; // client number picks the skin
-	self->s.frame = (self->s.frame + 1) % 40;  // stand01-40
-	self->s.angles[YAW] = anglemod(self->s.angles[YAW] + 6.f);
+
+	// jog a small circle (trail auras only draw behind something that moves)
+	constexpr float circle_radius = 24.f;
+	const float circle_angle = (level.time - self->teleport_time).seconds() * 3.f; // radians
+	self->s.old_origin = self->s.origin;
+	self->s.origin = self->pos1 + vec3_t{cosf(circle_angle) * circle_radius, sinf(circle_angle) * circle_radius, 0};
+	self->s.angles[YAW] = anglemod(RAD2DEG(circle_angle) + 90.f); // face along the circle
+	self->s.frame = 40 + (self->s.frame - 40 + 1 + 6) % 6;        // run1-6
+	gi.linkentity(self);
 
 	// the owner's aura bits only
 	constexpr renderfx_t shell_bits = RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE;
@@ -287,6 +294,9 @@ static void Looks_Preview(edict_t *ent)
 	preview->classname = "loot_looks_preview";
 	preview->owner = ent;
 	preview->s.origin = spot;
+	preview->pos1 = spot;                // circle center
+	preview->teleport_time = level.time; // circle start
+	preview->s.frame = 40;
 	preview->s.old_origin = spot;
 	preview->s.angles = {0, anglemod(ent->client->v_angle[YAW] + 180.f), 0};
 	preview->s.modelindex = MODELINDEX_PLAYER;
