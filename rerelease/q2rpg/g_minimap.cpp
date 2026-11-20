@@ -229,7 +229,8 @@ static int32_t Minimap_ItemType(const edict_t *item, const edict_t *player)
 	if (item->classname && !strcmp(item->classname, "loot_chest"))
 		return Loot_HiddenFrom(item, player) ? -1 : (item->style ? MINIMAP_ITEM_RED_CHEST : MINIMAP_ITEM_CHEST);
 
-	if (!item->item || item->solid != SOLID_TRIGGER || Loot_HiddenFrom(item, player))
+	// hidden items (respawning, waiting on a trigger) stay off the map
+	if (!item->item || item->solid != SOLID_TRIGGER || (item->svflags & SVF_NOCLIENT) || Loot_HiddenFrom(item, player))
 		return -1;
 
 	if (Loot_IsLootItem(item))
