@@ -3009,6 +3009,7 @@ struct gclient_t
 	gtime_t loot_challenges_time;
 	char loot_map_items_cache[CS_MAX_STRING_LENGTH]; // q2rpg: last minimap item string sent
 	gtime_t loot_map_items_time;                     // q2rpg: next minimap item refresh
+	edict_t *loot_aura_ghost;    // q2rpg: hidden-from-owner body copy that carries the aura
 	edict_t *loot_looks_preview; // q2rpg: looks preview stand-in, if one is up
 	bool loot_looks_synced; // q2rpg: chosen skin sent since this spawn (cleared with the rest of the client on respawn / map load)
 	int32_t loot_challenges_page; // q2rpg: 0-1 challenges (two pages fit the 1024-char layout limit), 2 looks

@@ -146,6 +146,17 @@ void Looks_OverrideSkin(edict_t *ent, char *skin, size_t skin_size)
 	Q_strlcpy(skin, looks_skins[index - 1].path, skin_size);
 }
 
+// frees an aura copy whose player no longer points at it (map change, save load, disconnect)
+THINK(Looks_AuraGhostThink)(edict_t *self)->void
+{
+	if (!self->owner || !self->owner->inuse || !self->owner->client || self->owner->client->loot_aura_ghost != self)
+	{
+		G_FreeEdict(self);
+		return;
+	}
+	self->nextthink = level.time + 1_sec;
+}
+
 // G_SetClientEffects: the aura. Shells pulse (0.8 s of every 2 s) and stay off while a
 // powerup or cheat shell is already showing.
 void Looks_ApplyAura(edict_t *ent)
@@ -159,22 +170,52 @@ void Looks_ApplyAura(edict_t *ent)
 		if (ent->client->pers.loot_look_skin > 0)
 			Looks_RefreshSkin(ent);
 	}
-	if (ent->health <= 0)
+	gclient_t *cl = ent->client;
+	edict_t *ghost = cl->loot_aura_ghost;
+	if (ghost && (!ghost->inuse || ghost->owner != ent || !ghost->classname || strcmp(ghost->classname, "loot_aura_ghost")))
+		ghost = cl->loot_aura_ghost = nullptr;
+
+	const int32_t index = cl->pers.loot_look_aura;
+	const bool wants_aura = ent->health > 0 && ent->s.modelindex == MODELINDEX_PLAYER && index > 0 && index < LOOKS_AURA_COUNT && Looks_AuraUnlocked(ent, index);
+	if (!wants_aura)
+	{
+		if (ghost)
+			G_FreeEdict(ghost);
+		cl->loot_aura_ghost = nullptr;
 		return;
-	const int32_t index = ent->client->pers.loot_look_aura;
-	if (index <= 0 || index >= LOOKS_AURA_COUNT || !Looks_AuraUnlocked(ent, index))
-		return;
+	}
+
+	// the aura is drawn on a copy of the player's body that is hidden from the player:
+	// a shell on the player itself would also cover their first-person gun
+	if (!ghost)
+	{
+		ghost = G_Spawn();
+		ghost->classname = "loot_aura_ghost";
+		ghost->owner = ent;
+		ghost->solid = SOLID_NOT;
+		ghost->movetype = MOVETYPE_NONE;
+		ghost->think = Looks_AuraGhostThink;
+		ghost->svflags |= SVF_INSTANCED;
+		for (uint32_t i = 0; i < game.maxclients; i++)
+			ghost->item_picked_up_by[i] = (g_edicts + 1 + i) == ent; // true = hidden from that player
+		cl->loot_aura_ghost = ghost;
+	}
 
 	const looks_aura_t &aura = looks_auras[index - 1];
-	ent->s.effects |= aura.trail;
-
 	const bool other_shell = (ent->s.effects & EF_COLOR_SHELL) || (ent->s.renderfx & (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE));
 	const bool pulse_on = (level.time.milliseconds() % 2000) < 800;
-	if (aura.shell && !other_shell && pulse_on)
-	{
-		ent->s.effects |= EF_COLOR_SHELL;
-		ent->s.renderfx |= aura.shell;
-	}
+	const bool shell_on = aura.shell && !other_shell && pulse_on;
+
+	ghost->s.origin = ent->s.origin;
+	ghost->s.old_origin = ent->s.old_origin;
+	ghost->s.angles = ent->s.angles;
+	ghost->s.frame = ent->s.frame;
+	ghost->s.skinnum = ent->s.skinnum & 0xFF; // client number picks the skin
+	ghost->s.modelindex = (shell_on || aura.trail) ? MODELINDEX_PLAYER : 0;
+	ghost->s.effects = aura.trail | (shell_on ? EF_COLOR_SHELL : EF_NONE);
+	ghost->s.renderfx = shell_on ? aura.shell : RF_NONE;
+	ghost->nextthink = level.time + 1_sec; // the think only cleans up orphans
+	gi.linkentity(ghost);
 }
 
 // steps a choice to the next unlocked entry (direction +1 / -1); 0 always counts as unlocked
@@ -218,8 +259,10 @@ THINK(Looks_PreviewThink)(edict_t *self)->void
 
 	// the owner's aura bits only
 	constexpr renderfx_t shell_bits = RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE;
-	self->s.renderfx = (self->s.renderfx & ~shell_bits) | (owner->s.renderfx & shell_bits);
-	self->s.effects = owner->s.effects & (EF_COLOR_SHELL | EF_TAGTRAIL | EF_TRACKERTRAIL);
+	const edict_t *aura = owner->client->loot_aura_ghost; // the aura lives on the hidden copy
+	const renderfx_t aura_shell = (aura && aura->inuse) ? aura->s.renderfx & shell_bits : RF_NONE;
+	self->s.renderfx = (self->s.renderfx & ~shell_bits) | aura_shell;
+	self->s.effects = (aura && aura->inuse) ? aura->s.effects & (EF_COLOR_SHELL | EF_TAGTRAIL | EF_TRACKERTRAIL) : EF_NONE;
 	self->nextthink = level.time + 100_ms;
 }
 
