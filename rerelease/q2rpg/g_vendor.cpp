@@ -121,7 +121,8 @@ static const vendor_upgrade_t vendor_upgrades[LOOT_UPGRADE_COUNT] = {
     {"Second Chance +4%", 5},
 };
 
-// Shop pages; 9 cycles stock -> upgrades -> workshop -> stash -> missions -> stock.
+// Shop pages; 9 cycles stock -> upgrades -> workshop -> missions -> stock. The stash page is
+// only reached with B (free view); its extra rows are bought from the workshop (item 7).
 enum vendor_page_t
 {
 	VENDOR_PAGE_STOCK,
@@ -131,6 +132,9 @@ enum vendor_page_t
 	VENDOR_PAGE_MISSIONS, // q2rpg: side missions (g_mission.cpp)
 	VENDOR_PAGE_COUNT
 };
+
+static int32_t Vendor_StashBuyPrice(edict_t *ent);
+static int32_t Vendor_StashOpenSlots(edict_t *ent);
 
 // Workshop: raise the active gun to the player's level. Costs 1.5x the gain in
 // gun value, so it never runs out and scales with rarity: the endless cash sink.
@@ -457,8 +461,12 @@ static void Vendor_SendWorkshop(edict_t *ent)
 	const bool arena_affordable = Arena_InArena() || Arena_OpenPrice(ent) <= money;
 	line(arena_usable && arena_affordable ? "string2" : "string", "6  " + arena_text);
 
+	// q2rpg: 4 more stash slots (Lv 60); the stash itself opens with B
+	if (const int32_t stash_price = Vendor_StashBuyPrice(ent))
+		line(stash_price <= money ? "string2" : "string", G_Fmt("7  Stash: 4 more slots  ${}", stash_price).data());
+
 	y += 6;
-	line("string2", "[1-6] buy  [9] stash >  [V] close");
+	line("string2", "[1-7] buy  [9] missions >  [V] close");
 	Loot_SendLayout(ent, s);
 }
 
@@ -556,7 +564,8 @@ static void Vendor_SendStash(edict_t *ent)
 	y += 6;
 	const char *next = page + 1 < pages ? "next page" : cl->loot_stash_only ? "page 1"
 	                                                                        : "missions";
-	line("string2", G_Fmt("[1-8] store / take  [9] {}  [{}] close", next, cl->loot_stash_only ? "B" : "V").data());
+	line("string2", cl->loot_stash_only ? G_Fmt("[1-8] store / take  [9] {}  [B] close", next).data()
+	                                    : G_Fmt("[1-8] store / take  [9] {}  [B] shop  [V] close", next).data());
 	Loot_SendLayout(ent, s);
 }
 
@@ -659,7 +668,13 @@ static void Vendor_StashView(edict_t *ent)
 		cl->loot_shop_open = false;
 		return;
 	}
-	if (cl->loot_shop_open) // paid shop already up: jump to its stash page
+	if (cl->loot_shop_open && cl->loot_shop_page == VENDOR_PAGE_STASH) // q2rpg: B again goes back to the paid shop
+	{
+		cl->loot_shop_page = VENDOR_PAGE_STOCK;
+		cl->loot_shop_time = 0_ms;
+		return;
+	}
+	if (cl->loot_shop_open) // paid shop already up: show the stash inside it
 	{
 		cl->loot_shop_page = VENDOR_PAGE_STASH;
 		cl->loot_stash_page = 0;
@@ -825,7 +840,7 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 {
 	gclient_t *cl = ent->client;
 
-	// 9 cycles stock -> upgrades -> workshop -> stash pages -> stock
+	// 9 cycles stock -> upgrades -> workshop -> missions -> stock (stash pages only in the B view)
 	if (n == 9 && cl->loot_shop_page == VENDOR_PAGE_STASH && cl->loot_stash_page + 1 < Vendor_StashPages(ent))
 	{
 		cl->loot_stash_page++;
@@ -842,6 +857,8 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 	{
 		cl->loot_stash_page = 0;
 		cl->loot_shop_page = (cl->loot_shop_page + 1) % VENDOR_PAGE_COUNT;
+		if (cl->loot_shop_page == VENDOR_PAGE_STASH) // q2rpg: stash is B only
+			cl->loot_shop_page = (cl->loot_shop_page + 1) % VENDOR_PAGE_COUNT;
 		cl->loot_shop_time = 0_ms;
 		return;
 	}
@@ -932,6 +949,16 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 		if (!Rift_CanOpen(ent) || !Vendor_Pay(ent, Rift_OpenPrice()))
 			return;
 		Rift_Open(ent);
+		return;
+	}
+
+	if (cl->loot_shop_page == VENDOR_PAGE_WORKSHOP && n == 7 && Vendor_StashBuyPrice(ent))
+	{
+		if (!Vendor_Pay(ent, Vendor_StashBuyPrice(ent)))
+			return;
+		cl->pers.loot_stash_bought++;
+		gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/secret.wav"), 1, ATTN_NORM, 0);
+		gi.Center_Print(ent, G_Fmt("Stash: {} slots", Vendor_StashOpenSlots(ent)).data());
 		return;
 	}
 
