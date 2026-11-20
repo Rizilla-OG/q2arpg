@@ -8,7 +8,7 @@ A looter-boomer-shooter mod for the Quake II rerelease (2023). Every gun is roll
 with a rarity, a maker, parts and sometimes an element. Level up, pick a skill
 tree, shop at vendors, chase challenges, and replay the campaign in New Game+.
 
-**Version 0.9.666 (public alpha).** The version is shown in the console when
+**Version 0.9.7 (public alpha).** The version is shown in the console when
 the mod loads. See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
 Download the latest release: https://github.com/Rizilla-OG/q2arpg/releases
 
@@ -76,10 +76,12 @@ The mod sets these binds in `q2rpg/autoexec.cfg`:
 | `L` | Loot filter: hide low-rarity monster drops (press to cycle: off, Common, Uncommon and below, Rare and below) |
 | `V` | Vendor (first visit per map is free) |
 | `K` | Skills (press again for the NG+ tier-4 page) |
-| `J` | Challenges |
+| `J` | Challenges (page 3: character looks) |
 | `F` | Action skill |
 | `Q` | Throw grenade |
 | `Z` | Melee strike |
+| `M` | Minimap: corner radar, full-screen map, off |
+| `H` | Co-op: hand the gun you hold to the teammate you look at |
 | `R` | Reload |
 | Hold right mouse | Zoom |
 | `1`–`9` | Weapon slots; pick skills / shop items while a screen is open |
@@ -121,19 +123,26 @@ Controller binds exist for split-screen but are **beta**.
   The workshop (`9` twice in the shop) levels your gun up to yours. The
   Second Chance upgrade can leave you at 1 HP for 5 seconds instead of dying:
   get a kill to get back up.
-- **Stash** (`B`, free, or `9` three times in the shop): store any item
-  across maps and NG+. It grows with your level; at 60 you can buy more
-  space. `B` on floor loot sends it straight in.
+- **Stash** (`B`, free, anywhere): store any item across maps and NG+. It
+  grows with your level; at 60 you can buy more space (workshop item 7).
+  `B` on floor loot sends it straight in.
 - **Loot filter** (`L`): hide Common, Uncommon or Rare-and-below drops.
 - **Challenges** (`J`) pay XP and cash for kill goals. In NG+ a fourth tier
   drops a Mythic reward and a permanent badge.
+- **Minimap** (`M`): a green radar that draws each map as you explore it,
+  with walls, ledges, lava and nearby items and loot (following your loot
+  filter). `M` cycles corner radar, full-screen map and off.
+- **Character looks** (`J`, page 3): pick a skin and an aura. Rarer ones
+  unlock with level, challenge tiers, NG+ and the raid; `6` shows a preview.
+- **Alien tech** (NG+ only): the Ripper (bouncing discs) and the Tracker
+  (homing, locks on when you miss) drop at Rare and up.
 - **Alphas** are elite monsters with better drops.
 - **Menus** (`V`, `K`, `J`, `I`) pause the game in single-player.
 - **New Game+:** finishing the campaign restarts it with tougher monsters,
   better loot, Mythic gear, Alpha traits, map modifiers, a level cap of 60
   and a fourth skill row. Each map rolls a modifier, shown when you enter;
   reloading keeps it.
-- **Side missions** (the vendor's Missions page, `9` past the stash): two
+- **Side missions** (the vendor's Missions page, `9` past the workshop): two
   per map, such as killing a monster kind, Alphas, headshots or a spree.
   They pay XP, cash and gear.
 - **Arena** (level 15, workshop item 6): up to 15 waves of monsters in an
@@ -149,7 +158,8 @@ Controller binds exist for split-screen but are **beta**.
 
 Host a co-op game as usual with the launch option set. Each player gets
 their own drops and cash. Players joining mid-game start at the party's
-level.
+level. Look at a teammate and press `H` to hand them the gun you hold; it
+goes to their first empty slot, else their stash.
 
 ## Options
 
