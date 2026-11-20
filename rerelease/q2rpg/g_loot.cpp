@@ -777,7 +777,9 @@ loot_rarity_t Loot_RollRarity(float luck)
 
 	for (int32_t i = 0; i < LOOT_RARITY_COUNT; i++)
 	{
-		weights[i] = loot_rarities[i].weight * (1.0f + std::max(0.f, luck) * i * 0.5f);
+		// q2rpg: Legendary and Mythic get half the luck boost; NG+ Lv 60 luck made them too common
+		const float luck_rate = i >= LOOT_RARITY_LEGENDARY ? 0.25f : 0.5f;
+		weights[i] = loot_rarities[i].weight * (1.0f + std::max(0.f, luck) * i * luck_rate);
 		if (i == LOOT_RARITY_MYTHIC && game.loot_ngplus <= 0)
 			weights[i] = 0; // Mythic only drops in NG+
 		total += weights[i];

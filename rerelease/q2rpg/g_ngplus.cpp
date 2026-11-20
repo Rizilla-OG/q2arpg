@@ -273,18 +273,20 @@ float NGPlus_LuckBonus()
 	return (NGPlus_MapMod(LOOT_MAPMOD_LOOT_FRENZY) ? 1.5f : 0.f) + Rift_LuckBonus();
 }
 
-// Monsters get x1.5 health and damage per NG+ cycle on top of their levels:
+// Monsters get x2 health and x1.5 damage per NG+ cycle on top of their levels:
 // gear (rarity, Mythics, uniques, tier-4 skills, badges) outscales levels alone.
+// q2rpg: health was x1.5 until 2026-11-20; NG+ 1 kills took 2-4 s at Lv 60
 constexpr float NGPLUS_CYCLE_MONSTER_MULT = 1.5f;
+constexpr float NGPLUS_CYCLE_HEALTH_MULT = 2.0f;
 
-static float NGPlus_CycleMult()
+static float NGPlus_CycleMult(float per_cycle = NGPLUS_CYCLE_MONSTER_MULT)
 {
-	return game.loot_ngplus > 0 ? powf(NGPLUS_CYCLE_MONSTER_MULT, (float)game.loot_ngplus) : 1.f;
+	return game.loot_ngplus > 0 ? powf(per_cycle, (float)game.loot_ngplus) : 1.f;
 }
 
 float NGPlus_MonsterHealthMult()
 {
-	float mult = NGPlus_CycleMult();
+	float mult = NGPlus_CycleMult(NGPLUS_CYCLE_HEALTH_MULT);
 	if (NGPlus_MapMod(LOOT_MAPMOD_LOOT_FRENZY))
 		mult *= 1.3f;
 	if (NGPlus_MapMod(LOOT_MAPMOD_GLASS_CANNON))

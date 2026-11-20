@@ -2,6 +2,8 @@
 
 ## Unreleased (next update)
 
+- Balance: NG+ monsters now get x2 health per cycle (was x1.5); damage stays x1.5. Fights at NG+ 1 took 2-4 seconds a kill at Lv 60.
+- Balance: Legendary and Mythic drops get half as much boost from luck, so late NG+ is no longer flooded with them. Guaranteed drops (bosses, Omegas, missions) are unchanged.
 - Added: character looks. Page 3 of the challenges screen (J) picks your player skin from 28 stock skins and an aura (a pulsing color shell or a trail) from 8. Both are free; the rarer ones unlock with player level, challenge tiers, NG+ and beating the raid boss. Keys 1/2 skin, 3/4 aura, 5 reset, 6 shows a 10-second preview of you. Teammates see your look in coop.
 - Added: alien-tech guns. Military intel has picked up rumors that the Strogg have been modifying our guns, and in NG+ two new Rare+ gun types start turning up in the field. The **Ripper** fires bouncing ion discs from cells; Brask barrels and some Epic+ rolls fan out an extra disc. The **Tracker** fires homing shots from slugs and locks onto the monster nearest your crosshair when you miss. They take elements, crits and proficiency like any gun, but have no uniques.
 
