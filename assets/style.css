@@ -53,6 +53,8 @@
   .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
   .btn.ghost { color: var(--accent); }
   .btn.ghost:hover { background: rgba(232, 80, 42, .12); }
+  .new-in { margin: 8px 0 28px; text-align: left; }
+  .new-in h2 { margin-top: 0; }
   .badge {
     display: inline-block;
     margin-bottom: 18px;
