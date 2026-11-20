@@ -11,6 +11,7 @@
 
 ### Changed
 
+- Fixed: loading a save (or a co-op player joining) could crash with "bad allocation" once the minimap had been drawn. Saves made on the broken build need the minimap data cleared before they load.
 - Legendary and Mythic drops get half as much boost from luck, so late NG+ is no longer flooded with them. Guaranteed drops (bosses, Omegas, missions) are unchanged.
 - The final boss is enraged in NG+. Jorg and Makron get x3 health and x1.5 damage on top of normal scaling, and aim better: Makron's railgun fires at where you are instead of where you were, both bosses lead their BFG shots, Makron's blaster sweep is narrower and centered on you, and Jorg's chainguns are twice as tight. The raid's Makron is unchanged. NG+ 1 final boss went down in about 7 seconds.
 - NG+ monsters fight smarter. Each cycle counts as one higher difficulty step for their AI: they react to incoming shots more often (50% +15% per cycle), dodge more readily, open fire sooner after spotting you, and shrug off 20% of pain flinches per cycle (max 60%). Their health and damage scaling is separate.
