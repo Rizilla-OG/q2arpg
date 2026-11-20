@@ -198,7 +198,66 @@ static int32_t Looks_CountUnlocked(const edict_t *ent, int32_t count, bool (*unl
 	return total;
 }
 
-// keys on the looks page: 1/2 skin back/next, 3/4 aura back/next, 5 back to your own skin, no aura
+// key 6: a stand-in of you appears in front of you for 10 s, slowly turning, wearing the
+// current skin and aura (the rerelease has no third-person camera)
+constexpr gtime_t LOOKS_PREVIEW_TIME = 10_sec;
+
+THINK(Looks_PreviewThink)(edict_t *self)->void
+{
+	edict_t *owner = self->owner;
+	if (!owner || !owner->inuse || !owner->client || level.time >= self->timestamp)
+	{
+		if (owner && owner->client && owner->client->loot_looks_preview == self)
+			owner->client->loot_looks_preview = nullptr;
+		G_FreeEdict(self);
+		return;
+	}
+	self->s.skinnum = owner->s.skinnum & 0xFF; // client number picks the skin
+	self->s.frame = (self->s.frame + 1) % 40;  // stand01-40
+	self->s.angles[YAW] = anglemod(self->s.angles[YAW] + 6.f);
+
+	// the owner's aura bits only
+	constexpr renderfx_t shell_bits = RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE;
+	self->s.renderfx = (self->s.renderfx & ~shell_bits) | (owner->s.renderfx & shell_bits);
+	self->s.effects = owner->s.effects & (EF_COLOR_SHELL | EF_TAGTRAIL | EF_TRACKERTRAIL);
+	self->nextthink = level.time + 100_ms;
+}
+
+static void Looks_Preview(edict_t *ent)
+{
+	gclient_t *cl = ent->client;
+	if (cl->loot_looks_preview && cl->loot_looks_preview->inuse)
+		G_FreeEdict(cl->loot_looks_preview);
+	cl->loot_looks_preview = nullptr;
+
+	vec3_t forward;
+	AngleVectors({0, ent->client->v_angle[YAW], 0}, forward, nullptr, nullptr);
+	const vec3_t spot = ent->s.origin + forward * 96.f;
+	const trace_t room = gi.trace(ent->s.origin, ent->mins, ent->maxs, spot, ent, MASK_PLAYERSOLID);
+	if (room.fraction < 1.f)
+	{
+		gi.Center_Print(ent, "No room for the preview here");
+		return;
+	}
+
+	edict_t *preview = G_Spawn();
+	preview->classname = "loot_looks_preview";
+	preview->owner = ent;
+	preview->s.origin = spot;
+	preview->s.old_origin = spot;
+	preview->s.angles = {0, anglemod(ent->client->v_angle[YAW] + 180.f), 0};
+	preview->s.modelindex = MODELINDEX_PLAYER;
+	preview->s.skinnum = ent->s.skinnum & 0xFF;
+	preview->movetype = MOVETYPE_NONE;
+	preview->solid = SOLID_NOT;
+	preview->timestamp = level.time + LOOKS_PREVIEW_TIME;
+	preview->think = Looks_PreviewThink;
+	preview->nextthink = level.time + FRAME_TIME_MS;
+	gi.linkentity(preview);
+	cl->loot_looks_preview = preview;
+}
+
+// keys on the looks page: 1/2 skin back/next, 3/4 aura back/next, 5 back to your own skin, no aura, 6 preview
 void Looks_Select(edict_t *ent, int32_t key)
 {
 	client_persistant_t &pers = ent->client->pers;
@@ -217,6 +276,9 @@ void Looks_Select(edict_t *ent, int32_t key)
 			pers.loot_look_skin = 0;
 			pers.loot_look_aura = 0;
 			Looks_RefreshSkin(ent);
+			break;
+		case 6:
+			Looks_Preview(ent);
 			break;
 		default:
 			return;
@@ -265,7 +327,7 @@ std::string Looks_PageLayout(edict_t *ent)
 		line("loot_str", G_Fmt("Next aura|{}: {}", next->name, Looks_UnlockText(next->unlock, next->value)).data());
 	y += 6;
 
-	line("string2", "[1/2] skin  [3/4] aura  [5] reset  [J] close");
-	line("string", "Others see your skin and aura in coop and third person");
+	line("string2", "[1/2] skin  [3/4] aura  [5] reset  [6] preview  [J] close");
+	line("string", "Others see your skin and aura in coop");
 	return s;
 }

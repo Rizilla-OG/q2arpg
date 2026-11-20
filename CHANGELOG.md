@@ -2,7 +2,7 @@
 
 ## Unreleased (next update)
 
-- Added: character looks. Page 3 of the challenges screen (J) picks your player skin from 28 stock skins and an aura (a pulsing color shell or a trail) from 8. Both are free; the rarer ones unlock with player level, challenge tiers, NG+ and beating the raid boss. Keys 1/2 skin, 3/4 aura, 5 reset. Others see them in coop and third person.
+- Added: character looks. Page 3 of the challenges screen (J) picks your player skin from 28 stock skins and an aura (a pulsing color shell or a trail) from 8. Both are free; the rarer ones unlock with player level, challenge tiers, NG+ and beating the raid boss. Keys 1/2 skin, 3/4 aura, 5 reset, 6 shows a 10-second preview of you. Teammates see your look in coop.
 - Added: alien-tech guns. Military intel has picked up rumors that the Strogg have been modifying our guns, and in NG+ two new Rare+ gun types start turning up in the field. The **Ripper** fires bouncing ion discs from cells; Brask barrels and some Epic+ rolls fan out an extra disc. The **Tracker** fires homing shots from slugs and locks onto the monster nearest your crosshair when you miss. They take elements, crits and proficiency like any gun, but have no uniques.
 
 ## 0.9.666

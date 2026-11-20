@@ -3006,6 +3006,7 @@ struct gclient_t
 	bool loot_showskills;
 	bool loot_showchallenges; // q2rpg: challenges screen open
 	gtime_t loot_challenges_time;
+	edict_t *loot_looks_preview; // q2rpg: looks preview stand-in, if one is up
 	bool loot_looks_synced; // q2rpg: chosen skin sent since this spawn (cleared with the rest of the client on respawn / map load)
 	int32_t loot_challenges_page; // q2rpg: 0-1 challenges (two pages fit the 1024-char layout limit), 2 looks
 	gtime_t loot_skills_time;
