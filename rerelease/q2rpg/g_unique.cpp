@@ -43,9 +43,9 @@ static const unique_def_t unique_defs[LOOT_UNIQUE_COUNT] = {
     {"Bloodmoon", "kills heal 5% of your max health"},
     {"Stormheart", "15% of hits chain-shock nearby monsters"},
 };
-static_assert(LOOT_UNIQUE_SUPERNOVA == LOOT_ARCH_COUNT * 2, "second uniques follow the first ones in archetype order");
+static_assert(LOOT_UNIQUE_SUPERNOVA == LOOT_ARCH_STOCK_COUNT * 2, "second uniques follow the first ones in archetype order");
 
-static const char *const unique_arch_names[LOOT_ARCH_COUNT] = {
+static const char *const unique_arch_names[LOOT_ARCH_STOCK_COUNT] = {
     "Pistol", "Shotgun", "Scattergun", "SMG", "Minigun", "Launcher", "Rocket Launcher", "Plasma Caster", "Rail Rifle", "Annihilator"};
 
 const char *Unique_Desc(int32_t unique)
@@ -57,13 +57,13 @@ const char *Unique_Desc(int32_t unique)
 // at random: the second unique only in NG+, 50/50 with the first.
 void Unique_Make(loot_weapon_t &gun, int32_t variant)
 {
-	if (gun.archetype >= LOOT_ARCH_COUNT)
+	if (gun.archetype >= LOOT_ARCH_STOCK_COUNT) // q2rpg: alien tech has no uniques
 		return;
 
 	if (variant < 0)
 		variant = (game.loot_ngplus > 0 && frandom() < 0.5f) ? 1 : 0;
 
-	gun.unique = gun.archetype + 1 + (variant ? LOOT_ARCH_COUNT : 0);
+	gun.unique = gun.archetype + 1 + (variant ? LOOT_ARCH_STOCK_COUNT : 0);
 	G_FmtTo(gun.name, "{} {}", unique_defs[gun.unique].name, unique_arch_names[gun.archetype]);
 
 	// element uniques: plain guns take the usual elemental damage trade
@@ -118,7 +118,7 @@ loot_archetype_t Unique_RaidArch(int32_t index)
 void Unique_MakeRaid(loot_weapon_t &gun, int32_t index)
 {
 	gun.unique = LOOT_UNIQUE_KINGSLAYER + std::clamp(index, 0, LOOT_RAID_UNIQUES - 1);
-	G_FmtTo(gun.name, "{} {}", unique_defs[gun.unique].name, unique_arch_names[gun.archetype < LOOT_ARCH_COUNT ? gun.archetype : 0]);
+	G_FmtTo(gun.name, "{} {}", unique_defs[gun.unique].name, unique_arch_names[gun.archetype < LOOT_ARCH_STOCK_COUNT ? gun.archetype : 0]);
 }
 
 const char *Unique_Tribute(int32_t unique)

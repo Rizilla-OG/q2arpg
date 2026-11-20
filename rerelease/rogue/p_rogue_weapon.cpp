@@ -232,6 +232,10 @@ void weapon_tracker_fire(edict_t *self)
 		}
 	}
 
+	// q2rpg: a rolled Tracker that misses locks onto the closest live monster near the crosshair
+	if (!enemy && Loot_Active(self))
+		enemy = Loot_TrackerLockOn(self, start, dir);
+
 	P_AddWeaponKick(self, self->client->v_forward * -2, { -1.f, 0.f, 0.f });
 
 	fire_tracker(self, start, dir, damage, 1000, enemy);

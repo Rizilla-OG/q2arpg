@@ -67,6 +67,8 @@ static const std::array<loot_arch_info_t, LOOT_ARCH_COUNT> loot_archs_default = 
     {IT_WEAPON_HYPERBLASTER, "Plasma Caster", 40, 2.0f, 7, LOOT_RARITY_COMMON, false},
     {IT_WEAPON_RAILGUN, "Rail Rifle", 4, 2.6f, 6, LOOT_RARITY_UNCOMMON, false},
     {IT_WEAPON_BFG, "Annihilator", 100, 3.0f, 1, LOOT_RARITY_EPIC, false},
+    {IT_WEAPON_IONRIPPER, "Ripper", 30, 2.0f, 4, LOOT_RARITY_RARE, false}, // q2rpg: alien tech, 2 cells per disc
+    {IT_WEAPON_DISRUPTOR, "Tracker", 6, 2.4f, 3, LOOT_RARITY_RARE, false}, // q2rpg: alien tech, 1 slug per shot
 }};
 static std::array<loot_arch_info_t, LOOT_ARCH_COUNT> loot_archs = loot_archs_default;
 
@@ -444,6 +446,8 @@ static const float loot_elem_scale[LOOT_ARCH_COUNT] = {
     0.8f,  // plasma
     2.5f,  // rail
     2.5f,  // bfg
+    1.0f,  // ripper (discs bounce into more hits)
+    2.5f,  // tracker
 };
 
 const char *Loot_ElementName(loot_element_t element)
@@ -560,6 +564,8 @@ loot_weapon_t Loot_Roll(loot_archetype_t archetype, loot_rarity_t rarity, uint32
 	float spread = mk(LOOT_PART_BARREL).barrel_spread * noise(LOOT_PART_BARREL);
 	if (arch.shotgun)
 		gun.pellets_bonus = mk(LOOT_PART_BARREL).pellets + (rarity >= LOOT_RARITY_RARE ? (int32_t)(rng() % 2) : 0);
+	else if (archetype == LOOT_ARCH_RIPPER) // q2rpg: extra discs fan out; Brask barrels and Epic+ add one each
+		gun.pellets_bonus = (gun.maker == LOOT_MAKER_BRASK ? 1 : 0) + (rarity >= LOOT_RARITY_EPIC ? (int32_t)(rng() % 2) : 0);
 
 	// trigger
 	gun.rate_mult = std::clamp(mk(LOOT_PART_TRIGGER).rate * noise(LOOT_PART_TRIGGER) * (1 + 0.03f * r), 0.6f, 2.0f);
@@ -1336,6 +1342,41 @@ int32_t Loot_Pellets(edict_t *ent, int32_t count)
 {
 	loot_weapon_t *gun = Loot_Active(ent);
 	return gun ? count + gun->pellets_bonus : count;
+}
+
+// q2rpg: alien Tracker. A shot that misses locks onto the visible live monster
+// closest to the crosshair, inside a 12 degree cone and 2048 units.
+edict_t *Loot_TrackerLockOn(edict_t *ent, const vec3_t &start, const vec3_t &dir)
+{
+	constexpr float lock_range = 2048.f;
+	const float min_cos = cosf(DEG2RAD(12.f));
+
+	edict_t *best_target = nullptr;
+	float best_cos = min_cos;
+	for (uint32_t i = 1; i < globals.num_edicts; i++)
+	{
+		edict_t *candidate = &g_edicts[i];
+		if (!candidate->inuse || !(candidate->svflags & SVF_MONSTER) || candidate->health <= 0 || (candidate->monsterinfo.aiflags & AI_GOOD_GUY))
+			continue;
+
+		const vec3_t center = (candidate->absmin + candidate->absmax) * 0.5f;
+		vec3_t to_target = center - start;
+		const float distance = to_target.normalize();
+		if (distance > lock_range)
+			continue;
+
+		const float facing_cos = to_target.dot(dir);
+		if (facing_cos <= best_cos)
+			continue;
+
+		const trace_t sight = gi.traceline(start, center, ent, MASK_SOLID);
+		if (sight.fraction < 1.f && sight.ent != candidate)
+			continue;
+
+		best_cos = facing_cos;
+		best_target = candidate;
+	}
+	return best_target;
 }
 
 void Loot_Think(edict_t *ent)
@@ -3344,7 +3385,9 @@ static void Loot_SendCard(edict_t *ent, const loot_weapon_t &gun)
 	if (gun.mag_size > 0)
 		add(Loot_StatLine("Magazine", (float)gun.mag_size, (float)o.mag_size, cmp && o.mag_size > 0, false, "num"));
 	if (gun.pellets_bonus)
-		add(G_Fmt("Pellets|+{}", gun.pellets_bonus).data());
+		add(G_Fmt("{}|+{}", gun.archetype == LOOT_ARCH_RIPPER ? "Discs" : "Pellets", gun.pellets_bonus).data());
+	if (Loot_IsAlienArch(gun.archetype))
+		add(gun.archetype == LOOT_ARCH_RIPPER ? "Alien tech|discs bounce off walls" : "Alien tech|shots lock on and home");
 	if (gun.element)
 		add(G_Fmt("Element|{} {:.0f}%", Loot_ElementName(gun.element), Loot_ElemChance(gun) * 100.f).data());
 	if (gun.burst)
@@ -3517,7 +3560,7 @@ static void Loot_SendInventory(edict_t *ent)
 			if (g->burst)
 				extra += G_Fmt("|Burst|{}", g->burst).data();
 			if (g->pellets_bonus)
-				extra += G_Fmt("|Pellets|+{}", g->pellets_bonus).data();
+				extra += G_Fmt("|{}|+{}", g->archetype == LOOT_ARCH_RIPPER ? "Discs" : "Pellets", g->pellets_bonus).data();
 			row(extra, 13);
 			row(Prof_DetailsRow(ent, g->archetype)); // q2rpg: weapon proficiency
 			if (g->element)

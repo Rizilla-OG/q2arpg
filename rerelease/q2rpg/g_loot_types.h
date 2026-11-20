@@ -31,9 +31,20 @@ enum loot_archetype_t : uint8_t
 	LOOT_ARCH_PLASMA,     // hyperblaster
 	LOOT_ARCH_RAIL,       // railgun
 	LOOT_ARCH_BFG,        // bfg10k
+	// q2rpg: alien tech (Rare+, no uniques). Added after the stock guns so saved ids stay put.
+	LOOT_ARCH_RIPPER,  // ion ripper: bouncing discs
+	LOOT_ARCH_TRACKER, // disruptor: homing tracker, fires slugs
 
 	LOOT_ARCH_COUNT
 };
+
+// q2rpg: stock gun families; unique ids and their name tables are built from this count
+constexpr int32_t LOOT_ARCH_STOCK_COUNT = LOOT_ARCH_BFG + 1;
+
+inline bool Loot_IsAlienArch(int32_t archetype)
+{
+	return archetype >= LOOT_ARCH_STOCK_COUNT && archetype < LOOT_ARCH_COUNT;
+}
 
 // Fictional manufacturers; each biases the stat rolls.
 enum loot_maker_t : uint8_t
@@ -275,7 +286,7 @@ enum loot_upgrade_t
 };
 
 // Unique legendaries: two per archetype (first = archetype + 1; second, NG+ only,
-// = archetype + 1 + LOOT_ARCH_COUNT).
+// = archetype + 1 + LOOT_ARCH_STOCK_COUNT).
 enum loot_unique_t : uint8_t
 {
 	LOOT_UNIQUE_NONE,
@@ -290,7 +301,7 @@ enum loot_unique_t : uint8_t
 	LOOT_UNIQUE_LANCER,      // rail: chain-shocks nearby monsters
 	LOOT_UNIQUE_SINGULARITY, // bfg: impact pulls monsters in
 
-	// second uniques (NG+): value = archetype + 1 + LOOT_ARCH_COUNT
+	// second uniques (NG+): value = archetype + 1 + LOOT_ARCH_STOCK_COUNT
 	LOOT_UNIQUE_LASTWORD,    // pistol: last round in the magazine x3, always crits
 	LOOT_UNIQUE_BULWARK,     // shotgun: pellet hits restore shield
 	LOOT_UNIQUE_PRISM,       // scattergun: element cycles each shot

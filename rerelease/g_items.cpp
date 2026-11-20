@@ -2399,7 +2399,7 @@ model="models/weapons/g_launch/tris.md2"
 		/* pickup_name */  "$item_disruptor",
 		/* pickup_name_definite */ "$item_disruptor_def",
 		/* quantity */ 1,
-		/* ammo */ IT_AMMO_ROUNDS,
+		/* ammo */ IT_AMMO_SLUGS, // q2rpg: Tracker fires slugs; rounds never spawn in the stock campaign
 		/* chain */ IT_WEAPON_BFG,
 		/* flags */ IF_WEAPON | IF_STAY_COOP,
 		/* vwep_model */ "#w_disrupt.md2",
@@ -2428,7 +2428,7 @@ model="models/weapons/g_launch/tris.md2"
 		/* pickup_name */  "$item_disintegrator",
 		/* pickup_name_definite */ "$item_disintegrator_def",
 		/* quantity */ 1,
-		/* ammo */ IT_AMMO_ROUNDS,
+		/* ammo */ IT_AMMO_SLUGS, // q2rpg: Tracker fires slugs; rounds never spawn in the stock campaign
 		/* chain */ IT_WEAPON_BFG,
 		/* flags */ IF_WEAPON | IF_STAY_COOP,
 		/* vwep_model */ "#w_bfg.md2",

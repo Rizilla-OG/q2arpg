@@ -21,15 +21,24 @@ void weapon_ionripper_fire(edict_t *ent)
 	if (is_quad)
 		damage *= damage_multiplier;
 
-	tempang = ent->client->v_angle;
-	tempang[YAW] += crandom();
-
-	vec3_t start, dir;
-	P_ProjectSource(ent, tempang, { 16, 7, -8 }, start, dir);
-
 	P_AddWeaponKick(ent, ent->client->v_forward * -3, { -3.f, 0.f, 0.f });
 
-	fire_ionripper(ent, start, dir, damage, 500, EF_IONRIPPER);
+	// q2rpg: rolled Rippers fan extra discs; spread scales the jitter and the fan
+	const int32_t disc_count = std::clamp(Loot_Pellets(ent, 1), 1, 5);
+	const float jitter_scale = Loot_Spread(ent, 1000) / 1000.f;
+	const float fan_step_degrees = 5.f * jitter_scale;
+	for (int32_t disc = 0; disc < disc_count; disc++)
+	{
+		tempang = ent->client->v_angle;
+		tempang[YAW] += crandom() * jitter_scale + (disc - (disc_count - 1) * 0.5f) * fan_step_degrees;
+
+		vec3_t start, dir;
+		P_ProjectSource(ent, tempang, { 16, 7, -8 }, start, dir);
+		fire_ionripper(ent, start, dir, damage, 500, EF_IONRIPPER);
+	}
+
+	vec3_t start, dir;
+	P_ProjectSource(ent, ent->client->v_angle, { 16, 7, -8 }, start, dir); // muzzle noise origin
 
 	// send muzzle flash
 	gi.WriteByte(svc_muzzleflash);

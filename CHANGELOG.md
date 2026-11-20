@@ -2,6 +2,8 @@
 
 ## Unreleased (next update)
 
+- Added: alien-tech guns, two new Rare+ gun types. The **Ripper** fires bouncing ion discs from cells; Brask barrels and some Epic+ rolls fan out an extra disc. The **Tracker** fires homing shots from slugs and locks onto the monster nearest your crosshair when you miss. They take elements, crits and proficiency like any gun, but have no uniques.
+
 ## 0.9.666
 
 - Fixed: reloading an SMG, Minigun or Plasma Caster while holding the trigger no longer keeps it firing through the reload.
