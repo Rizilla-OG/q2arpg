@@ -19,6 +19,15 @@ static edict_t *Trade_Target(edict_t *ent)
 	return target;
 }
 
+// split-screen players carry placeholder names like "##P1"; show "Player 2" instead
+static std::string Trade_Name(const edict_t *player)
+{
+	const char *name = player->client->pers.netname;
+	if (!*name || *name == '#')
+		return G_Fmt("Player {}", player->s.number).data();
+	return name;
+}
+
 void Trade_Give(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
@@ -62,7 +71,7 @@ void Trade_Give(edict_t *ent)
 		where = " (to stash)";
 	else
 	{
-		gi.Center_Print(ent, G_Fmt("{}'s guns and stash are full", receiver_cl->pers.netname).data());
+		gi.Center_Print(ent, G_Fmt("{}'s guns and stash are full", Trade_Name(receiver)).data());
 		return;
 	}
 
@@ -70,7 +79,7 @@ void Trade_Give(edict_t *ent)
 
 	gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/w_pkup.wav"), 1, ATTN_NORM, 0);
 	gi.sound(receiver, CHAN_ITEM, gi.soundindex("misc/w_pkup.wav"), 1, ATTN_NORM, 0);
-	gi.Center_Print(ent, G_Fmt("Gave {} to {}{}", gift.name, receiver_cl->pers.netname, where).data());
-	gi.Center_Print(receiver, G_Fmt("{} gave you {} ({}){}", cl->pers.netname, gift.name, Loot_RarityName(gift.rarity), where).data());
-	Loot_LogEvent(ent, G_Fmt("TRADE gave {} to {}", gift.name, receiver_cl->pers.netname).data());
+	gi.Center_Print(ent, G_Fmt("Gave {} to {}{}", gift.name, Trade_Name(receiver), where).data());
+	gi.Center_Print(receiver, G_Fmt("{} gave you {} ({}){}", Trade_Name(ent), gift.name, Loot_RarityName(gift.rarity), where).data());
+	Loot_LogEvent(ent, G_Fmt("TRADE gave {} to {}", gift.name, Trade_Name(receiver)).data());
 }
