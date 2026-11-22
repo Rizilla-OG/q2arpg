@@ -245,6 +245,8 @@ strong, too weak, or just not fun? [Open an issue](https://github.com/Rizilla-OG
 GitHub with your ideas, recommendations and requested changes. Big or small,
 every suggestion gets read.
 
+Everyone taking part is asked to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Dedication
 
 To the teams at id Software and Nightdive Studios: thank you. Quake II has
