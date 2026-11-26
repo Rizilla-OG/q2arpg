@@ -948,26 +948,52 @@ void Skill_Frame(edict_t *ent)
 	}
 }
 
+// Action skill meter, drawn by cg_gui.cpp. Configstring "phase|name|phase length in tenths"
+// (phase: R ready, C cooldown, A active, X Second Chance); STAT_LOOT_ACTION_TIME holds the
+// tenths left, so the meter moves every frame without resending the string.
 void Skill_SetActionStat(edict_t *ent, int32_t playernum)
 {
 	gclient_t *cl = ent->client;
 	const loot_tree_t tree = Skill_Tree(ent);
 	char line[48] = "";
+	gtime_t left = 0_ms;
+	char phase = 0;
+	const char *name = "";
 
-	if (tree)
+	if (Loot_SecondChanceActive(ent)) // Second Chance takes over the meter
 	{
-		const tree_def_t &t = tree_defs[tree];
+		phase = 'X';
+		name = "Second Chance";
+		left = cl->loot_second_chance_end - level.time;
+	}
+	else if (tree)
+	{
+		name = tree_defs[tree].action;
 		if (Skill_Overcharged(ent))
-			G_FmtTo(line, "[F] {} ACTIVE {:.0f}s", t.action, ceilf((cl->loot_overcharge_end - level.time).seconds()));
+		{
+			phase = 'A';
+			left = cl->loot_overcharge_end - level.time;
+		}
 		else if (cl->loot_action_ready > level.time)
-			G_FmtTo(line, "[F] {} {:.0f}s", t.action, ceilf((cl->loot_action_ready - level.time).seconds()));
+		{
+			phase = 'C';
+			left = cl->loot_action_ready - level.time;
+		}
 		else
-			G_FmtTo(line, "[F] {} READY", t.action);
+			phase = 'R';
 	}
 
-	// Second Chance countdown takes over the action line
-	if (Loot_SecondChanceActive(ent))
-		G_FmtTo(line, "SECOND CHANCE {:.0f}s - GET A KILL", ceilf((cl->loot_second_chance_end - level.time).seconds()));
+	// a phase's length is the time left when it started (cooldown cuts and upgrades vary it)
+	static int32_t phase_tenths[MAX_CLIENTS];
+	static char last_phase[MAX_CLIENTS];
+	const int32_t tenths = (int32_t)std::max<int64_t>(0, (left.milliseconds() + 99) / 100);
+	if (phase != last_phase[playernum] || tenths > phase_tenths[playernum])
+	{
+		last_phase[playernum] = phase;
+		phase_tenths[playernum] = tenths;
+	}
+	if (phase)
+		G_FmtTo(line, "{}|{}|{}", phase, name, phase_tenths[playernum]);
 
 	const int32_t cs = CONFIG_LOOT_ACTION + playernum;
 	if (strcmp(line, cl->loot_action_cache))
@@ -976,6 +1002,7 @@ void Skill_SetActionStat(edict_t *ent, int32_t playernum)
 		gi.configstring(cs, line);
 	}
 	cl->ps.stats[STAT_LOOT_ACTION] = line[0] ? (int16_t)cs : 0;
+	cl->ps.stats[STAT_LOOT_ACTION_TIME] = (int16_t)std::min(tenths, 32767);
 }
 
 //==========================================================================

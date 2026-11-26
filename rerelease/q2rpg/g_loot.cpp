@@ -3808,28 +3808,14 @@ void Loot_SetStats(edict_t *ent)
 
 		cl->ps.stats[STAT_LOOT_HUD] = line[0] ? (int16_t)(CONFIG_LOOT_HUD + playernum) : 0;
 
-		// level / xp line
+		// level / xp bar, drawn by cg_gui.cpp: "level|xp|xp to next (0 = max)|money|unspent points|mission text"
 		char xpline[96];
 		const int32_t plevel = std::max(1, cl->pers.loot_level);
-		if (plevel >= Loot_LevelCap())
-			G_FmtTo(xpline, "Lv {}  MAX  ${}", plevel, cl->pers.loot_money);
-		else
-			G_FmtTo(xpline, "Lv {}  XP {}/{}  ${}", plevel, cl->pers.loot_xp, Loot_XPToNext(plevel), cl->pers.loot_money);
-		const int32_t unspent = Skill_Unspent(ent);
-		if (unspent > 0)
-		{
-			char base[48];
-			Q_strlcpy(base, xpline, sizeof(base));
-			G_FmtTo(xpline, "{}  [K] +{} pt{}", base, unspent, unspent > 1 ? "s" : "");
-		}
-		// q2rpg: side mission progress at the end of the line
-		const std::string mission_text = Mission_HudText(ent);
-		if (!mission_text.empty())
-		{
-			char base[96];
-			Q_strlcpy(base, xpline, sizeof(base));
-			G_FmtTo(xpline, "{}{}", base, mission_text);
-		}
+		const bool max_level = plevel >= Loot_LevelCap();
+		std::string mission_text = Mission_HudText(ent); // q2rpg: side mission progress
+		std::replace(mission_text.begin(), mission_text.end(), '|', '/');
+		G_FmtTo(xpline, "{}|{}|{}|{}|{}|{}", plevel, max_level ? 0 : cl->pers.loot_xp, max_level ? 0 : Loot_XPToNext(plevel), cl->pers.loot_money,
+		        std::max(0, Skill_Unspent(ent)), mission_text);
 		Loot_SetHudString(ent, CONFIG_LOOT_XP + playernum, cl->loot_xp_cache, sizeof(cl->loot_xp_cache), xpline, STAT_LOOT_XP);
 		Skill_SetActionStat(ent, playernum);
 

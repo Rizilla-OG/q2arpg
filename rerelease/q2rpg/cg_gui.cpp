@@ -440,3 +440,136 @@ bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bo
 		return false;
 	return true;
 }
+
+//==========================================================================
+// HUD: XP bar and action skill meter (top-left, under the gun line)
+//==========================================================================
+
+namespace
+{
+constexpr rgba_t col_xp{120, 95, 255, 255};
+constexpr rgba_t col_ready{80, 220, 80, 255};
+constexpr rgba_t col_cooldown{90, 110, 140, 255};
+constexpr rgba_t col_danger{255, 60, 50, 255};
+
+std::vector<std::string> Fields(const char *cs)
+{
+	std::vector<std::string> out;
+	std::string cur;
+	for (const char *c = cs; *c; c++)
+	{
+		if (*c == '|')
+		{
+			out.push_back(cur);
+			cur.clear();
+		}
+		else
+			cur += *c;
+	}
+	out.push_back(cur);
+	return out;
+}
+
+// bar with a centered label; frac 0-1
+void Meter(int x, int y, int w, int h, float frac, const rgba_t &fill, const char *label)
+{
+	Fill(x - u, y - u, w + 2 * u, h + 2 * u, rgba_black);
+	Fill(x, y, w, h, col_pip_off);
+	frac = std::clamp(frac, 0.f, 1.f);
+	if (frac > 0)
+		Fill(x, y, std::max(u, (int)(w * frac)), h, fill);
+	if (label && *label)
+		Text(x + (w - TextWidth(label)) / 2, y + (h - 8 * u) / 2, label, rgba_white);
+}
+
+// "level|xp|next|money|unspent|mission"
+void DrawXP(int x, int y, const char *cs)
+{
+	const std::vector<std::string> f = Fields(cs);
+	if (f.size() < 6)
+		return;
+	const int level = atoi(f[0].c_str()), xp = atoi(f[1].c_str()), next = atoi(f[2].c_str());
+	const int money = atoi(f[3].c_str()), unspent = atoi(f[4].c_str());
+
+	const std::string badge = G_Fmt("Lv {}", level).data();
+	x += Badge(x, y, badge.c_str()) + 3 * u;
+
+	constexpr int bar_w = 110;
+	const std::string label = next > 0 ? G_Fmt("{} / {}", xp, next).data() : std::string("MAX");
+	Meter(x, y + u, bar_w * u, 8 * u, next > 0 ? (float)xp / next : 1.f, next > 0 ? col_xp : col_accent, label.c_str());
+	x += (bar_w + 6) * u;
+
+	const std::string cash = G_Fmt("${}", money).data();
+	Text(x, y + u, cash.c_str(), col_green);
+	x += TextWidth(cash.c_str()) + 6 * u;
+
+	if (unspent > 0) // skill points waiting: blinking chip
+	{
+		const bool lit = (cgi.CL_ClientTime() % 1000) < 600;
+		const std::string chip = G_Fmt("K +{}", unspent).data();
+		const int w = TextWidth(chip.c_str()) + 6 * u;
+		Fill(x, y, w, 10 * u, lit ? rgba_t{40, 120, 40, 255} : col_badge);
+		Text(x + 3 * u, y + u, chip.c_str(), lit ? rgba_white : col_green);
+		x += w + 6 * u;
+	}
+
+	if (!f[5].empty())
+		CG_Loot_DrawColorString(x, y + u, u, f[5].c_str(), kfont, font_y_offset);
+}
+
+// "phase|name|phase length in tenths"; tenths left in STAT_LOOT_ACTION_TIME
+void DrawAction(int x, int y, const char *cs, int tenths_left)
+{
+	const std::vector<std::string> f = Fields(cs);
+	if (f.size() < 3 || f[0].empty())
+		return;
+	const char phase = f[0][0];
+	const std::string &name = f[1];
+	const int total = std::max(1, atoi(f[2].c_str()));
+	const int seconds = (tenths_left + 9) / 10;
+	const bool pulse = (cgi.CL_ClientTime() % 500) < 250;
+
+	if (phase != 'X')
+		x += Badge(x, y, "F") + 3 * u;
+	Text(x, y + u, name.c_str(), phase == 'X' ? col_danger : phase == 'R' ? rgba_white
+	                                                                      : col_dim);
+	x += std::max(TextWidth(name.c_str()), 58 * u) + 4 * u;
+
+	constexpr int bar_w = 70;
+	switch (phase)
+	{
+		case 'R':
+			Meter(x, y + u, bar_w * u, 8 * u, 1.f, col_ready, "READY");
+			break;
+		case 'C':
+			Meter(x, y + u, bar_w * u, 8 * u, 1.f - (float)tenths_left / total, col_cooldown, G_Fmt("{}s", seconds).data());
+			break;
+		case 'A':
+			Meter(x, y + u, bar_w * u, 8 * u, (float)tenths_left / total, col_accent, G_Fmt("ACTIVE {}s", seconds).data());
+			break;
+		case 'X':
+			Meter(x, y + u, bar_w * u, 8 * u, (float)tenths_left / total, pulse ? col_danger : rgba_t{150, 30, 30, 255}, G_Fmt("GET A KILL {}s", seconds).data());
+			break;
+		default:
+			break;
+	}
+}
+} // namespace
+
+// called from CG_DrawHUD with the rest of the q2rpg HUD
+void CG_Gui_DrawHud(const player_state_t *ps, const vrect_t &hud_vrect, const vrect_t &hud_safe, int32_t scale, bool use_kfont, int y_offset)
+{
+	const char *enabled = cgi.get_configstring(CONFIG_LOOT_ENABLED);
+	if (!enabled || enabled[0] != '1') // loot stats share CTF slots; only trust them in SP/coop
+		return;
+
+	u = std::max(1, scale);
+	kfont = use_kfont;
+	font_y_offset = y_offset;
+	const int x = (hud_vrect.x + 8) * u + hud_safe.x;
+
+	if (const int cs = ps->stats[STAT_LOOT_XP]; cs > 0 && cs < MAX_CONFIGSTRINGS)
+		DrawXP(x, (hud_vrect.y + 18) * u + hud_safe.y, cgi.get_configstring(cs));
+	if (const int cs = ps->stats[STAT_LOOT_ACTION]; cs > 0 && cs < MAX_CONFIGSTRINGS)
+		DrawAction(x, (hud_vrect.y + 46) * u + hud_safe.y, cgi.get_configstring(cs), ps->stats[STAT_LOOT_ACTION_TIME]);
+}

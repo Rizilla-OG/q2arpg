@@ -1382,9 +1382,8 @@ static void G_InitStatusbar()
 
 		// q2rpg: active gun name / rarity / reserve
 		sb.ifstat(STAT_LOOT_HUD).xl(8).yt(8).stat_string(STAT_LOOT_HUD).endifstat();
-		sb.ifstat(STAT_LOOT_XP).xl(8).yt(18).stat_string(STAT_LOOT_XP).endifstat();
+		// q2rpg: XP bar (yt 18) and action skill meter (yt 46) are drawn by q2rpg/cg_gui.cpp
 		sb.ifstat(STAT_LOOT_TARGET).xl(8).yt(32).stat_string(STAT_LOOT_TARGET).endifstat();
-		sb.ifstat(STAT_LOOT_ACTION).xl(8).yt(46).stat_string(STAT_LOOT_ACTION).endifstat();
 	}
 	else if (G_TeamplayEnabled())
 	{

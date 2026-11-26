@@ -294,7 +294,7 @@ static_assert(STAT_LAST <= MAX_STATS + 1, "stats list overflow");
 
 // q2rpg: loot stats reuse the CTF slots (18-31). Loot only runs in SP/coop,
 // CTF stats are only written and read in deathmatch (SetCTFStats is skipped
-// outside deathmatch, see G_SetStats). Free CTF slots left: 28-31.
+// outside deathmatch, see G_SetStats). Free CTF slots left: 29-31.
 // configstring index of the active gun HUD line
 constexpr player_stat_t STAT_LOOT_HUD = STAT_CTF_TEAM1_PIC;
 // configstring index of the level/XP line
@@ -312,3 +312,5 @@ constexpr player_stat_t STAT_LOOT_SHIELD = STAT_CTF_TEAM1_HEADER;
 constexpr player_stat_t STAT_LOOT_SHIELD_MAX = STAT_CTF_TEAM2_HEADER;
 // health bar target's shield, 0 = none, 1-255 = fraction
 constexpr player_stat_t STAT_LOOT_BAR_SHIELD = STAT_CTF_TECH;
+// tenths of a second left in the action skill's current phase (cooldown, active, Second Chance)
+constexpr player_stat_t STAT_LOOT_ACTION_TIME = STAT_CTF_ID_VIEW;
