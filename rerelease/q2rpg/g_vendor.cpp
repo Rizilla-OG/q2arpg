@@ -391,10 +391,10 @@ static void Vendor_SendWorkshop(edict_t *ent)
 	{
 		const int32_t price = Vendor_RelevelPrice(ent, *gun);
 		if (!price)
-			page.item("1", gun->rarity, GUI_OFF, G_Fmt("Level up: {}", gun->name).data(), "MAX", G_Fmt("L{}, already at your level", Loot_GunLevel(*gun)).data());
+			page.item("1", gun->rarity, GUI_OFF, G_Fmt("Level up: {}", gun->name).data(), "MAX", G_Fmt("L{}, already at your level", Loot_GunLevel(*gun)).data(), Gui_GunIcon(*gun));
 		else
 			page.item("1", gun->rarity, Gui_Afford(price, money), G_Fmt("Level up: {}", gun->name).data(), Gui_Money(price),
-			          G_Fmt("L{} ^g> L{}", Loot_GunLevel(*gun), Vendor_RelevelTarget(ent)).data());
+			          G_Fmt("L{} ^g> L{}", Loot_GunLevel(*gun), Vendor_RelevelTarget(ent)).data(), Gui_GunIcon(*gun));
 	}
 
 	// grenade mod for sale (rerolls with the stock)
@@ -402,7 +402,7 @@ static void Vendor_SendWorkshop(edict_t *ent)
 	if (grenade.valid)
 	{
 		const int32_t price = Vendor_GrenadeValue(grenade);
-		page.item("2", grenade.rarity, Gui_Afford(price, money), grenade.name, Gui_Money(price), Grenade_BriefCompare(grenade, cl->pers.loot_grenade));
+		page.item("2", grenade.rarity, Gui_Afford(price, money), grenade.name, Gui_Money(price), Grenade_BriefCompare(grenade, cl->pers.loot_grenade), GUI_ICON_GRENADE);
 	}
 	else
 		page.item("2", GUI_NO_RARITY, GUI_OFF, "Grenade mod", "SOLD");
@@ -413,7 +413,7 @@ static void Vendor_SendWorkshop(edict_t *ent)
 	{
 		const int32_t price = Vendor_ClassModValue(classmod);
 		page.item("3", classmod.rarity, Gui_Afford(price, money), G_Fmt("{} ({})", classmod.name, Skill_TreeName(classmod.tree)).data(), Gui_Money(price),
-		          ClassMod_BriefLine(classmod));
+		          ClassMod_BriefLine(classmod), GUI_ICON_CLASSMOD);
 	}
 	else
 		page.item("3", GUI_NO_RARITY, GUI_OFF, "Class mod", "SOLD");
@@ -458,19 +458,19 @@ static bool Vendor_StashSlotUsed(const loot_stash_slot_t &slot)
 	return slot.gun.valid || slot.shield.valid || slot.grenade.valid || slot.classmod.valid || slot.relic.valid;
 }
 
-// one line: kind, name, level and rarity
+// one line: name, level and rarity (the row icon shows the kind)
 static std::string Vendor_StashLine(const loot_stash_slot_t &slot)
 {
 	if (slot.gun.valid)
-		return G_Fmt("Gun     {}  L{} {}", slot.gun.name, Loot_GunLevel(slot.gun), Loot_RarityName(slot.gun.rarity)).data();
+		return G_Fmt("{}  L{} {}", slot.gun.name, Loot_GunLevel(slot.gun), Loot_RarityName(slot.gun.rarity)).data();
 	if (slot.shield.valid)
-		return G_Fmt("Shield  {}  L{} {}", slot.shield.name, slot.shield.level, Loot_RarityName(slot.shield.rarity)).data();
+		return G_Fmt("{}  L{} {} shield", slot.shield.name, slot.shield.level, Loot_RarityName(slot.shield.rarity)).data();
 	if (slot.grenade.valid)
-		return G_Fmt("Grenade {}  L{} {}", slot.grenade.name, slot.grenade.level, Loot_RarityName(slot.grenade.rarity)).data();
+		return G_Fmt("{}  L{} {}", slot.grenade.name, slot.grenade.level, Loot_RarityName(slot.grenade.rarity)).data();
 	if (slot.classmod.valid)
-		return G_Fmt("Class   {}  {} {}", slot.classmod.name, Loot_RarityName(slot.classmod.rarity), Skill_TreeName(slot.classmod.tree)).data();
+		return G_Fmt("{}  {} {} class mod", slot.classmod.name, Loot_RarityName(slot.classmod.rarity), Skill_TreeName(slot.classmod.tree)).data();
 	if (slot.relic.valid)
-		return G_Fmt("Relic   {}  {} {}", slot.relic.name, Loot_RarityName(slot.relic.rarity), Relic_TypeName(slot.relic)).data();
+		return G_Fmt("{}  {} {} relic", slot.relic.name, Loot_RarityName(slot.relic.rarity), Relic_TypeName(slot.relic)).data();
 	return "- empty -";
 }
 
@@ -542,7 +542,7 @@ static void Vendor_SendStash(edict_t *ent)
 		if (!Vendor_StashSlotUsed(slot))
 			page.item(G_Fmt("{}", key).data(), GUI_NO_RARITY, GUI_OFF, "- empty -", "");
 		else
-			page.item(G_Fmt("{}", key).data(), Vendor_StashRarity(slot), GUI_AFFORD, Vendor_StashLine(slot), "");
+			page.item(G_Fmt("{}", key).data(), Vendor_StashRarity(slot), GUI_AFFORD, Vendor_StashLine(slot), "", {}, Gui_StashIcon(slot));
 	}
 	page.gap();
 	page.text("Empty slot: store the floor item, else the held gun");
@@ -761,14 +761,14 @@ static void Vendor_SendShop(edict_t *ent)
 			continue;
 		}
 		const int32_t price = Vendor_GunValue(g);
-		page.item(G_Fmt("{}", i + 1).data(), g.rarity, Gui_Afford(price, money), g.name, Gui_Money(price), Loot_GunBriefCompare(g, Loot_Active(ent)));
+		page.item(G_Fmt("{}", i + 1).data(), g.rarity, Gui_Afford(price, money), g.name, Gui_Money(price), Loot_GunBriefCompare(g, Loot_Active(ent)), Gui_GunIcon(g));
 	}
 
 	const loot_shield_t &sh = level.loot_vendor_shield;
 	if (sh.valid)
 	{
 		const int32_t price = Vendor_ShieldValue(sh);
-		page.item("5", sh.rarity, Gui_Afford(price, money), sh.name, Gui_Money(price), Loot_ShieldBriefCompare(sh, cl->pers.loot_shield));
+		page.item("5", sh.rarity, Gui_Afford(price, money), sh.name, Gui_Money(price), Loot_ShieldBriefCompare(sh, cl->pers.loot_shield), GUI_ICON_SHIELD);
 	}
 	else if (Loot_ShieldsAvailable())
 		page.item("5", GUI_NO_RARITY, GUI_OFF, "Shield", "SOLD");

@@ -4,6 +4,7 @@
 // scales damage, rate, spread, magazine and reload.
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 #include <random>
 #include <ctime>
@@ -3259,7 +3260,7 @@ static const char *Loot_CompareColor(float value, float other, bool have_other, 
 	return (lower_better ? diff < 0 : diff > 0) ? "^g" : "^r";
 }
 
-// one card row: "label|value|change", aligned by the card's LOOT_CARD_TABS
+// one card row: "label|value|change", aligned by LOOT_CARD_TAB_STOPS
 std::string Loot_StatLine(const char *label, float value, float other, bool have_other, bool lower_better, const char *fmt_kind)
 {
 	std::string line = G_Fmt("{}|{}", label, Loot_CompareColor(value, other, have_other, lower_better)).data();
@@ -3333,36 +3334,19 @@ static void Loot_SendShieldCard(edict_t *ent, const loot_shield_t &sh)
 	const loot_shield_t &o = ent->client->pers.loot_shield;
 	const bool cmp = o.valid;
 
-	std::string s;
-	int32_t y = 64;
-
-	s += G_Fmt("xv 24 yv {} string2 \"{}\" ", y, sh.name).data();
-	y += 10;
-	s += G_Fmt("xv 24 yv {} string \"Lv {} {} {} Shield\" ", y, sh.level, Loot_RarityName(sh.rarity), loot_makers[sh.maker].short_name).data();
-	y += 14;
-
-	auto add = [&](const std::string &line)
-	{
-		s += G_Fmt("xv 24 yv {} loot_str \"{}\" ", y, line).data();
-		y += 10;
-	};
-
-	s += LOOT_CARD_TABS;
-	add(Loot_StatLine("Capacity", sh.capacity, o.capacity, cmp, false, "num"));
-	add(Loot_StatLine("Delay", sh.delay, o.delay, cmp, true, "sec"));
-	add(Loot_StatLine("Recharge", sh.rate, o.rate, cmp, false, "num"));
+	gui_page_t page;
+	page.card = true;
+	page.width = GUI_CARD_W;
+	page.hero(GUI_ICON_SHIELD, sh.rarity, sh.name, G_Fmt("Lv {} {} {} Shield", sh.level, Loot_RarityName(sh.rarity), loot_makers[sh.maker].short_name).data());
+	page.tabs(LOOT_CARD_TAB_STOPS);
+	page.text(Loot_StatLine("Capacity", sh.capacity, o.capacity, cmp, false, "num"));
+	page.text(Loot_StatLine("Delay", sh.delay, o.delay, cmp, true, "sec"));
+	page.text(Loot_StatLine("Recharge", sh.rate, o.rate, cmp, false, "num"));
 	if (sh.special)
-		add(Loot_ShieldSpecialText(sh));
-
-	y += 4;
+		page.text(Loot_ShieldSpecialText(sh));
 	if (cmp)
-	{
-		s += G_Fmt("xv 24 yv {} string \"vs {}\" ", y, o.name).data();
-		y += 10;
-	}
-	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [B] stash  [I] loadout\" ", y).data();
-
-	Loot_SendLayout(ent, s);
+		page.text(G_Fmt("^avs^w {}", o.name).data());
+	Loot_SendLayout(ent, page.finish("", "", -1, "", "E|take|B|stash|I|loadout"));
 }
 
 // Floor card: only the stats that decide a swap, compared to the equipped gun.
@@ -3373,57 +3357,40 @@ static void Loot_SendCard(edict_t *ent, const loot_weapon_t &gun)
 	static const loot_weapon_t none{};
 	const loot_weapon_t &o = cmp ? *cur : none;
 
-	std::string s;
-	int32_t y = 64;
-
-	s += G_Fmt("xv 24 yv {} string2 \"{}\" ", y, gun.name).data();
-	y += 10;
-	s += G_Fmt("xv 24 yv {} string \"Lv {} {} {}\" ", y, Loot_GunLevel(gun), Loot_RarityName(gun.rarity), Loot_MakerName(gun.maker)).data();
-	y += 14;
-
-	auto add = [&](const std::string &line)
-	{
-		s += G_Fmt("xv 24 yv {} loot_str \"{}\" ", y, line).data();
-		y += 10;
-	};
-
-	s += LOOT_CARD_TABS;
-	add(Loot_StatLine("Damage", gun.dmg_mult, o.dmg_mult, cmp, false, "pct"));
-	add(Loot_StatLine("Fire Rate", gun.rate_mult, o.rate_mult, cmp, false, "pct"));
-	add(Loot_StatLine("Accuracy", 1.0f / gun.spread_mult, cmp ? 1.0f / o.spread_mult : 0, cmp, false, "pct"));
+	gui_page_t page;
+	page.card = true;
+	page.width = GUI_CARD_W;
+	page.hero(Gui_GunIcon(gun), gun.rarity, gun.name, G_Fmt("Lv {} {} {}", Loot_GunLevel(gun), Loot_RarityName(gun.rarity), Loot_MakerName(gun.maker)).data());
+	page.tabs(LOOT_CARD_TAB_STOPS);
+	page.text(Loot_StatLine("Damage", gun.dmg_mult, o.dmg_mult, cmp, false, "pct"));
+	page.text(Loot_StatLine("Fire Rate", gun.rate_mult, o.rate_mult, cmp, false, "pct"));
+	page.text(Loot_StatLine("Accuracy", 1.0f / gun.spread_mult, cmp ? 1.0f / o.spread_mult : 0, cmp, false, "pct"));
 	if (gun.archetype == LOOT_ARCH_PISTOL) // q2rpg: semi-auto click delay, compared only with another pistol
-		add(Loot_StatLine("Click ms", Loot_ClickDelayMs(gun, gun.rate_mult), cmp ? Loot_ClickDelayMs(o, o.rate_mult) : 0,
-		                  cmp && o.archetype == LOOT_ARCH_PISTOL, true, "num"));
+		page.text(Loot_StatLine("Click ms", Loot_ClickDelayMs(gun, gun.rate_mult), cmp ? Loot_ClickDelayMs(o, o.rate_mult) : 0,
+		                        cmp && o.archetype == LOOT_ARCH_PISTOL, true, "num"));
 	if (gun.mag_size > 0)
-		add(Loot_StatLine("Magazine", (float)gun.mag_size, (float)o.mag_size, cmp && o.mag_size > 0, false, "num"));
+		page.text(Loot_StatLine("Magazine", (float)gun.mag_size, (float)o.mag_size, cmp && o.mag_size > 0, false, "num"));
 	if (gun.pellets_bonus)
-		add(G_Fmt("{}|+{}", gun.archetype == LOOT_ARCH_RIPPER ? "Discs" : "Pellets", gun.pellets_bonus).data());
+		page.text(G_Fmt("{}|+{}", gun.archetype == LOOT_ARCH_RIPPER ? "Discs" : "Pellets", gun.pellets_bonus).data());
 	if (Loot_IsAlienArch(gun.archetype))
-		add(gun.archetype == LOOT_ARCH_RIPPER ? "Alien tech|discs bounce off walls" : "Alien tech|shots lock on and home");
+		page.text(gun.archetype == LOOT_ARCH_RIPPER ? "Alien tech|discs bounce off walls" : "Alien tech|shots lock on and home");
 	if (gun.element)
-		add(G_Fmt("Element|{} {:.0f}%", Loot_ElementName(gun.element), Loot_ElemChance(gun) * 100.f).data());
+		page.text(G_Fmt("Element|{} {:.0f}%", Loot_ElementName(gun.element), Loot_ElemChance(gun) * 100.f).data());
 	if (gun.burst)
-		add(G_Fmt("Trigger|{}-round burst", gun.burst).data());
+		page.text(G_Fmt("Trigger|{}-round burst", gun.burst).data());
 	if (gun.unique)
-		add(G_Fmt("UNIQUE: {}", Unique_Desc(gun.unique)).data());
+		page.text(G_Fmt("^oUNIQUE:^w {}", Unique_Desc(gun.unique)).data());
 	if (const char *tribute = Unique_Tribute(gun.unique))
 		for (const char *line = tribute; *line;)
 		{
 			const char *end = strchr(line, '\n');
 			const size_t len = end ? (size_t)(end - line) : strlen(line);
-			add(G_Fmt("{}", std::string_view(line, len)).data());
+			page.text(G_Fmt("{}", std::string_view(line, len)).data());
 			line += len + (end ? 1 : 0);
 		}
-
-	y += 4;
 	if (cmp)
-	{
-		s += G_Fmt("xv 24 yv {} string \"vs {}\" ", y, o.name).data();
-		y += 10;
-	}
-	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [B] stash  [I] loadout\" ", y).data();
-
-	Loot_SendLayout(ent, s);
+		page.text(G_Fmt("^avs^w {}", o.name).data());
+	Loot_SendLayout(ent, page.finish("", "", -1, "", "E|take|B|stash|I|loadout"));
 }
 
 // Loadout screen: all slots in brief, full details and parts of the equipped gun.
@@ -3473,145 +3440,93 @@ std::string Loot_ShieldBriefCompare(const loot_shield_t &sh, const loot_shield_t
 static void Loot_SendInventory(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
-	std::string s = "loot_dim xl 16 "; // dim backdrop first so text draws on top
-	int32_t y = 16;
-
-	// a row that would pass the 1024-char layout limit is left out (the engine would cut the string)
-	constexpr size_t LAYOUT_BUDGET = 1000;
-	bool page_full = false;
-	auto row = [&](const std::string &text, int32_t height = 10)
-	{
-		const std::string next = G_Fmt("yv {} loot_str \"{}\" ", y, text).data();
-		if (page_full || s.size() + next.size() > LAYOUT_BUDGET)
-		{
-			page_full = true; // rows after a missing one are left out too
-			return;
-		}
-		s += next;
-		y += height;
-	};
+	gui_page_t page;
+	page.rows_budget = 900; // short title and footer leave more room for rows
 
 	if (cl->loot_inv_page == 0)
 	{
-		// columns: key, level, rarity, damage, rate, accuracy, mag, element
-		s += "loot_tabs \"56 96 168 224 268 332 368\" ";
-		row("^aLOADOUT", 14);
-		row("^aGUNS^w|Level|Rarity|Damage|Rate|Accuracy|Mag|Element", 12);
-
 		for (int32_t i = 0; i < LOOT_NUM_SLOTS; i++)
 		{
 			const loot_weapon_t &g = cl->pers.loot_slots[i];
-			const bool active = i == cl->pers.loot_active_slot && Loot_Active(ent);
+			const std::string key = G_Fmt("{}", i + 1).data();
 			if (!g.valid)
 			{
-				row(G_Fmt(" {}|- empty -", i + 1).data(), 13);
+				page.item(key, GUI_NO_RARITY, GUI_OFF, "- empty -", "");
 				continue;
 			}
-
-			// held gun in green with a marker
-			row(G_Fmt("{}{}{}|{}", active ? "^a" : "", active ? ">" : " ", i + 1, g.name).data());
-			std::string stats = G_Fmt("|L{}|{}|{:.0f}%|{:.0f}%|{:.0f}%|{}|", Loot_GunLevel(g), Loot_RarityName(g.rarity), g.dmg_mult * 100.f, g.rate_mult * 100.f,
-			                          100.f / g.spread_mult, g.mag_size > 0 ? std::to_string(g.mag_size) : "-")
-			                        .data();
-			if (g.element)
-				stats += G_Fmt("{} {:.0f}%", Loot_ElementName(g.element), Loot_ElemChance(g) * 100.f).data();
-			row(stats, 13);
+			const bool active = i == cl->pers.loot_active_slot && Loot_Active(ent);
+			page.item(key, g.rarity, active ? GUI_AFFORD : GUI_OFF, g.name, active ? "HELD" : "", Loot_GunBrief(g), Gui_GunIcon(g));
 		}
 
 		const loot_shield_t &sh = cl->pers.loot_shield;
 		if (sh.valid)
 		{
-			row("^aSHIELD", 12);
-			row(G_Fmt("|{}", sh.name).data());
-			row(G_Fmt("|L{} {}   Capacity {:.0f}/{:.0f}   Delay {:.1f}s   Recharge {:.0f}/s", sh.level, Loot_RarityName(sh.rarity), cl->pers.loot_shield_points,
-			          sh.capacity, sh.delay, sh.rate)
-			        .data());
+			page.item("", sh.rarity, GUI_OFF, sh.name, "",
+			          G_Fmt("L{}  Cap {:.0f}/{:.0f}  Delay {:.1f}s  Rch {:.0f}/s", sh.level, cl->pers.loot_shield_points, sh.capacity, sh.delay, sh.rate).data(),
+			          GUI_ICON_SHIELD);
 			if (sh.special)
-				row(G_Fmt("|{}", Loot_ShieldSpecialText(sh)).data());
-			y += 3;
+				page.text(Loot_ShieldSpecialText(sh));
 		}
-
 		const loot_grenade_t &grenade = cl->pers.loot_grenade;
 		if (grenade.valid)
-		{
-			row("^aGRENADE", 12);
-			row(G_Fmt("|{} ({})", grenade.name, Loot_RarityName(grenade.rarity)).data());
-			row("|" + Grenade_LoadoutLine(grenade), 13);
-		}
-
-		// one row: page 0 sits near the 1024-char layout limit
+			page.item("", grenade.rarity, GUI_OFF, grenade.name, "", Grenade_LoadoutLine(grenade), GUI_ICON_GRENADE);
 		const loot_classmod_t &classmod = cl->pers.loot_classmod;
 		if (classmod.valid)
-			row(G_Fmt("^aCLASS^w|{}: {}", classmod.name, ClassMod_BriefLine(classmod)).data(), 13);
+			page.item("", classmod.rarity, GUI_OFF, classmod.name, "", ClassMod_BriefLine(classmod), GUI_ICON_CLASSMOD);
 		const loot_relic_t &relic = cl->pers.loot_relic;
 		if (relic.valid)
-			row(G_Fmt("^aRELIC^w|{}: {}", relic.name, Relic_EffectLine(relic)).data(), 13);
+			page.item("", relic.rarity, GUI_OFF, relic.name, "", Relic_EffectLine(relic), GUI_ICON_RELIC);
 
-		row("^a[1-4] equip  [G] drop  [I] gun details"); // left out when the page is full
-		if (g_loot_debug->integer)
-			gi.Com_PrintFmt("[loot] loadout layout {} chars\n", s.size());
+		Loot_SendLayout(ent, page.finish("LOADOUT", Gui_Money(cl->pers.loot_money), -1, "", "1-4|equip|G|drop|I|gun details"));
+		return;
 	}
+
+	// page 1: full stats and parts of the held gun; columns: label, value, label, value, label, value
+	page.width = GUI_W_WIDE;
+	const loot_weapon_t *g = Loot_Active(ent);
+	if (!g)
+	{
+		page.text("No rolled gun equipped");
+		Loot_SendLayout(ent, page.finish("GUN DETAILS", "", -1, "", "1-4|equip|G|drop|I|close"));
+		return;
+	}
+	page.hero(Gui_GunIcon(*g), g->rarity, g->name, G_Fmt("Lv {} {} {}", Loot_GunLevel(*g), Loot_RarityName(g->rarity), Loot_MakerName(g->maker)).data());
+	page.tabs("58 104 162 208 266 312");
+	page.text(G_Fmt("Damage|{:.0f}%|Rate|{:.0f}%|Accuracy|{:.0f}%", g->dmg_mult * 100.f, g->rate_mult * 100.f, 100.f / g->spread_mult).data());
+	if (g->mag_size > 0)
+		page.text(G_Fmt("Magazine|{}/{}|Reload|{:.1f}s|Crit|{:.2f}x", g->mag_ammo, g->mag_size, g->reload_time, Loot_CritMult(*g)).data());
 	else
+		page.text(G_Fmt("Crit|{:.2f}x", Loot_CritMult(*g)).data());
+	page.text(G_Fmt("Recoil|{:.0f}%|Handling|{:.0f}%|Zoom|{:.1f}x", Loot_Neutral(g->recoil_mult) * 100.f, Loot_Neutral(g->handling_mult) * 100.f,
+	                g->zoom > 0 ? g->zoom : 1.5f)
+	              .data());
+	std::string extra = G_Fmt("Velocity|{:.0f}%", Loot_Neutral(g->proj_speed) * 100.f).data();
+	if (g->burst)
+		extra += G_Fmt("|Burst|{}", g->burst).data();
+	if (g->pellets_bonus)
+		extra += G_Fmt("|{}|+{}", g->archetype == LOOT_ARCH_RIPPER ? "Discs" : "Pellets", g->pellets_bonus).data();
+	page.text(extra);
+	page.text(Prof_DetailsRow(ent, g->archetype)); // q2rpg: weapon proficiency
+	if (g->element)
+		page.text(G_Fmt("Element|{}  {:.0f}% chance per hit", Loot_ElementName(g->element), Loot_ElemChance(*g) * 100.f).data());
+	if (g->unique)
+		page.text(G_Fmt("Unique|{}", Unique_Desc(g->unique)).data());
+	if (const char *tribute = Unique_Tribute(g->unique))
 	{
-		// columns: label, value, label, value, label, value
-		s += "loot_tabs \"72 128 200 256 328 384\" ";
-		const loot_weapon_t *g = Loot_Active(ent);
-		row("^aGUN DETAILS", 14);
-		if (g)
-		{
-			row(G_Fmt("^a{}^w   L{} {}", g->name, Loot_GunLevel(*g), Loot_RarityName(g->rarity)).data(), 13);
-			row(G_Fmt("Damage|{:.0f}%|Rate|{:.0f}%|Accuracy|{:.0f}%", g->dmg_mult * 100.f, g->rate_mult * 100.f, 100.f / g->spread_mult).data());
-			if (g->mag_size > 0)
-				row(G_Fmt("Magazine|{}/{}|Reload|{:.1f}s|Crit|{:.2f}x", g->mag_ammo, g->mag_size, g->reload_time, Loot_CritMult(*g)).data());
-			else
-				row(G_Fmt("Crit|{:.2f}x", Loot_CritMult(*g)).data());
-			row(G_Fmt("Recoil|{:.0f}%|Handling|{:.0f}%|Zoom|{:.1f}x", Loot_Neutral(g->recoil_mult) * 100.f, Loot_Neutral(g->handling_mult) * 100.f,
-			          g->zoom > 0 ? g->zoom : 1.5f)
-			        .data());
-			std::string extra = G_Fmt("Velocity|{:.0f}%", Loot_Neutral(g->proj_speed) * 100.f).data();
-			if (g->burst)
-				extra += G_Fmt("|Burst|{}", g->burst).data();
-			if (g->pellets_bonus)
-				extra += G_Fmt("|{}|+{}", g->archetype == LOOT_ARCH_RIPPER ? "Discs" : "Pellets", g->pellets_bonus).data();
-			row(extra, 13);
-			row(Prof_DetailsRow(ent, g->archetype)); // q2rpg: weapon proficiency
-			if (g->element)
-				row(G_Fmt("Element|{}  {:.0f}% chance per hit", Loot_ElementName(g->element), Loot_ElemChance(*g) * 100.f).data());
-			if (g->unique)
-				row(G_Fmt("Unique|{}", Unique_Desc(g->unique)).data());
-			if (const char *tribute = Unique_Tribute(g->unique))
-			{
-				std::string one_line = tribute; // the card row is a single line
-				std::replace(one_line.begin(), one_line.end(), '\n', ' ');
-				row(G_Fmt("Tribute|{}", one_line).data());
-			}
-			if (g->element || g->unique)
-				y += 3;
-
-			row("^aPARTS", 12);
-			for (int32_t p = 0; p < LOOT_PART_COUNT; p += 3)
-			{
-				std::string line;
-				for (int32_t q = p; q < p + 3 && q < LOOT_PART_COUNT; q++)
-					line += G_Fmt("{}{}|{}", q > p ? "|" : "", Loot_PartName((loot_part_t)q), loot_makers[g->parts[q]].short_name).data();
-				row(line);
-			}
-			y += 3;
-		}
-		else
-			row("No rolled gun equipped", 13);
-
-		row("^a[1-4] equip  [G] drop  [I] close");
+		std::string one_line = tribute; // the card row is a single line
+		std::replace(one_line.begin(), one_line.end(), '\n', ' ');
+		page.text(G_Fmt("Tribute|{}", one_line).data());
 	}
 
-	// engine layout limit is 1024; warn once per new size, not every refresh
-	static size_t warned_size;
-	if (s.size() > 1000 && s.size() != warned_size)
+	page.head("Parts", true);
+	for (int32_t p = 0; p < LOOT_PART_COUNT; p += 3)
 	{
-		warned_size = s.size();
-		gi.Com_PrintFmt("loadout: layout {} chars, near limit\n", s.size());
+		std::string line;
+		for (int32_t q = p; q < p + 3 && q < LOOT_PART_COUNT; q++)
+			line += G_Fmt("{}{}|{}", q > p ? "|" : "", Loot_PartName((loot_part_t)q), loot_makers[g->parts[q]].short_name).data();
+		page.text(line);
 	}
-	Loot_SendLayout(ent, s);
+	Loot_SendLayout(ent, page.finish("GUN DETAILS", "", -1, "", "1-4|equip|G|drop|I|close"));
 }
 
 static void Loot_SetHudString(edict_t *ent, int32_t cs, char *cache, size_t cache_size, const char *line, player_stat_t stat)

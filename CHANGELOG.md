@@ -6,6 +6,7 @@
 
 - Vendor screens. The quartermaster finally threw out the clipboard. The vendor (V), its upgrades, workshop and missions pages, and the stash (B) are now drawn panels instead of plain text: page tabs across the top, a row per item with its key, the name in its rarity color and the price on the right in green when you can afford it or red when you can't. Upgrades show their ranks as pips. Keys are unchanged.
 - Skills screen. The class pick and the skill tree (K) use the same drawn panels: a header per tier that dims while locked, one row per skill with its effect and rank, a green marker on skills that can take a point right now and gold on maxed ones. Class mod bonuses still show as a green +N. Keys are unchanged.
+- Loot cards, loadout, challenges and looks. Every remaining text screen is now a drawn panel. Floor cards (guns, shields, grenade mods, class mods, relics) open with the item's icon framed in its rarity color. The loadout (I) lists each gun and piece of gear with its icon, and marks the gun you're holding. Challenges (J) show a progress bar toward the next tier. Guns in the vendor and stash get their icons too. Keys are unchanged.
 
 ## 0.9.7
 

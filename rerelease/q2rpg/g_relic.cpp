@@ -8,6 +8,7 @@
 //   Demolition    +6% grenade damage per step
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 constexpr float RELIC_ELEMENT_PER_STEP = 0.06f;
 constexpr float RELIC_CASH_PER_STEP = 0.05f;
@@ -163,24 +164,20 @@ std::string Relic_EffectLine(const loot_relic_t &relic)
 void Relic_SendCard(edict_t *ent, const loot_relic_t &relic)
 {
 	const loot_relic_t &other = ent->client->pers.loot_relic;
-
-	std::string s;
-	int32_t y = 64;
-	s += G_Fmt("xv 24 yv {} string2 \"{}\" ", y, relic.name).data();
-	y += 10;
-	s += G_Fmt("xv 24 yv {} string \"Lv {} {} {} Relic\" ", y, relic.level, Loot_RarityName(relic.rarity), Relic_TypeName(relic)).data();
-	y += 14;
 	// green when it's the same effect and stronger than what you wear
 	const bool stronger = other.valid && other.type == relic.type && other.element == relic.element && relic.rarity > other.rarity;
-	s += G_Fmt("xv 24 yv {} loot_str \"{}{}^w\" ", y, stronger ? "^g" : "", Relic_EffectLine(relic)).data();
-	y += 14;
+
+	gui_page_t page;
+	page.card = true;
+	page.width = GUI_CARD_W;
+	page.hero(GUI_ICON_RELIC, relic.rarity, relic.name, G_Fmt("Lv {} {} {} Relic", relic.level, Loot_RarityName(relic.rarity), Relic_TypeName(relic)).data());
+	page.text(G_Fmt("{}{}^w", stronger ? "^g" : "", Relic_EffectLine(relic)).data());
 	if (other.valid)
 	{
-		s += G_Fmt("xv 24 yv {} string \"vs {}: {}\" ", y, other.name, Relic_EffectLine(other)).data();
-		y += 10;
+		page.text(G_Fmt("^avs^w {}", other.name).data());
+		page.text(G_Fmt("^w{}", Relic_EffectLine(other)).data());
 	}
-	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [B] stash  [X] sell\" ", y).data();
-	Loot_SendLayout(ent, s);
+	Loot_SendLayout(ent, page.finish("", "", -1, "", "E|take|B|stash|X|sell"));
 }
 
 void Relic_Give(edict_t *ent, const loot_relic_t &relic)

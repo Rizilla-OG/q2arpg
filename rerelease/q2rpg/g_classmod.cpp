@@ -4,6 +4,7 @@
 // A mod for another tree does nothing until you respec into that tree.
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 //==========================================================================
 // Tables
@@ -135,37 +136,23 @@ void ClassMod_SendCard(edict_t *ent, const loot_classmod_t &mod)
 	const loot_classmod_t &other = ent->client->pers.loot_classmod;
 	const bool wrong_tree = ent->client->pers.loot_tree && ent->client->pers.loot_tree != mod.tree;
 
-	std::string s;
-	int32_t y = 64;
-	s += G_Fmt("xv 24 yv {} string2 \"{}\" ", y, mod.name).data();
-	y += 10;
-	s += G_Fmt("xv 24 yv {} string \"Lv {} {} {} Class Mod\" ", y, mod.level, Loot_RarityName(mod.rarity), Skill_TreeName(mod.tree)).data();
-	y += 14;
-
+	gui_page_t page;
+	page.card = true;
+	page.width = GUI_CARD_W;
+	page.hero(GUI_ICON_CLASSMOD, mod.rarity, mod.name, G_Fmt("Lv {} {} {} Class Mod", mod.level, Loot_RarityName(mod.rarity), Skill_TreeName(mod.tree)).data());
 	for (int32_t i = 0; i < LOOT_CLASSMOD_SKILLS; i++)
 	{
 		if (mod.skills[i] < 0)
 			continue;
 		// green when it beats what your current mod gives that skill
 		const int32_t current = other.valid && other.tree == mod.tree ? ClassMod_Bonus(ent, mod.tree, mod.skills[i]) : 0;
-		const char *color = mod.bonus[i] > current ? "^g" : "";
-		s += G_Fmt("xv 24 yv {} loot_str \"{}+{} {}^w\" ", y, color, mod.bonus[i], Skill_Name(mod.tree, mod.skills[i])).data();
-		y += 10;
+		page.text(G_Fmt("{}+{} {}^w", mod.bonus[i] > current ? "^g" : "", mod.bonus[i], Skill_Name(mod.tree, mod.skills[i])).data());
 	}
 	if (wrong_tree)
-	{
-		s += G_Fmt("xv 24 yv {} loot_str \"^rNot your tree: no effect\" ", y).data();
-		y += 10;
-	}
-
-	y += 4;
+		page.text("^rNot your class: no effect");
 	if (other.valid)
-	{
-		s += G_Fmt("xv 24 yv {} string \"vs {}\" ", y, other.name).data();
-		y += 10;
-	}
-	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [B] stash  [X] sell\" ", y).data();
-	Loot_SendLayout(ent, s);
+		page.text(G_Fmt("^avs^w {}", other.name).data());
+	Loot_SendLayout(ent, page.finish("", "", -1, "", "E|take|B|stash|X|sell"));
 }
 
 void ClassMod_Give(edict_t *ent, const loot_classmod_t &mod)

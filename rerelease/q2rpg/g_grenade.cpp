@@ -4,6 +4,7 @@
 // With no mod equipped, Q throws a plain frag at your level.
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 //==========================================================================
 // Tables
@@ -216,36 +217,23 @@ void Grenade_SendCard(edict_t *ent, const loot_grenade_t &grenade)
 	const loot_grenade_t &other = ent->client->pers.loot_grenade;
 	const bool cmp = other.valid;
 
-	std::string s;
-	int32_t y = 64;
-	s += G_Fmt("xv 24 yv {} string2 \"{}\" ", y, grenade.name).data();
-	y += 10;
-	s += G_Fmt("xv 24 yv {} string \"Lv {} {} {} Grenade Mod\" ", y, grenade.level, Loot_RarityName(grenade.rarity), Loot_MakerShortName(grenade.maker)).data();
-	y += 14;
-
-	auto add = [&](const std::string &line)
-	{
-		s += G_Fmt("xv 24 yv {} loot_str \"{}\" ", y, line).data();
-		y += 10;
-	};
-	s += LOOT_CARD_TABS;
-	add(Loot_StatLine("Damage", grenade.damage, other.damage, cmp, false, "num"));
-	add(Loot_StatLine("Radius", grenade.radius, other.radius, cmp, false, "num"));
-	add(Loot_StatLine("Fuse", grenade.fuse, other.fuse, cmp, true, "sec"));
+	gui_page_t page;
+	page.card = true;
+	page.width = GUI_CARD_W;
+	page.hero(GUI_ICON_GRENADE, grenade.rarity, grenade.name,
+	          G_Fmt("Lv {} {} {} Grenade Mod", grenade.level, Loot_RarityName(grenade.rarity), Loot_MakerShortName(grenade.maker)).data());
+	page.tabs(LOOT_CARD_TAB_STOPS);
+	page.text(Loot_StatLine("Damage", grenade.damage, other.damage, cmp, false, "num"));
+	page.text(Loot_StatLine("Radius", grenade.radius, other.radius, cmp, false, "num"));
+	page.text(Loot_StatLine("Fuse", grenade.fuse, other.fuse, cmp, true, "sec"));
 	if (grenade.element)
-		add(Grenade_ElementText(grenade));
-	add(grenade_types[grenade.type].text);
+		page.text(Grenade_ElementText(grenade));
+	page.text(grenade_types[grenade.type].text);
 	if (Grenade_Twist(grenade))
-		add(G_Fmt("TWIST: {}", grenade_twist_text[grenade.type]).data());
-
-	y += 4;
+		page.text(G_Fmt("^aTWIST:^w {}", grenade_twist_text[grenade.type]).data());
 	if (cmp)
-	{
-		s += G_Fmt("xv 24 yv {} string \"vs {}\" ", y, other.name).data();
-		y += 10;
-	}
-	s += G_Fmt("xv 24 yv {} string2 \"[E] take  [B] stash  [X] sell\" ", y).data();
-	Loot_SendLayout(ent, s);
+		page.text(G_Fmt("^avs^w {}", other.name).data());
+	Loot_SendLayout(ent, page.finish("", "", -1, "", "E|take|B|stash|X|sell"));
 }
 
 std::string Grenade_BriefCompare(const loot_grenade_t &grenade, const loot_grenade_t &other)

@@ -5,6 +5,7 @@
 // The J key ("challenges") toggles the screen.
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 enum challenge_kind_t
 {
@@ -297,43 +298,30 @@ float Challenge_BadgeXPMult(edict_t *ent)
 static void Challenge_SendScreen(edict_t *ent)
 {
 	const client_persistant_t &pers = ent->client->pers;
-	// dim backdrop first so text draws on top; left edge; columns: name, goal, progress, tier
-	std::string s = "loot_dim xl 16 loot_tabs \"140 300 380\" ";
-	int32_t y = 24;
+	gui_page_t page;
+	page.width = GUI_W_WIDE;
 
-	// two pages: one doesn't fit the 1024-char layout limit
+	// two pages of challenges (page 3 is looks)
 	constexpr int32_t per_page = 8;
-	const int32_t page = std::clamp(ent->client->loot_challenges_page, 0, 1);
-	s += G_Fmt("yv {} string2 \"CHALLENGES  {}/3\" ", y, page + 1).data();
-	y += 16;
-
-	for (int32_t i = page * per_page; i < std::min(LOOT_NUM_CHALLENGES, (page + 1) * per_page); i++)
+	const int32_t page_index = std::clamp(ent->client->loot_challenges_page, 0, 1);
+	for (int32_t i = page_index * per_page; i < std::min(LOOT_NUM_CHALLENGES, (page_index + 1) * per_page); i++)
 	{
 		const challenge_def_t &def = challenges[i];
 		const int32_t tier = pers.loot_challenge_tier[i];
 		const int32_t progress = pers.loot_challenge_progress[i];
-		std::string line;
 		if (tier >= LOOT_CHALLENGE_TIERS)
-			line = G_Fmt("{}|{}|BADGE|{}", def.name, def.goal, def.badge).data();
+			page.prog(2, 1, 1, def.name, def.goal, G_Fmt("Badge: {}", def.badge).data());
 		else if (tier >= Challenge_MaxTier())
-			line = G_Fmt("{}|{}|DONE", def.name, def.goal).data();
+			page.prog(2, 1, 1, def.name, def.goal, "DONE");
 		else
-			line = G_Fmt("{}|{}|{}/{}|T{}", def.name, def.goal, progress, def.tiers[tier], tier + 1).data();
-		// green once at least one tier is done
-		s += G_Fmt("yv {} loot_str \"{}{}\" ", y, tier > 0 ? "^a" : "", line).data();
-		y += 10;
+			page.prog(tier > 0 ? 1 : 0, progress, def.tiers[tier], def.name, def.goal, G_Fmt("{}/{}  tier {}", progress, def.tiers[tier], tier + 1).data());
 	}
-
-	y += 6;
-	s += G_Fmt("yv {} string2 \"Each tier pays XP + cash   [J] {}\" ", y, page == 0 ? "next page" : "close").data();
+	page.gap();
+	page.text("^wEach tier pays XP and cash.");
 	if (game.loot_ngplus > 0)
-	{
-		y += 10;
-		s += G_Fmt("yv {} string \"Tier 4 (NG+): Mythic reward + permanent badge\" ", y).data();
-	}
-	if (s.size() > 1000) // engine layout limit is 1024
-		gi.Com_PrintFmt("challenges: layout {} chars, near limit\n", s.size());
-	Loot_SendLayout(ent, s);
+		page.text("^wTier 4 (NG+): a Mythic reward and a permanent badge.");
+
+	Loot_SendLayout(ent, page.finish("CHALLENGES", G_Fmt("page {}/3", page_index + 1).data(), page_index, "Challenges|More|Looks", "J|next page"));
 }
 
 bool Challenge_Layout(edict_t *ent)

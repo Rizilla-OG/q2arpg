@@ -23,6 +23,7 @@ constexpr rgba_t col_off{100, 102, 106, 255};
 constexpr rgba_t col_green{112, 255, 52, 255}; // same as layout string2
 constexpr rgba_t col_red{255, 90, 80, 255};
 constexpr rgba_t col_pip_off{48, 54, 62, 255};
+constexpr rgba_t col_bar{60, 130, 50, 255};
 
 // Common, Uncommon, Rare, Epic, Legendary, Mythic
 constexpr rgba_t rarity_colors[] = {
@@ -85,9 +86,16 @@ std::string Next(const char **s)
 
 void Panel(int x, int y, int w, int h, const std::string &title, const std::string &right)
 {
-	panel = {x, y, w * u, h * u, y + GUI_TITLE_H * u};
+	const bool title_bar = !title.empty() || !right.empty();
+	// rows start a pad under the title bar (tabs, when sent, slot in above that pad)
+	panel = {x, y, w * u, h * u, y + ((title_bar ? GUI_TITLE_H : 0) + GUI_PAD) * u};
 	Fill(x + 3 * u, y + 3 * u, panel.w, panel.h, col_shadow);
 	Fill(x, y, panel.w, panel.h, col_body);
+	if (!title_bar)
+	{
+		Frame(x, y, panel.w, panel.h, col_border);
+		return;
+	}
 	Fill(x, y, panel.w, GUI_TITLE_H * u, col_title);
 	Fill(x, y + (GUI_TITLE_H - 1) * u, panel.w, u, col_accent);
 	Frame(x, y, panel.w, panel.h, col_border);
@@ -109,7 +117,7 @@ void Tabs(int active, const std::string &list)
 
 	const int left = panel.x + GUI_PAD * u;
 	const int total = panel.w - 2 * GUI_PAD * u;
-	const int y = panel.cursor + 2 * u;
+	const int y = panel.cursor - GUI_PAD * u + 2 * u;
 	const int h = (GUI_TABS_H - 2) * u;
 	for (size_t i = 0; i < names.size(); i++)
 	{
@@ -122,7 +130,36 @@ void Tabs(int active, const std::string &list)
 		const int tw = TextWidth(names[i].c_str());
 		Text(x0 + (x1 - x0 - tw) / 2, y + 2 * u, names[i].c_str(), on ? rgba_white : col_dim);
 	}
-	panel.cursor += GUI_TABS_H * u + GUI_PAD * u;
+	panel.cursor += GUI_TABS_H * u;
+}
+
+// Item icon in a size x size box. Wheel art first, classic HUD icon as fallback; "#X" is a letter.
+void Icon(int x, int y, int size, int icon, const rgba_t &tint)
+{
+	if (icon <= GUI_ICON_NONE || icon >= GUI_ICON_COUNT)
+		return;
+	const char *name = gui_icon_names[icon];
+	if (name[0] == '#')
+	{
+		Fill(x, y, size, size, col_badge);
+		Frame(x, y, size, size, tint);
+		const char letter[2] = {name[1], 0};
+		Text(x + (size - TextWidth(letter)) / 2, y + (size - 8 * u) / 2, letter, tint);
+		return;
+	}
+
+	// resolved once per icon: wheel art when it exists, else the classic pic
+	static std::array<std::string, GUI_ICON_COUNT> pics;
+	std::string &pic = pics[icon];
+	if (pic.empty())
+	{
+		const std::string wheel = std::string("wheel/") + name;
+		int w = 0, h = 0;
+		if (cgi.Draw_RegisterPic(wheel.c_str()))
+			cgi.Draw_GetPicSize(&w, &h, wheel.c_str());
+		pic = w > 0 ? wheel : name;
+	}
+	cgi.SCR_DrawPic(x, y, size, size, pic.c_str());
 }
 
 // key in a small box; returns its width
@@ -134,7 +171,7 @@ int Badge(int x, int y, const char *key)
 	return w;
 }
 
-void Item(const std::string &key, int rarity, int state, const std::string &name, const std::string &price, const std::string &sub)
+void Item(const std::string &key, int rarity, int state, int icon, const std::string &name, const std::string &price, const std::string &sub)
 {
 	const int x = panel.x + GUI_PAD * u;
 	const int w = panel.w - 2 * GUI_PAD * u;
@@ -146,12 +183,21 @@ void Item(const std::string &key, int rarity, int state, const std::string &name
 	Fill(x, y, w, h, col_row);
 	Fill(x, y, 2 * u, h, has_rarity ? rarity_colors[rarity] : col_border); // rarity stripe
 
+	int text_x = x + 6 * u;
 	if (!key.empty() && key != "-")
-		Badge(x + 5 * u, y + u, key.c_str());
+		text_x += Badge(text_x, y + u, key.c_str()) + 3 * u;
+	else
+		text_x += 13 * u; // keep names lined up with keyed rows
+	if (icon > GUI_ICON_NONE)
+	{
+		const int size = (sub.empty() ? 10 : 18) * u;
+		Icon(text_x, y + (h - size) / 2, size, icon, has_rarity ? rarity_colors[rarity] : rgba_white);
+		text_x += size + 4 * u;
+	}
 
 	const rgba_t name_color = off ? col_off : has_rarity ? rarity_colors[rarity]
 	                                                     : rgba_white;
-	Text(x + 19 * u, y + 2 * u, name.c_str(), name_color);
+	Text(text_x, y + 2 * u, name.c_str(), name_color);
 
 	const rgba_t price_color = off ? col_off : state == GUI_AFFORD ? col_green
 	                                                               : col_red;
@@ -159,7 +205,7 @@ void Item(const std::string &key, int rarity, int state, const std::string &name
 
 	if (!sub.empty())
 	{
-		int sx = x + 19 * u;
+		int sx = text_x;
 		const int sy = y + 11 * u;
 		const char *rest = sub.c_str();
 		if (rest[0] == '#') // "#rank/max text": rank pips first
@@ -259,93 +305,138 @@ void Skill(const std::string &key, int state, const std::string &name, const std
 
 	panel.cursor += h + GUI_SKILL_GAP * u;
 }
+// card header: 24px icon, name in rarity color, a dim line under it
+void Hero(int icon, int rarity, const std::string &name, const std::string &sub)
+{
+	const int x = panel.x + GUI_PAD * u;
+	const int y = panel.cursor;
+	const bool has_rarity = rarity >= 0 && rarity < (int)q_countof(rarity_colors);
+	const rgba_t color = has_rarity ? rarity_colors[rarity] : rgba_white;
+	int text_x = x + 2 * u;
+	if (icon > GUI_ICON_NONE)
+	{
+		Fill(x, y, 26 * u, 26 * u, col_row);
+		Frame(x, y, 26 * u, 26 * u, color);
+		Icon(x + u, y + u, 24 * u, icon, color);
+		text_x = x + 30 * u;
+	}
+	Text(text_x, y + 4 * u, name.c_str(), color);
+	CG_Loot_DrawColorString(text_x, y + 15 * u, u, sub.c_str(), kfont, font_y_offset);
+	panel.cursor += GUI_HERO_H * u;
+}
+
+void Prog(int state, int cur, int max, const std::string &name, const std::string &goal, const std::string &right)
+{
+	const int x = panel.x + GUI_PAD * u;
+	const int w = panel.w - 2 * GUI_PAD * u;
+	const int y = panel.cursor;
+	const int h = GUI_PROG_H * u;
+
+	Fill(x, y, w, h, col_row);
+	Fill(x, y, 2 * u, h, state == 2 ? col_accent : state == 1 ? col_green
+	                                                          : col_border);
+	Text(x + 6 * u, y + 2 * u, name.c_str(), state == 2 ? col_accent : rgba_white);
+	Text(x + GUI_PROG_GOAL_X * u, y + 2 * u, goal.c_str(), col_dim);
+
+	const int bar_w = GUI_PROG_BAR_W * u;
+	const int bar_x = x + w - 3 * u - bar_w;
+	Fill(bar_x, y + 2 * u, bar_w, h - 4 * u, col_pip_off);
+	const float frac = max > 0 ? std::clamp((float)cur / (float)max, 0.f, 1.f) : 1.f;
+	if (frac > 0)
+		Fill(bar_x, y + 2 * u, std::max(u, (int)(bar_w * frac)), h - 4 * u, state == 2 ? col_accent : col_bar);
+	Text(bar_x + (bar_w - ColorTextWidth(right.c_str())) / 2, y + 2 * u, right.c_str(), rgba_white);
+
+	panel.cursor += h + GUI_PROG_GAP * u;
+}
 } // namespace
 
 // Called for every layout token; returns true when the token was a widget (parsed and,
 // unless skip, drawn). x / y are the current layout position in pixels.
 bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bool skip, bool use_kfont, int y_offset)
 {
-	enum
-	{
-		T_PANEL,
-		T_TABS,
-		T_ITEM,
-		T_TEXT,
-		T_GAP,
-		T_KEYS,
-		T_HEAD,
-		T_SKILL,
-		T_NONE
-	} t = !strcmp(token, "gpanel")  ? T_PANEL
-	      : !strcmp(token, "gtabs") ? T_TABS
-	      : !strcmp(token, "gitem") ? T_ITEM
-	      : !strcmp(token, "gtext") ? T_TEXT
-	      : !strcmp(token, "ggap")  ? T_GAP
-	      : !strcmp(token, "gkeys") ? T_KEYS
-	                                : T_NONE;
-	if (t == T_NONE)
+	if (token[0] != 'g')
 		return false;
 
 	u = std::max(1, scale);
 	kfont = use_kfont;
 	font_y_offset = y_offset;
 
-	// parse every argument even when skipped, so the layout stays in step
-	switch (t)
+	// every argument is parsed even when skipped, so the layout stays in step
+	auto num = [&]()
+	{ return atoi(Next(s).c_str()); };
+
+	if (!strcmp(token, "gpanel"))
 	{
-		case T_PANEL:
-		{
-			const int w = atoi(Next(s).c_str());
-			const int h = atoi(Next(s).c_str());
-			const std::string title = Next(s);
-			const std::string right = Next(s);
-			if (!skip)
-				Panel(x, y, w, h, title, right);
-			break;
-		}
-		case T_TABS:
-		{
-			const int active = atoi(Next(s).c_str());
-			const std::string list = Next(s);
-			if (!skip)
-				Tabs(active, list);
-			break;
-		}
-		case T_ITEM:
-		{
-			const std::string key = Next(s);
-			const int rarity = atoi(Next(s).c_str());
-			const int state = atoi(Next(s).c_str());
-			const std::string name = Next(s);
-			const std::string price = Next(s);
-			const std::string sub = Next(s);
-			if (!skip)
-				Item(key, rarity, state, name, price, sub);
-			break;
-		}
-		case T_TEXT:
-		{
-			const std::string text = Next(s);
-			if (!skip)
-			{
-				CG_Loot_DrawColorString(panel.x + GUI_PAD * u + 2 * u, panel.cursor + u, u, text.c_str(), kfont, font_y_offset);
-				panel.cursor += GUI_TEXT_H * u;
-			}
-			break;
-		}
-		case T_GAP:
-			if (!skip)
-				panel.cursor += GUI_GAP_H * u;
-			break;
-		case T_KEYS:
-		{
-			const std::string list = Next(s);
-			if (!skip)
-				Keys(list);
-			break;
-		}
-		default:
-			break;
+		const int w = num(), h = num();
+		const std::string title = Next(s), right = Next(s);
+		if (!skip)
+			Panel(x, y, w, h, title, right);
 	}
+	else if (!strcmp(token, "gtabs"))
+	{
+		const int active = num();
+		const std::string list = Next(s);
+		if (!skip)
+			Tabs(active, list);
+	}
+	else if (!strcmp(token, "gitem"))
+	{
+		const std::string key = Next(s);
+		const int rarity = num(), state = num(), icon = num();
+		const std::string name = Next(s), price = Next(s), sub = Next(s);
+		if (!skip)
+			Item(key, rarity, state, icon, name, price, sub);
+	}
+	else if (!strcmp(token, "gtext"))
+	{
+		const std::string text = Next(s);
+		if (!skip)
+		{
+			CG_Loot_DrawColorString(panel.x + GUI_PAD * u + 2 * u, panel.cursor + u, u, text.c_str(), kfont, font_y_offset);
+			panel.cursor += GUI_TEXT_H * u;
+		}
+	}
+	else if (!strcmp(token, "ggap"))
+	{
+		if (!skip)
+			panel.cursor += GUI_GAP_H * u;
+	}
+	else if (!strcmp(token, "gkeys"))
+	{
+		const std::string list = Next(s);
+		if (!skip)
+			Keys(list);
+	}
+	else if (!strcmp(token, "ghead"))
+	{
+		const std::string text = Next(s);
+		const bool on = num() != 0;
+		if (!skip)
+			Head(text, on);
+	}
+	else if (!strcmp(token, "gskill"))
+	{
+		const std::string key = Next(s);
+		const int state = num();
+		const std::string name = Next(s), rank = Next(s), desc = Next(s);
+		if (!skip)
+			Skill(key, state, name, rank, desc);
+	}
+	else if (!strcmp(token, "ghero"))
+	{
+		const int icon = num(), rarity = num();
+		const std::string name = Next(s), sub = Next(s);
+		if (!skip)
+			Hero(icon, rarity, name, sub);
+	}
+	else if (!strcmp(token, "gprog"))
+	{
+		const int state = num(), cur = num(), max = num();
+		const std::string name = Next(s), goal = Next(s), right = Next(s);
+		if (!skip)
+			Prog(state, cur, max, name, goal, right);
+	}
+	else
+		return false;
 	return true;
 }

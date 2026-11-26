@@ -4,6 +4,7 @@
 // Skin 0 / aura 0 = your own userinfo skin, no aura.
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 enum looks_unlock_t : uint8_t
 {
@@ -353,34 +354,27 @@ static const T *Looks_NextLocked(const edict_t *ent, const T *table, int32_t tab
 std::string Looks_PageLayout(edict_t *ent)
 {
 	const client_persistant_t &pers = ent->client->pers;
-	std::string s = "loot_dim xl 16 loot_tabs \"140\" ";
-	int32_t y = 24;
-	auto line = [&](const char *kind, const std::string &text)
-	{
-		s += G_Fmt("yv {} {} \"{}\" ", y, kind, text).data();
-		y += 10;
-	};
-
-	line("string2", "LOOKS  3/3");
-	y += 6;
+	gui_page_t page;
+	page.width = GUI_W_WIDE;
 
 	const int32_t skin = std::clamp(pers.loot_look_skin, 0, LOOKS_SKIN_COUNT - 1);
 	const int32_t aura = std::clamp(pers.loot_look_aura, 0, LOOKS_AURA_COUNT - 1);
-	line("loot_str", G_Fmt("Skin|{}", skin ? looks_skins[skin - 1].path : "your own (menu setting)").data());
-	line("loot_str", G_Fmt("Aura|{}", aura ? looks_auras[aura - 1].name : "none").data());
-	line("loot_str", G_Fmt("Unlocked|{}/{} skins, {}/{} auras", Looks_CountUnlocked(ent, LOOKS_SKIN_COUNT, Looks_SkinUnlocked), LOOKS_SKIN_COUNT - 1,
-	                       Looks_CountUnlocked(ent, LOOKS_AURA_COUNT, Looks_AuraUnlocked), LOOKS_AURA_COUNT - 1)
-	                     .data());
-	line("loot_str", G_Fmt("Tiers done|{}", Looks_TiersDone(pers)).data());
-	y += 6;
+	page.tabs("80");
+	page.text(G_Fmt("^aSkin^w|{}", skin ? looks_skins[skin - 1].path : "your own (menu setting)").data());
+	page.text(G_Fmt("^aAura^w|{}", aura ? looks_auras[aura - 1].name : "none").data());
+	page.text(G_Fmt("^aUnlocked^w|{}/{} skins, {}/{} auras", Looks_CountUnlocked(ent, LOOKS_SKIN_COUNT, Looks_SkinUnlocked), LOOKS_SKIN_COUNT - 1,
+	                Looks_CountUnlocked(ent, LOOKS_AURA_COUNT, Looks_AuraUnlocked), LOOKS_AURA_COUNT - 1)
+	              .data());
+	page.text(G_Fmt("^aTiers done^w|{}", Looks_TiersDone(pers)).data());
+	page.gap();
 
+	page.head("Next unlocks", true);
 	if (const looks_skin_t *next = Looks_NextLocked(ent, looks_skins, (int32_t)q_countof(looks_skins)))
-		line("loot_str", G_Fmt("Next skin|{}: {}", next->path, Looks_UnlockText(next->unlock, next->value)).data());
+		page.text(G_Fmt("Skin|{}: {}", next->path, Looks_UnlockText(next->unlock, next->value)).data());
 	if (const looks_aura_t *next = Looks_NextLocked(ent, looks_auras, (int32_t)q_countof(looks_auras)))
-		line("loot_str", G_Fmt("Next aura|{}: {}", next->name, Looks_UnlockText(next->unlock, next->value)).data());
-	y += 6;
+		page.text(G_Fmt("Aura|{}: {}", next->name, Looks_UnlockText(next->unlock, next->value)).data());
+	page.gap();
+	page.text("^wOthers see your skin and aura in co-op.");
 
-	line("string2", "[1/2] skin  [3/4] aura  [5] reset  [6] preview  [J] close");
-	line("string", "Others see your skin and aura in coop");
-	return s;
+	return page.finish("LOOKS", "page 3/3", 2, "Challenges|More|Looks", "1/2|skin|3/4|aura|5|reset|6|preview|J|close");
 }
