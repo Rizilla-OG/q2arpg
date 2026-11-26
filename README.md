@@ -62,6 +62,12 @@ see the Q2ARPG logo and `q2rpg game DLL loaded, v<version>`.
 
 ## How to play
 
+### Tutorial
+
+New to the mod? Open the console (`~`) and type `tutorial`. A short map walks
+you through loot, gear, fights, Alphas, chests, the stash, the vendor, skills
+and a boss, one room at a time.
+
 ### Controls
 
 The mod sets these binds in `q2rpg/autoexec.cfg`:

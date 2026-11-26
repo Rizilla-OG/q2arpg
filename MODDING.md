@@ -162,6 +162,13 @@ Worldspawn sets `loot_start_level 10`. The source, `q2rpg_example.map`, is in
 the zip's `fgd` folder. Open it in TrenchBroom to see every key. The repo's
 `mapsrc/q2rpg_keys_test.map` is a smaller one-room test of the same keys.
 
+## Tutorial map
+
+`q2rpg_tutorial` (type `tutorial` in the console) is the player tutorial. Its
+source is generated: edit `mapsrc/make_tutorial.py` in the repo (room order,
+messages, items and monsters), run it to write `q2rpg_tutorial.map`, then
+compile as above.
+
 ## Questions and showing off
 
 Ask in [Discussions](https://github.com/Rizilla-OG/q2arpg/discussions) or open
