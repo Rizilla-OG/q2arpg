@@ -202,6 +202,63 @@ void Keys(const std::string &list)
 		start = bar + 1;
 	}
 }
+// width of a loot_str line, color codes skipped
+int ColorTextWidth(const char *str)
+{
+	std::string plain;
+	for (const char *c = str; *c; c++)
+	{
+		if (c[0] == '^' && c[1])
+		{
+			c++;
+			continue;
+		}
+		plain += *c;
+	}
+	return TextWidth(plain.c_str());
+}
+
+void Head(const std::string &text, bool on)
+{
+	const int x = panel.x + GUI_PAD * u + u;
+	const int y = panel.cursor;
+	Text(x, y + u, text.c_str(), on ? col_accent : col_dim);
+	const int line_x = x + TextWidth(text.c_str()) + 4 * u;
+	const int right = panel.x + panel.w - GUI_PAD * u;
+	if (line_x < right)
+		Fill(line_x, y + 5 * u, right - line_x, u, on ? col_border : col_pip_off);
+	panel.cursor += GUI_HEAD_H * u;
+}
+
+void Skill(const std::string &key, int state, const std::string &name, const std::string &rank, const std::string &desc)
+{
+	const int x = panel.x + GUI_PAD * u;
+	const int w = panel.w - 2 * GUI_PAD * u;
+	const int y = panel.cursor;
+	const int h = GUI_SKILL_H * u;
+	const bool locked = state == GUI_SKILL_LOCKED;
+
+	Fill(x, y, w, h, col_row);
+	if (state == GUI_SKILL_CAN_ADD)
+		Fill(x, y, 2 * u, h, col_green); // a point can go here
+	else if (state == GUI_SKILL_MAXED)
+		Fill(x, y, 2 * u, h, col_accent);
+
+	if (!key.empty())
+	{
+		const int bw = std::max(10 * u, TextWidth(key.c_str()) + 4 * u);
+		Fill(x + 5 * u, y + u, bw, 10 * u, state == GUI_SKILL_CAN_ADD ? col_tab_on : col_badge);
+		Text(x + 5 * u + (bw - TextWidth(key.c_str())) / 2, y + 2 * u, key.c_str(), locked ? col_off : rgba_white);
+	}
+
+	const rgba_t name_color = locked ? col_off : state == GUI_SKILL_MAXED ? col_accent
+	                                                                      : rgba_white;
+	Text(x + 19 * u, y + 2 * u, name.c_str(), name_color);
+	Text(x + GUI_SKILL_DESC_X * u, y + 2 * u, desc.c_str(), locked ? col_off : col_dim);
+	CG_Loot_DrawColorString(x + w - 4 * u - ColorTextWidth(rank.c_str()), y + 2 * u, u, rank.c_str(), kfont, font_y_offset);
+
+	panel.cursor += h + GUI_SKILL_GAP * u;
+}
 } // namespace
 
 // Called for every layout token; returns true when the token was a widget (parsed and,
@@ -216,6 +273,8 @@ bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bo
 		T_TEXT,
 		T_GAP,
 		T_KEYS,
+		T_HEAD,
+		T_SKILL,
 		T_NONE
 	} t = !strcmp(token, "gpanel")  ? T_PANEL
 	      : !strcmp(token, "gtabs") ? T_TABS

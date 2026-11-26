@@ -8,7 +8,8 @@
 struct gui_page_t
 {
 	std::string rows;
-	int32_t height = 0; // of the rows, without title, tabs and footer
+	int32_t height = 0;    // of the rows, without title, tabs and footer
+	int32_t width = GUI_W; // wider than 320 only for screens that are 16:9-only friendly
 
 	void item(const std::string &key, int32_t rarity, gui_state_t state, const std::string &name, const std::string &price, const std::string &sub = {})
 	{
@@ -22,6 +23,18 @@ struct gui_page_t
 		height += GUI_TEXT_H;
 	}
 
+	void head(const std::string &t, bool on)
+	{
+		rows += G_Fmt("ghead \"{}\" {} ", t, on ? 1 : 0).data();
+		height += GUI_HEAD_H;
+	}
+
+	void skill(const std::string &key, gui_skill_state_t state, const std::string &name, const std::string &rank, const std::string &desc)
+	{
+		rows += G_Fmt("gskill {} {} \"{}\" \"{}\" \"{}\" ", key, (int32_t)state, name, rank, desc).data();
+		height += GUI_SKILL_H + GUI_SKILL_GAP;
+	}
+
 	void gap()
 	{
 		rows += "ggap ";
@@ -32,7 +45,7 @@ struct gui_page_t
 	std::string finish(const std::string &title, const std::string &right, int32_t tab, const char *tabs, const std::string &keys) const
 	{
 		const int32_t h = GUI_TITLE_H + (tab >= 0 ? GUI_TABS_H : 0) + GUI_PAD + height + GUI_KEYS_H;
-		std::string s = G_Fmt("loot_dim xv {} yv {} gpanel {} {} \"{}\" \"{}\" ", GUI_X, GUI_Y, GUI_W, h, title, right).data();
+		std::string s = G_Fmt("loot_dim xv {} yv {} gpanel {} {} \"{}\" \"{}\" ", 160 - width / 2, GUI_Y, width, h, title, right).data();
 		if (tab >= 0)
 			s += G_Fmt("gtabs {} \"{}\" ", tab, tabs).data();
 		s += rows;

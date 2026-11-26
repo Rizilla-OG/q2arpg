@@ -6,6 +6,7 @@
 // page 2 of the skills screen.
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 //==========================================================================
 // Definitions
@@ -986,50 +987,34 @@ static void Skill_SendScreen(edict_t *ent)
 	gclient_t *cl = ent->client;
 	const loot_tree_t tree = Skill_Tree(ent);
 	const int32_t unspent = Skill_Unspent(ent);
-	// dim backdrop first so text draws on top; left edge; columns: key, name, rank, effect
-	std::string s = "loot_dim xl 16 loot_tabs \"16 166 206\" ";
-	int32_t y = 16;
-
-	auto line = [&](const char *kind, const std::string &text)
-	{
-		s += G_Fmt("yv {} {} \"{}\" ", y, kind, text).data();
-		y += 10;
-	};
+	gui_page_t page;
 
 	if (!tree)
 	{
-		line("string2", "CHOOSE A SKILL TREE");
-		line("string", G_Fmt("Locked until respec or new game. Points: {}", unspent).data());
-		y += 6;
+		page.text("^wPick a class. It stays locked until a respec or a new game.");
+		page.gap();
 		for (int32_t t = 1; t < LOOT_TREE_COUNT; t++)
 		{
 			const tree_def_t &d = tree_defs[t];
-			line("string2", G_Fmt("[{}] {}", t, d.name).data());
-			line("string", G_Fmt("    {}", d.blurb).data());
-			line("string", G_Fmt("    Action: {} ({:.0f}s cooldown)", d.action, d.cooldown).data());
-			line("string", G_Fmt("    {}", tree_grenade_text[t]).data());
-			y += 4;
+			page.item(G_Fmt("{}", t).data(), GUI_NO_RARITY, GUI_AFFORD, d.name, "", d.blurb);
+			page.text(G_Fmt("^aAction [F]:^w {} ({:.0f}s cooldown)", d.action, d.cooldown).data());
+			page.text(G_Fmt("^a{}", tree_grenade_text[t]).data());
+			page.gap();
 		}
-		y += 4;
-		line("string2", "[1-3] choose  [K] close");
-		gi.WriteByte(svc_layout);
-		gi.WriteString(s.c_str());
-		gi.unicast(ent, true);
+		Loot_SendLayout(ent, page.finish("CHOOSE A CLASS", G_Fmt("Points: {}", unspent).data(), -1, "", "1-3|choose|K|close"));
 		return;
 	}
 
 	const tree_def_t &d = tree_defs[tree];
 	const int32_t spent = Skill_Spent(ent);
-	if (Skill_TreeFull(ent))
-		line("string2", G_Fmt("{} - MASTERY {}: +{}% {}", d.name, Skill_Mastery(ent), Skill_Mastery(ent), tree_mastery_text[tree]).data());
-	else
-		line("string2", G_Fmt("{} - {} points to spend", d.name, unspent).data());
-	line("string", G_Fmt("Action [F]: {} ({:.0f}s)   Spent: {}", d.action, d.cooldown, spent).data());
-	line("string", tree_grenade_text[tree]);
-	y += 4;
+	page.width = GUI_W_WIDE; // three columns: name, effect, rank
+	const std::string right = Skill_TreeFull(ent) ? G_Fmt("Mastery {}: +{}% {}", Skill_Mastery(ent), Skill_Mastery(ent), tree_mastery_text[tree]).data()
+	                                              : G_Fmt("Points: {}", unspent).data();
+	page.text(G_Fmt("^aAction [F]:^w {} ({:.0f}s cooldown)   ^aSpent:^w {}", d.action, d.cooldown, spent).data());
+	page.text(G_Fmt("^a{}", tree_grenade_text[tree]).data());
 
 	// page 0: tiers 1-3 and capstone, keys 1-9; page 1 (NG+): tier 4, keys 1-3
-	static const char *const tier_names[] = {"TIER 1", "TIER 2 (5 pts)", "TIER 3 (10 pts)", "CAPSTONE (15 pts)", "TIER 4 - NG+ (20 pts)"};
+	static const char *const tier_names[] = {"Tier 1", "Tier 2  (5 points spent)", "Tier 3  (10 points spent)", "Capstone  (15 points spent)", "Tier 4, NG+  (20 points spent)"};
 	const bool page2 = cl->loot_skills_page == 1;
 	const int32_t first = page2 ? SKILL_FIRST_TIER4 : 0;
 	const int32_t last = page2 ? LOOT_NUM_SKILLS : SKILL_FIRST_TIER4;
@@ -1040,35 +1025,30 @@ static void Skill_SendScreen(edict_t *ent)
 		                                              : i >= 6   ? 2
 		                                              : i >= 3   ? 1
 		                                                         : 0;
+		const bool open = spent >= Skill_TierRequirement(i);
 		if (tier != last_tier)
 		{
-			if (last_tier >= 0)
-				y += 3;
-			const bool open = spent >= Skill_TierRequirement(i);
-			line(open ? "string2" : "string", G_Fmt("{}{}", tier_names[tier], open ? "" : " - locked").data());
+			page.head(open ? tier_names[tier] : G_Fmt("{}  - locked", tier_names[tier]).data(), open);
 			last_tier = tier;
 		}
 
 		const skill_def_t &sk = d.skills[i];
 		const int32_t rank = cl->pers.loot_skill_ranks[i];
+		const int32_t max_rank = Skill_MaxRank(sk, i);
 		const int32_t class_mod_bonus = Skill_Rank(ent, tree, i) - rank; // shown as green +N
-		if (class_mod_bonus > 0)
-			line("loot_str", G_Fmt("{}|{}|{}^g+{}^w/{}|{}", i - first + 1, sk.name, rank, class_mod_bonus, Skill_MaxRank(sk, i), sk.desc).data());
-		else
-			line("loot_str", G_Fmt("{}|{}|{}/{}|{}", i - first + 1, sk.name, rank, Skill_MaxRank(sk, i), sk.desc).data());
+		const gui_skill_state_t state = !open              ? GUI_SKILL_LOCKED
+		                                : rank >= max_rank ? GUI_SKILL_MAXED
+		                                : unspent > 0      ? GUI_SKILL_CAN_ADD
+		                                                   : GUI_SKILL_OPEN;
+		const std::string rank_text = class_mod_bonus > 0 ? G_Fmt("{}^g+{}^w/{}", rank, class_mod_bonus, max_rank).data() : G_Fmt("{}/{}", rank, max_rank).data();
+		page.skill(G_Fmt("{}", i - first + 1).data(), state, sk.name, rank_text, sk.desc);
 	}
 
-	y += 6;
-	if (page2)
-		line("string2", "[1-3] add point  [K] close");
-	else if (Skill_Tier4Open())
-		line("string2", "[1-9] add point  [K] tier 4 page");
-	else
-		line("string2", "[1-9] add point  [K] close");
-
-	gi.WriteByte(svc_layout);
-	gi.WriteString(s.c_str());
-	gi.unicast(ent, true);
+	const std::string title = G_Fmt("{}{}", d.name, page2 ? "  (tier 4)" : "").data();
+	const char *keys = page2               ? "1-3|add point|K|close"
+	                   : Skill_Tier4Open() ? "1-9|add point|K|tier 4 page"
+	                                       : "1-9|add point|K|close";
+	Loot_SendLayout(ent, page.finish(title, right, -1, "", keys));
 }
 
 bool Skill_Layout(edict_t *ent)

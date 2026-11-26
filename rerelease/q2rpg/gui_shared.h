@@ -13,23 +13,31 @@
 //   gtext "TEXT"                 info line (loot_str colors)
 //   ggap                         small vertical gap
 //   gkeys "K|label|K|label"      footer hint chips, pinned to the panel bottom
+//   ghead "TEXT" ON              section header with a rule; ON 0 draws it dimmed (locked)
+//   gskill KEY STATE "NAME" "RANK" "DESC"
+//                                one-line skill row: NAME, DESC in a second column, RANK
+//                                (loot_str colors, e.g. "3^g+1^w/5") right-aligned
 #pragma once
 
 #include <cstdint>
 
-constexpr int32_t GUI_X = 8;   // panel left edge (xv)
-constexpr int32_t GUI_Y = 8;   // panel top edge (yv)
-constexpr int32_t GUI_W = 304; // panel width
+constexpr int32_t GUI_Y = 8;        // panel top edge (yv)
+constexpr int32_t GUI_W = 304;      // default panel width; panels are centered on the 320-wide menu area
+constexpr int32_t GUI_W_WIDE = 360; // skills: still fits a 16:10 screen
 
-constexpr int32_t GUI_PAD = 4;        // inner padding
-constexpr int32_t GUI_TITLE_H = 14;   // title bar
-constexpr int32_t GUI_TABS_H = 13;    // tab strip
-constexpr int32_t GUI_ROW_H = 12;     // gitem without SUB
-constexpr int32_t GUI_ROW_SUB_H = 21; // gitem with SUB
-constexpr int32_t GUI_ROW_GAP = 2;    // between rows
-constexpr int32_t GUI_TEXT_H = 11;    // gtext
-constexpr int32_t GUI_GAP_H = 5;      // ggap
-constexpr int32_t GUI_KEYS_H = 16;    // footer strip
+constexpr int32_t GUI_PAD = 4;            // inner padding
+constexpr int32_t GUI_TITLE_H = 14;       // title bar
+constexpr int32_t GUI_TABS_H = 13;        // tab strip
+constexpr int32_t GUI_ROW_H = 12;         // gitem without SUB
+constexpr int32_t GUI_ROW_SUB_H = 21;     // gitem with SUB
+constexpr int32_t GUI_ROW_GAP = 2;        // between rows
+constexpr int32_t GUI_TEXT_H = 11;        // gtext
+constexpr int32_t GUI_GAP_H = 5;          // ggap
+constexpr int32_t GUI_KEYS_H = 16;        // footer strip
+constexpr int32_t GUI_HEAD_H = 11;        // ghead
+constexpr int32_t GUI_SKILL_H = 12;       // gskill
+constexpr int32_t GUI_SKILL_GAP = 1;      // between gskill rows
+constexpr int32_t GUI_SKILL_DESC_X = 128; // DESC column, from the row's left edge
 
 enum gui_state_t : int32_t
 {
@@ -39,3 +47,11 @@ enum gui_state_t : int32_t
 };
 
 constexpr int32_t GUI_NO_RARITY = -1;
+
+enum gui_skill_state_t : int32_t
+{
+	GUI_SKILL_LOCKED,  // tier not reached
+	GUI_SKILL_CAN_ADD, // a point can go here now
+	GUI_SKILL_MAXED,
+	GUI_SKILL_OPEN, // open, but no points to spend
+};
