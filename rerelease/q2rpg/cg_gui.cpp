@@ -84,11 +84,245 @@ std::string Next(const char **s)
 	return COM_Parse(s);
 }
 
-void Panel(int x, int y, int w, int h, const std::string &title, const std::string &right)
+// width of a loot_str line: color codes skipped, '|' jumps to the tab stops (virtual px)
+int ColorTextWidth(const char *str, const std::vector<int> &tabs = {})
+{
+	int x = 0;
+	size_t next_tab = 0;
+	std::string seg;
+	auto flush = [&]()
+	{
+		x += TextWidth(seg.c_str());
+		seg.clear();
+	};
+	for (const char *c = str; *c; c++)
+	{
+		if (c[0] == '|' && next_tab < tabs.size())
+		{
+			flush();
+			x = std::max(x + 4 * u, tabs[next_tab++] * u);
+			continue;
+		}
+		if (c[0] == '^' && c[1])
+		{
+			c++;
+			continue;
+		}
+		seg += *c;
+	}
+	flush();
+	return x;
+}
+
+// shortens text to max_w pixels with "..." (color codes kept); '|' lines are left alone
+std::string Clip(const std::string &text, int max_w)
+{
+	if (max_w <= 0 || text.find('|') != std::string::npos || ColorTextWidth(text.c_str()) <= max_w)
+		return text;
+	std::string out;
+	for (size_t i = 0; i < text.size(); i++)
+	{
+		if (text[i] == '^' && i + 1 < text.size())
+		{
+			out += text.substr(i, 2);
+			i++;
+			continue;
+		}
+		const std::string next = out + text[i] + "...";
+		if (ColorTextWidth(next.c_str()) > max_w)
+			break;
+		out += text[i];
+	}
+	return out + "...";
+}
+
+std::vector<int> ParseTabs(const std::string &list)
+{
+	std::vector<int> out;
+	for (const char *p = list.c_str(); *p;)
+	{
+		char *end;
+		const long v = strtol(p, &end, 10);
+		if (end == p)
+			break;
+		out.push_back((int)v);
+		p = end;
+	}
+	return out;
+}
+
+std::vector<std::string> SplitBars(const std::string &list)
+{
+	std::vector<std::string> out;
+	for (size_t start = 0;;)
+	{
+		const size_t bar = list.find('|', start);
+		out.push_back(list.substr(start, bar == std::string::npos ? std::string::npos : bar - start));
+		if (bar == std::string::npos)
+			break;
+		start = bar + 1;
+	}
+	return out;
+}
+
+// key in a small box; returns its width
+int BadgeWidth(const char *key)
+{
+	return std::max(10 * u, TextWidth(key) + 4 * u);
+}
+
+int Badge(int x, int y, const char *key)
+{
+	const int w = BadgeWidth(key);
+	Fill(x, y, w, 10 * u, col_badge);
+	Text(x + (w - TextWidth(key)) / 2, y + u, key, rgba_white);
+	return w;
+}
+
+// where a gitem row's name starts, from the row's left edge
+int ItemTextX(const std::string &key, int icon, bool has_sub)
+{
+	int x = 6 * u + (!key.empty() && key != "-" ? BadgeWidth(key.c_str()) + 3 * u : 13 * u);
+	if (icon > GUI_ICON_NONE)
+		x += (has_sub ? 18 : 10) * u + 4 * u;
+	return x;
+}
+
+int KeysWidth(const std::string &list)
+{
+	int x = GUI_PAD * u + u;
+	bool is_key = true;
+	for (const std::string &part : SplitBars(list))
+	{
+		x += is_key ? BadgeWidth(part.c_str()) + 3 * u : TextWidth(part.c_str()) + 9 * u;
+		is_key = !is_key;
+	}
+	return x + GUI_PAD * u;
+}
+
+// Columns sized by measuring the panel's rows with the real font (set when the panel opens).
+struct columns_t
+{
+	int skill_desc_x; // from the row's left edge
+	int prog_goal_x;
+	int prog_bar_w;
+};
+columns_t columns;
+
+// Reads the rest of the layout after gpanel and returns the panel width (pixels) its rows need.
+// Also sizes the skill and progress columns.
+int MeasureRows(const char *p)
+{
+	int need = 0; // row width needed
+	int skill_name = 0, skill_desc = 0, skill_rank = 0;
+	int prog_name = 0, prog_goal = 0, prog_right = 0;
+	int panel_need = 0; // whole-panel extras (tabs, keys)
+	std::vector<int> tabs;
+	char buf[MAX_TOKEN_CHARS];
+	auto next = [&]()
+	{ return std::string(COM_Parse(&p, buf, sizeof(buf))); };
+
+	while (p)
+	{
+		const std::string t = next();
+		if (t.empty())
+			continue;
+		if (t == "gitem")
+		{
+			const std::string key = next();
+			next(); // rarity
+			next(); // state
+			const int icon = atoi(next().c_str());
+			const std::string name = next(), price = next(), sub = next();
+			const int tx = ItemTextX(key, icon, !sub.empty());
+			need = std::max(need, tx + TextWidth(name.c_str()) + 8 * u + TextWidth(price.c_str()) + 4 * u);
+			int sub_w = ColorTextWidth(sub[0] == '#' ? sub.c_str() + sub.find(' ') + 1 : sub.c_str());
+			if (sub[0] == '#') // rank pips
+				sub_w += 8 * u * atoi(sub.c_str() + sub.find('/') + 1) + 4 * u;
+			need = std::max(need, tx + sub_w + 4 * u);
+		}
+		else if (t == "gtext")
+			need = std::max(need, 2 * u + ColorTextWidth(next().c_str(), tabs) + 4 * u);
+		else if (t == "loot_tabs")
+			tabs = ParseTabs(next());
+		else if (t == "gskill")
+		{
+			const std::string key = next();
+			next(); // state
+			const std::string name = next(), rank = next(), desc = next();
+			skill_name = std::max(skill_name, TextWidth(name.c_str()));
+			skill_rank = std::max(skill_rank, ColorTextWidth(rank.c_str()));
+			skill_desc = std::max(skill_desc, TextWidth(desc.c_str()));
+		}
+		else if (t == "gprog")
+		{
+			next(), next(), next(); // state, cur, max
+			const std::string name = next(), goal = next(), right = next();
+			prog_name = std::max(prog_name, TextWidth(name.c_str()));
+			prog_goal = std::max(prog_goal, TextWidth(goal.c_str()));
+			prog_right = std::max(prog_right, ColorTextWidth(right.c_str()));
+		}
+		else if (t == "ghero")
+		{
+			const int icon = atoi(next().c_str());
+			next(); // rarity
+			const std::string name = next(), sub = next();
+			need = std::max(need, (icon > GUI_ICON_NONE ? 30 : 2) * u + std::max(TextWidth(name.c_str()), ColorTextWidth(sub.c_str())) + 4 * u);
+		}
+		else if (t == "ghead")
+		{
+			need = std::max(need, u + TextWidth(next().c_str()) + 24 * u);
+			next();
+		}
+		else if (t == "gtabs")
+		{
+			next(); // active
+			const std::vector<std::string> names = SplitBars(next());
+			int widest = 0;
+			for (const std::string &n : names)
+				widest = std::max(widest, TextWidth(n.c_str()));
+			panel_need = std::max(panel_need, (widest + 14 * u) * (int)names.size() + 2 * GUI_PAD * u);
+		}
+		else if (t == "gkeys")
+			panel_need = std::max(panel_need, KeysWidth(next()));
+		else if (t == "gpanel")
+			break; // another panel: its own measure
+	}
+
+	columns.skill_desc_x = 19 * u + skill_name + 10 * u;
+	if (skill_name)
+		need = std::max(need, columns.skill_desc_x + skill_desc + 10 * u + skill_rank + 4 * u);
+	columns.prog_goal_x = 6 * u + prog_name + 10 * u;
+	columns.prog_bar_w = std::max(84 * u, prog_right + 12 * u);
+	if (prog_name)
+		need = std::max(need, columns.prog_goal_x + prog_goal + 10 * u + columns.prog_bar_w + 3 * u);
+
+	return std::max(need + 2 * GUI_PAD * u, panel_need);
+}
+
+// screen area the panel must stay inside (pixels)
+int screen_x0, screen_w;
+
+// rest = the layout after this token's arguments (the panel's rows)
+void Panel(int x, int y, int w, int h, const std::string &title, const std::string &right, const char *rest)
 {
 	const bool title_bar = !title.empty() || !right.empty();
+
+	// widen to fit the rows and the title, never past the screen; centered menus stay centered
+	int pw = w * u;
+	const int title_need = title_bar ? (GUI_PAD + 1) * u * 2 + TextWidth(title.c_str()) + 16 * u + TextWidth(right.c_str()) : 0;
+	const int fit = std::min(std::max({pw, MeasureRows(rest), title_need}), screen_w - 8 * u);
+	if (fit > pw)
+	{
+		const bool centered = abs(x + pw / 2 - (screen_x0 + screen_w / 2)) < 8 * u;
+		if (centered)
+			x -= (fit - pw) / 2;
+		pw = fit;
+		x = std::clamp(x, screen_x0 + 4 * u, screen_x0 + screen_w - 4 * u - pw);
+	}
+
 	// rows start a pad under the title bar (tabs, when sent, slot in above that pad)
-	panel = {x, y, w * u, h * u, y + ((title_bar ? GUI_TITLE_H : 0) + GUI_PAD) * u};
+	panel = {x, y, pw, h * u, y + ((title_bar ? GUI_TITLE_H : 0) + GUI_PAD) * u};
 	Fill(x + 3 * u, y + 3 * u, panel.w, panel.h, col_shadow);
 	Fill(x, y, panel.w, panel.h, col_body);
 	if (!title_bar)
@@ -99,22 +333,14 @@ void Panel(int x, int y, int w, int h, const std::string &title, const std::stri
 	Fill(x, y, panel.w, GUI_TITLE_H * u, col_title);
 	Fill(x, y + (GUI_TITLE_H - 1) * u, panel.w, u, col_accent);
 	Frame(x, y, panel.w, panel.h, col_border);
-	Text(x + GUI_PAD * u + u, y + 3 * u, title.c_str(), col_accent);
-	Text(x + panel.w - GUI_PAD * u - u - TextWidth(right.c_str()), y + 3 * u, right.c_str(), col_green);
+	const int right_w = TextWidth(right.c_str());
+	Text(x + GUI_PAD * u + u, y + 3 * u, Clip(title, panel.w - right_w - 2 * (GUI_PAD + 1) * u - 8 * u).c_str(), col_accent);
+	Text(x + panel.w - GUI_PAD * u - u - right_w, y + 3 * u, right.c_str(), col_green);
 }
 
 void Tabs(int active, const std::string &list)
 {
-	std::vector<std::string> names;
-	for (size_t start = 0;;)
-	{
-		const size_t bar = list.find('|', start);
-		names.push_back(list.substr(start, bar == std::string::npos ? std::string::npos : bar - start));
-		if (bar == std::string::npos)
-			break;
-		start = bar + 1;
-	}
-
+	const std::vector<std::string> names = SplitBars(list);
 	const int left = panel.x + GUI_PAD * u;
 	const int total = panel.w - 2 * GUI_PAD * u;
 	const int y = panel.cursor - GUI_PAD * u + 2 * u;
@@ -127,8 +353,8 @@ void Tabs(int active, const std::string &list)
 		Fill(x0 + u, y, x1 - x0 - 2 * u, h, on ? col_tab_on : col_tab);
 		if (on)
 			Fill(x0 + u, y + h - u, x1 - x0 - 2 * u, u, col_accent);
-		const int tw = TextWidth(names[i].c_str());
-		Text(x0 + (x1 - x0 - tw) / 2, y + 2 * u, names[i].c_str(), on ? rgba_white : col_dim);
+		const std::string name = Clip(names[i], x1 - x0 - 6 * u);
+		Text(x0 + (x1 - x0 - TextWidth(name.c_str())) / 2, y + 2 * u, name.c_str(), on ? rgba_white : col_dim);
 	}
 	panel.cursor += GUI_TABS_H * u;
 }
@@ -162,15 +388,6 @@ void Icon(int x, int y, int size, int icon, const rgba_t &tint)
 	cgi.SCR_DrawPic(x, y, size, size, pic.c_str());
 }
 
-// key in a small box; returns its width
-int Badge(int x, int y, const char *key)
-{
-	const int w = std::max(10 * u, TextWidth(key) + 4 * u);
-	Fill(x, y, w, 10 * u, col_badge);
-	Text(x + (w - TextWidth(key)) / 2, y + u, key, rgba_white);
-	return w;
-}
-
 void Item(const std::string &key, int rarity, int state, int icon, const std::string &name, const std::string &price, const std::string &sub)
 {
 	const int x = panel.x + GUI_PAD * u;
@@ -183,25 +400,23 @@ void Item(const std::string &key, int rarity, int state, int icon, const std::st
 	Fill(x, y, w, h, col_row);
 	Fill(x, y, 2 * u, h, has_rarity ? rarity_colors[rarity] : col_border); // rarity stripe
 
-	int text_x = x + 6 * u;
 	if (!key.empty() && key != "-")
-		text_x += Badge(text_x, y + u, key.c_str()) + 3 * u;
-	else
-		text_x += 13 * u; // keep names lined up with keyed rows
+		Badge(x + 6 * u, y + u, key.c_str());
+	const int text_x = x + ItemTextX(key, icon, !sub.empty());
 	if (icon > GUI_ICON_NONE)
 	{
 		const int size = (sub.empty() ? 10 : 18) * u;
-		Icon(text_x, y + (h - size) / 2, size, icon, has_rarity ? rarity_colors[rarity] : rgba_white);
-		text_x += size + 4 * u;
+		Icon(text_x - size - 4 * u, y + (h - size) / 2, size, icon, has_rarity ? rarity_colors[rarity] : rgba_white);
 	}
 
+	const int price_w = TextWidth(price.c_str());
 	const rgba_t name_color = off ? col_off : has_rarity ? rarity_colors[rarity]
 	                                                     : rgba_white;
-	Text(text_x, y + 2 * u, name.c_str(), name_color);
+	Text(text_x, y + 2 * u, Clip(name, x + w - 4 * u - price_w - 8 * u - text_x).c_str(), name_color);
 
 	const rgba_t price_color = off ? col_off : state == GUI_AFFORD ? col_green
 	                                                               : col_red;
-	Text(x + w - 4 * u - TextWidth(price.c_str()), y + 2 * u, price.c_str(), price_color);
+	Text(x + w - 4 * u - price_w, y + 2 * u, price.c_str(), price_color);
 
 	if (!sub.empty())
 	{
@@ -218,7 +433,7 @@ void Item(const std::string &key, int rarity, int state, int icon, const std::st
 			sx += 4 * u;
 			rest = *end == ' ' ? end + 1 : end;
 		}
-		CG_Loot_DrawColorString(sx, sy, u, rest, kfont, font_y_offset);
+		CG_Loot_DrawColorString(sx, sy, u, Clip(rest, x + w - 4 * u - sx).c_str(), kfont, font_y_offset);
 	}
 	panel.cursor += h + GUI_ROW_GAP * u;
 }
@@ -231,10 +446,8 @@ void Keys(const std::string &list)
 	int x = panel.x + GUI_PAD * u + u;
 	const int y = top + 3 * u;
 	bool is_key = true;
-	for (size_t start = 0;;)
+	for (const std::string &part : SplitBars(list))
 	{
-		const size_t bar = list.find('|', start);
-		const std::string part = list.substr(start, bar == std::string::npos ? std::string::npos : bar - start);
 		if (is_key)
 			x += Badge(x, y, part.c_str()) + 3 * u;
 		else
@@ -243,33 +456,16 @@ void Keys(const std::string &list)
 			x += TextWidth(part.c_str()) + 9 * u;
 		}
 		is_key = !is_key;
-		if (bar == std::string::npos)
-			break;
-		start = bar + 1;
 	}
-}
-// width of a loot_str line, color codes skipped
-int ColorTextWidth(const char *str)
-{
-	std::string plain;
-	for (const char *c = str; *c; c++)
-	{
-		if (c[0] == '^' && c[1])
-		{
-			c++;
-			continue;
-		}
-		plain += *c;
-	}
-	return TextWidth(plain.c_str());
 }
 
 void Head(const std::string &text, bool on)
 {
 	const int x = panel.x + GUI_PAD * u + u;
 	const int y = panel.cursor;
-	Text(x, y + u, text.c_str(), on ? col_accent : col_dim);
-	const int line_x = x + TextWidth(text.c_str()) + 4 * u;
+	const std::string shown = Clip(text, panel.w - 2 * GUI_PAD * u - 2 * u);
+	Text(x, y + u, shown.c_str(), on ? col_accent : col_dim);
+	const int line_x = x + TextWidth(shown.c_str()) + 4 * u;
 	const int right = panel.x + panel.w - GUI_PAD * u;
 	if (line_x < right)
 		Fill(line_x, y + 5 * u, right - line_x, u, on ? col_border : col_pip_off);
@@ -292,19 +488,23 @@ void Skill(const std::string &key, int state, const std::string &name, const std
 
 	if (!key.empty())
 	{
-		const int bw = std::max(10 * u, TextWidth(key.c_str()) + 4 * u);
+		const int bw = BadgeWidth(key.c_str());
 		Fill(x + 5 * u, y + u, bw, 10 * u, state == GUI_SKILL_CAN_ADD ? col_tab_on : col_badge);
 		Text(x + 5 * u + (bw - TextWidth(key.c_str())) / 2, y + 2 * u, key.c_str(), locked ? col_off : rgba_white);
 	}
 
+	const int desc_x = x + columns.skill_desc_x;
+	const int rank_w = ColorTextWidth(rank.c_str());
+	const int rank_x = x + w - 4 * u - rank_w;
 	const rgba_t name_color = locked ? col_off : state == GUI_SKILL_MAXED ? col_accent
 	                                                                      : rgba_white;
-	Text(x + 19 * u, y + 2 * u, name.c_str(), name_color);
-	Text(x + GUI_SKILL_DESC_X * u, y + 2 * u, desc.c_str(), locked ? col_off : col_dim);
-	CG_Loot_DrawColorString(x + w - 4 * u - ColorTextWidth(rank.c_str()), y + 2 * u, u, rank.c_str(), kfont, font_y_offset);
+	Text(x + 19 * u, y + 2 * u, Clip(name, desc_x - 6 * u - (x + 19 * u)).c_str(), name_color);
+	Text(desc_x, y + 2 * u, Clip(desc, rank_x - 6 * u - desc_x).c_str(), locked ? col_off : col_dim);
+	CG_Loot_DrawColorString(rank_x, y + 2 * u, u, rank.c_str(), kfont, font_y_offset);
 
 	panel.cursor += h + GUI_SKILL_GAP * u;
 }
+
 // card header: 24px icon, name in rarity color, a dim line under it
 void Hero(int icon, int rarity, const std::string &name, const std::string &sub)
 {
@@ -320,8 +520,9 @@ void Hero(int icon, int rarity, const std::string &name, const std::string &sub)
 		Icon(x + u, y + u, 24 * u, icon, color);
 		text_x = x + 30 * u;
 	}
-	Text(text_x, y + 4 * u, name.c_str(), color);
-	CG_Loot_DrawColorString(text_x, y + 15 * u, u, sub.c_str(), kfont, font_y_offset);
+	const int max_w = panel.x + panel.w - GUI_PAD * u - text_x;
+	Text(text_x, y + 4 * u, Clip(name, max_w).c_str(), color);
+	CG_Loot_DrawColorString(text_x, y + 15 * u, u, Clip(sub, max_w).c_str(), kfont, font_y_offset);
 	panel.cursor += GUI_HERO_H * u;
 }
 
@@ -332,27 +533,31 @@ void Prog(int state, int cur, int max, const std::string &name, const std::strin
 	const int y = panel.cursor;
 	const int h = GUI_PROG_H * u;
 
+	const int bar_w = columns.prog_bar_w;
+	const int bar_x = x + w - 3 * u - bar_w;
+	const int goal_x = x + columns.prog_goal_x;
+
 	Fill(x, y, w, h, col_row);
 	Fill(x, y, 2 * u, h, state == 2 ? col_accent : state == 1 ? col_green
 	                                                          : col_border);
-	Text(x + 6 * u, y + 2 * u, name.c_str(), state == 2 ? col_accent : rgba_white);
-	Text(x + GUI_PROG_GOAL_X * u, y + 2 * u, goal.c_str(), col_dim);
+	Text(x + 6 * u, y + 2 * u, Clip(name, goal_x - 6 * u - (x + 6 * u)).c_str(), state == 2 ? col_accent : rgba_white);
+	Text(goal_x, y + 2 * u, Clip(goal, bar_x - 6 * u - goal_x).c_str(), col_dim);
 
-	const int bar_w = GUI_PROG_BAR_W * u;
-	const int bar_x = x + w - 3 * u - bar_w;
 	Fill(bar_x, y + 2 * u, bar_w, h - 4 * u, col_pip_off);
 	const float frac = max > 0 ? std::clamp((float)cur / (float)max, 0.f, 1.f) : 1.f;
 	if (frac > 0)
 		Fill(bar_x, y + 2 * u, std::max(u, (int)(bar_w * frac)), h - 4 * u, state == 2 ? col_accent : col_bar);
-	Text(bar_x + (bar_w - ColorTextWidth(right.c_str())) / 2, y + 2 * u, right.c_str(), rgba_white);
+	const std::string label = Clip(right, bar_w - 4 * u);
+	Text(bar_x + (bar_w - ColorTextWidth(label.c_str())) / 2, y + 2 * u, label.c_str(), rgba_white);
 
 	panel.cursor += h + GUI_PROG_GAP * u;
 }
 } // namespace
 
 // Called for every layout token; returns true when the token was a widget (parsed and,
-// unless skip, drawn). x / y are the current layout position in pixels.
-bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bool skip, bool use_kfont, int y_offset)
+// unless skip, drawn). x / y are the current layout position in pixels; screen_left /
+// screen_width bound the panel (pixels).
+bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bool skip, bool use_kfont, int y_offset, int screen_left, int screen_width)
 {
 	if (token[0] != 'g')
 		return false;
@@ -360,6 +565,8 @@ bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bo
 	u = std::max(1, scale);
 	kfont = use_kfont;
 	font_y_offset = y_offset;
+	screen_x0 = screen_left;
+	screen_w = screen_width;
 
 	// every argument is parsed even when skipped, so the layout stays in step
 	auto num = [&]()
@@ -370,7 +577,7 @@ bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bo
 		const int w = num(), h = num();
 		const std::string title = Next(s), right = Next(s);
 		if (!skip)
-			Panel(x, y, w, h, title, right);
+			Panel(x, y, w, h, title, right, *s);
 	}
 	else if (!strcmp(token, "gtabs"))
 	{
@@ -392,7 +599,8 @@ bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bo
 		const std::string text = Next(s);
 		if (!skip)
 		{
-			CG_Loot_DrawColorString(panel.x + GUI_PAD * u + 2 * u, panel.cursor + u, u, text.c_str(), kfont, font_y_offset);
+			const int tx = panel.x + GUI_PAD * u + 2 * u;
+			CG_Loot_DrawColorString(tx, panel.cursor + u, u, Clip(text, panel.x + panel.w - GUI_PAD * u - tx).c_str(), kfont, font_y_offset);
 			panel.cursor += GUI_TEXT_H * u;
 		}
 	}

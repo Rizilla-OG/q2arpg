@@ -26,7 +26,7 @@ static cvar_t *scr_usekfont;
 void CG_Loot_DrawColorString(int x, int y, int scale, const char *text, bool kfont, int font_y_offset);
 void CG_Loot_SetTabs(const char *list);
 // q2rpg: q2rpg/cg_gui.cpp; drawn menu widgets (gpanel, gitem, ...)
-bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bool skip, bool use_kfont, int y_offset);
+bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bool skip, bool use_kfont, int y_offset, int screen_left, int screen_width);
 
 static cvar_t *scr_centertime;
 static cvar_t *scr_printspeed;
@@ -1198,7 +1198,7 @@ static void CG_ExecuteLayoutString (const char *s, vrect_t hud_vrect, vrect_t hu
         }
 
         // q2rpg: drawn menu widgets
-        if (CG_Gui_Token(token, &s, x, y, scale, skip_depth, scr_usekfont->integer, font_y_offset))
+        if (CG_Gui_Token(token, &s, x, y, scale, skip_depth, scr_usekfont->integer, font_y_offset, hud_vrect.x * scale, hud_vrect.width * scale))
             continue;
 
         if (!strcmp(token, "if"))
