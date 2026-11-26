@@ -5,6 +5,7 @@
 ### Added
 
 - Tutorial map. Type `tutorial` in the console (or `map q2rpg_tutorial`). Eleven rooms, one lesson each: the HUD, loot and gun cards, shields and grenade mods, fighting, Alphas, chests, selling and the stash, the vendor, skills and the action skill, and a mini-boss to finish. Each room explains itself as you walk in, and an arrow pad on the floor shows a second tip.
+- Mapping: `monster_loot_random`, a point entity that becomes a random monster when the map loads (default pool or your own `loot_monsters` list), with an optional guaranteed gun drop (`loot_drop`, `loot_rarity`, `loot_weapon`, `loot_unique`). All monster keys work on it. In the TrenchBroom config and MODDING.md.
 
 ### Changed
 

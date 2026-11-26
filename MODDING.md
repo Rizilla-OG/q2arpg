@@ -66,6 +66,22 @@ Drops a gun every time it's triggered, popping out like a monster drop. Give
 it a `targetname` and point a button, trigger or secret at it. Takes the same
 keys as `item_loot_gun`. To drop only once, trigger it from a `trigger_once`.
 
+### `monster_loot_random` (point)
+
+Becomes a random monster when the map loads, so each playthrough meets something
+different. Every monster key above works on it (`loot_elite`, `loot_boss`,
+`loot_nodrop`, `angle`, spawn flags, `targetname`, `deathtarget`), and it drops
+the normal random XP, cash and loot.
+
+| Key | Values |
+|---|---|
+| `loot_monsters` | Monsters to pick from, separated by `;`, e.g. `monster_gunner;monster_berserk;monster_tank`. Leave out for the default pool: light soldier, soldier, SS soldier, infantry, gunner, berserker, parasite, iron maiden, brain and gladiator (ground monsters that fit most rooms). Names that aren't monsters are skipped with a console warning. |
+| `loot_drop` | `1` also drops a guaranteed gun when it dies, on top of the normal loot. |
+| `loot_rarity`, `loot_weapon`, `loot_unique` | Shape the guaranteed gun, same values as `item_loot_gun`. Setting any of them turns the guaranteed gun on. |
+
+Give it room for the biggest monster in its list. Flying monsters work if you
+list them, but the default pool is ground-only.
+
 ## Map and campaign keys
 
 | Entity | Key | Effect |

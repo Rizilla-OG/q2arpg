@@ -362,6 +362,7 @@
     ]
 ]
 
+
 // Q2ARPG: ends the campaign and starts New Game+ when triggered
 @PointClass base(EditorFlags, Targetable) color(232 80 42) size(-8 -8 -8, 8 8 8) = target_ngplus : "Q2ARPG: end the campaign, start New Game+" []
 @PointClass base(Weapons) model({ "path": ":models/weapons/g_hyperb/tris.md2" }) = weapon_hyperblaster : "Hyperblaster" []
@@ -982,6 +983,43 @@ monster_mutant : "Mutant"
         8 : "No jumping" : 0
     ]
 ]
+
+// Q2ARPG: becomes a random monster when the map loads (default pool: soldiers, infantry, gunner,
+// berserker, parasite, iron maiden, brain, gladiator). Every monster key works on it.
+@PointClass base(Monsters) color(255 128 0) size(-16 -16 -24, 16 16 32) = monster_loot_random : "Q2ARPG: random monster"
+[
+    loot_monsters(string) : "Monsters to pick from, ; separated (blank = default pool)" : ""
+    loot_drop(Choices) : "Guaranteed gun" : 0 =
+    [
+        0 : "No (normal random loot)"
+        1 : "Yes, plus the normal loot"
+    ]
+    loot_rarity(Choices) : "Guaranteed gun rarity" : -1 =
+    [
+        -1 : "Random"
+        0 : "Common"
+        1 : "Uncommon"
+        2 : "Rare"
+        3 : "Epic"
+        4 : "Legendary"
+        5 : "Mythic (New Game+ only, else Legendary)"
+    ]
+    loot_weapon(Choices) : "Guaranteed gun weapon" : "" =
+    [
+        "" : "Random"
+        "Pistol" : "Pistol"
+        "Shotgun" : "Shotgun"
+        "Scattergun" : "Scattergun"
+        "SMG" : "SMG"
+        "Minigun" : "Minigun"
+        "Launcher" : "Launcher"
+        "Rocket Launcher" : "Rocket Launcher"
+        "Plasma Caster" : "Plasma Caster"
+        "Rail Rifle" : "Rail Rifle"
+        "Annihilator" : "Annihilator"
+    ]
+]
+
 @PointClass base(Monsters) model({ "path": ":models/monsters/soldier/tris.md2", "skin": 0 }) = monster_soldier_light : "Light Soldier"
 [
     spawnflags(Flags) =

@@ -1415,6 +1415,8 @@ struct spawn_temp_t
 	float loot_elite_chance = -1;	// worldspawn: Alpha chance multiplier (-1 = unset, 0 = no Alphas)
 	const char *loot_modifier;	// worldspawn: force this map modifier by name
 	int32_t loot_start_level;	// worldspawn: raise players below this level
+	const char *loot_monsters;	// monster_loot_random: classnames to pick from, ';' separated (blank: default pool)
+	int32_t loot_drop;		// monster_loot_random: 1 = also a guaranteed gun drop (loot_rarity / loot_weapon set it too)
 	const char *noise_start, *noise_middle, *noise_end; // [Paril-KEX]
 	int32_t loop_count; // [Paril-KEX]
 

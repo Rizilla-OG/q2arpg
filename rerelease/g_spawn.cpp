@@ -118,6 +118,7 @@ void SP_item_loot_shield(edict_t *self); // q2rpg
 void SP_item_loot_grenade(edict_t *self); // q2rpg
 void SP_item_loot_chest(edict_t *self); // q2rpg
 void SP_target_loot_drop(edict_t *self); // q2rpg
+void SP_monster_loot_random(edict_t *self); // q2rpg
 void SP_target_ngplus(edict_t *self); // q2rpg
 void SP_misc_blackhole(edict_t *self);
 void SP_misc_eastertank(edict_t *self);
@@ -335,6 +336,7 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "item_loot_grenade", SP_item_loot_grenade }, // q2rpg
 	{ "item_loot_chest", SP_item_loot_chest }, // q2rpg
 	{ "target_loot_drop", SP_target_loot_drop }, // q2rpg
+	{ "monster_loot_random", SP_monster_loot_random }, // q2rpg
 	{ "target_ngplus", SP_target_ngplus }, // q2rpg
 	{ "misc_blackhole", SP_misc_blackhole },
 	{ "misc_eastertank", SP_misc_eastertank },
@@ -456,6 +458,15 @@ ED_CallSpawn
 Finds the spawn function for the entity and calls it
 ===============
 */
+// q2rpg: the spawn table's own (static) name for a classname, or nullptr when nothing spawns it
+const char *ED_SpawnName(const char *classname)
+{
+	for (auto &s : spawns)
+		if (!Q_strcasecmp(s.name, classname))
+			return s.name;
+	return nullptr;
+}
+
 void ED_CallSpawn(edict_t *ent)
 {
 	gitem_t *item;
@@ -828,6 +839,8 @@ static const std::initializer_list<temp_field_t> temp_fields = {
 	FIELD_AUTO(loot_droprate),    // q2rpg
 	FIELD_AUTO(loot_elite_chance), // q2rpg
 	FIELD_AUTO(loot_modifier),    // q2rpg
+	FIELD_AUTO(loot_monsters),    // q2rpg
+	FIELD_AUTO(loot_drop),        // q2rpg
 	FIELD_AUTO(loot_start_level), // q2rpg
 	FIELD_AUTO(lip),
 	FIELD_AUTO(distance),
