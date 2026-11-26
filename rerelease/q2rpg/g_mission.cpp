@@ -4,6 +4,7 @@
 // Progress shows on the level / XP HUD line.
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 #include <algorithm>
 #include <random>
@@ -309,21 +310,13 @@ void Mission_SendPage(edict_t *ent)
 {
 	Mission_CheckMap(ent);
 	const client_persistant_t &pers = ent->client->pers;
-	std::string s = "loot_dim xl 16 ";
-	int32_t y = 24;
-	auto line = [&](const char *kind, const std::string &text)
-	{
-		s += G_Fmt("yv {} {} \"{}\" ", y, kind, text).data();
-		y += 10;
-	};
+	gui_page_t page;
 
-	line("string2", "MISSIONS");
-	y += 6;
 	if (pers.loot_mission.valid)
 	{
 		const bool stuck = !Mission_Reachable(ent, pers.loot_mission);
-		line("string", G_Fmt("Active: {}  ({}/{}){}", pers.loot_mission.label, pers.loot_mission.progress, pers.loot_mission.goal, stuck ? "  can't finish: take another" : "").data());
-		y += 6;
+		page.text(G_Fmt("^aActive:^w {}  ({}/{}){}", pers.loot_mission.label, pers.loot_mission.progress, pers.loot_mission.goal, stuck ? "  ^rcan't finish: take another" : "").data());
+		page.gap();
 	}
 
 	bool any_offer = false;
@@ -333,23 +326,24 @@ void Mission_SendPage(edict_t *ent)
 		if (!offer.valid)
 			continue;
 		any_offer = true;
+		const int32_t difficulty = std::clamp(offer.difficulty, 0, 2);
 		const bool done = Mission_DoneBy(ent, i);
 		const bool active = pers.loot_mission.valid && pers.loot_mission_taken == i;
-		const char *state = done ? "  DONE" : active                       ? "  ACTIVE"
-		                                  : !Mission_Reachable(ent, offer) ? "  (too few left)"
-		                                                                   : "";
-		line(done || active ? "string" : "string2", G_Fmt("{}  {}  ({}){}", i + 1, offer.label, mission_difficulty_names[std::clamp(offer.difficulty, 0, 2)], state).data());
-		line("loot_str", G_Fmt("   Reward: {}${}, {}+ gear", pers.loot_level >= Loot_LevelCap() ? "" : G_Fmt("{} XP, ", Mission_RewardXP(ent, offer)).data(),
-		                       Mission_RewardCash(offer), Loot_RarityName(mission_min_rarity[std::clamp(offer.difficulty, 0, 2)]))
-		                     .data());
-		y += 4;
+		const bool reachable = Mission_Reachable(ent, offer);
+		const char *state = done ? "DONE" : active   ? "ACTIVE"
+		                                : !reachable ? "too few left"
+		                                             : mission_difficulty_names[difficulty];
+		const std::string reward = G_Fmt("Reward: {}${}, {}+ gear", pers.loot_level >= Loot_LevelCap() ? "" : G_Fmt("{} XP, ", Mission_RewardXP(ent, offer)).data(),
+		                                 Mission_RewardCash(offer), Loot_RarityName(mission_min_rarity[difficulty]))
+		                               .data();
+		page.item(G_Fmt("{}", i + 1).data(), mission_min_rarity[difficulty], done || active ? GUI_OFF : reachable ? GUI_AFFORD
+		                                                                                                          : GUI_CANT_AFFORD,
+		          offer.label, state, reward);
 	}
 	if (!any_offer)
-		line("string", "No missions on this map");
+		page.text("No missions on this map");
 
-	y += 6;
-	line("string", "1-2 take (replaces the active one)  9 next page");
-	Loot_SendLayout(ent, s);
+	Loot_SendLayout(ent, page.finish("MISSIONS", Gui_Money(pers.loot_money), 3, VENDOR_TABS, "1-2|take (replaces active)|9|next tab|V|close"));
 }
 
 void Mission_Take(edict_t *ent, int32_t n)

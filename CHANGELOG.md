@@ -2,6 +2,10 @@
 
 ## Unreleased (next update)
 
+### Changed
+
+- Vendor screens. The quartermaster finally threw out the clipboard. The vendor (V), its upgrades, workshop and missions pages, and the stash (B) are now drawn panels instead of plain text: page tabs across the top, a row per item with its key, the name in its rarity color and the price on the right in green when you can afford it or red when you can't. Upgrades show their ranks as pips. Keys are unchanged.
+
 ## 0.9.7
 
 ### Added

@@ -4,6 +4,7 @@
 // the shop; number keys buy, X sells.
 
 #include "../g_local.h"
+#include "g_gui.h"
 
 //==========================================================================
 // Prices
@@ -359,115 +360,90 @@ static void Vendor_SendUpgrades(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
 	const int32_t money = cl->pers.loot_money;
-	std::string s = "loot_dim xl 16 "; // dim backdrop first so text draws on top
-	int32_t y = 24;
-	auto line = [&](const char *kind, const std::string &text)
-	{
-		s += G_Fmt("yv {} {} \"{}\" ", y, kind, text).data();
-		y += 10;
-	};
-
-	line("string2", G_Fmt("UPGRADES        You have ${}", money).data());
-	y += 6;
+	gui_page_t page;
 	for (int32_t i = 0; i < LOOT_UPGRADE_COUNT; i++)
 	{
 		const int32_t rank = cl->pers.loot_upgrades[i];
 		const vendor_upgrade_t &up = vendor_upgrades[i];
+		const std::string pips = G_Fmt("#{}/{}", rank, up.max_rank).data();
 		if (rank >= up.max_rank)
-			line("string", G_Fmt("{}  {}  [{}/{}]  MAX", i + 1, up.label, rank, up.max_rank).data());
+			page.item(G_Fmt("{}", i + 1).data(), GUI_NO_RARITY, GUI_OFF, up.label, "MAX", pips);
 		else
 		{
 			const int32_t price = Vendor_UpgradePrice(ent, i);
-			line(price <= money ? "string2" : "string", G_Fmt("{}  {}  [{}/{}]  ${}", i + 1, up.label, rank, up.max_rank, price).data());
+			page.item(G_Fmt("{}", i + 1).data(), GUI_NO_RARITY, Gui_Afford(price, money), up.label, Gui_Money(price), pips);
 		}
 	}
-	y += 6;
-	line("string2", "9  Workshop >");
-	y += 6;
-	line("string2", "[1-8] buy  [9] next  [V] close");
-	Loot_SendLayout(ent, s);
+	Loot_SendLayout(ent, page.finish("UPGRADES", Gui_Money(money), 1, VENDOR_TABS, "1-8|buy|9|next tab|V|close"));
 }
 
 static void Vendor_SendWorkshop(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
 	const int32_t money = cl->pers.loot_money;
-	std::string s = "loot_dim xl 16 "; // dim backdrop first so text draws on top
-	int32_t y = 24;
-	auto line = [&](const char *kind, const std::string &text)
-	{
-		s += G_Fmt("yv {} {} \"{}\" ", y, kind, text).data();
-		y += 10;
-	};
-
-	line("string2", G_Fmt("WORKSHOP        You have ${}", money).data());
-	y += 6;
+	gui_page_t page;
 
 	// re-level the active gun
 	const loot_weapon_t *gun = Loot_Active(ent);
 	if (!gun)
-		line("string", "1  Level up gun  (no gun held)");
+		page.item("1", GUI_NO_RARITY, GUI_OFF, "Level up gun", "", "No gun held");
 	else
 	{
 		const int32_t price = Vendor_RelevelPrice(ent, *gun);
-		line("string", G_Fmt("   {}", gun->name).data());
 		if (!price)
-			line("string", G_Fmt("1  Level up gun  L{}  MAX", Loot_GunLevel(*gun)).data());
+			page.item("1", gun->rarity, GUI_OFF, G_Fmt("Level up: {}", gun->name).data(), "MAX", G_Fmt("L{}, already at your level", Loot_GunLevel(*gun)).data());
 		else
-			line(price <= money ? "string2" : "string", G_Fmt("1  Level up gun  L{} to L{}  ${}", Loot_GunLevel(*gun), Vendor_RelevelTarget(ent), price).data());
+			page.item("1", gun->rarity, Gui_Afford(price, money), G_Fmt("Level up: {}", gun->name).data(), Gui_Money(price),
+			          G_Fmt("L{} ^g> L{}", Loot_GunLevel(*gun), Vendor_RelevelTarget(ent)).data());
 	}
 
 	// grenade mod for sale (rerolls with the stock)
-	y += 6;
 	const loot_grenade_t &grenade = level.loot_vendor_grenade;
 	if (grenade.valid)
 	{
 		const int32_t price = Vendor_GrenadeValue(grenade);
-		line(price <= money ? "string2" : "string", G_Fmt("2  {} [{}]  ${}", grenade.name, Loot_RarityName(grenade.rarity), price).data());
-		line("loot_str", "   " + Grenade_BriefCompare(grenade, cl->pers.loot_grenade));
+		page.item("2", grenade.rarity, Gui_Afford(price, money), grenade.name, Gui_Money(price), Grenade_BriefCompare(grenade, cl->pers.loot_grenade));
 	}
 	else
-		line("string", "2  - sold -");
-	line("string", G_Fmt("   Grenades {}  (stock hand grenades are your ammo)", cl->pers.inventory[IT_AMMO_GRENADES]).data());
+		page.item("2", GUI_NO_RARITY, GUI_OFF, "Grenade mod", "SOLD");
 
 	// class mod for sale (rerolls with the stock)
-	y += 6;
 	const loot_classmod_t &classmod = level.loot_vendor_classmod;
 	if (classmod.valid)
 	{
 		const int32_t price = Vendor_ClassModValue(classmod);
-		line(price <= money ? "string2" : "string", G_Fmt("3  {} [{} {}]  ${}", classmod.name, Loot_RarityName(classmod.rarity), Skill_TreeName(classmod.tree), price).data());
-		line("loot_str", "   " + ClassMod_BriefLine(classmod));
+		page.item("3", classmod.rarity, Gui_Afford(price, money), G_Fmt("{} ({})", classmod.name, Skill_TreeName(classmod.tree)).data(), Gui_Money(price),
+		          ClassMod_BriefLine(classmod));
 	}
 	else
-		line("string", "3  - sold -");
+		page.item("3", GUI_NO_RARITY, GUI_OFF, "Class mod", "SOLD");
 
-	// rift (Lv 60 endgame)
-	y += 6;
+	// endgame trips: the lines carry their own price
+	page.gap();
+	auto trip = [&](const char *key, const std::string &text, bool usable, bool affordable)
+	{
+		page.item(key, GUI_NO_RARITY, !usable ? GUI_OFF : affordable ? GUI_AFFORD
+		                                                             : GUI_CANT_AFFORD,
+		          text, "");
+	};
 	bool rift_usable = false;
 	const std::string rift_text = Rift_VendorLine(ent, rift_usable);
-	const bool rift_affordable = Rift_InRift() || Rift_OpenPrice() <= money;
-	line(rift_usable && rift_affordable ? "string2" : "string", "4  " + rift_text);
+	trip("4", rift_text, rift_usable, Rift_InRift() || Rift_OpenPrice() <= money);
 
-	// q2rpg: raid (Lv 60 endgame)
-	bool raid_usable = false;
+	bool raid_usable = false; // q2rpg: raid (Lv 60 endgame)
 	const std::string raid_text = Raid_VendorLine(ent, raid_usable);
-	const bool raid_affordable = Raid_InRaid() || Raid_OpenPrice() <= money;
-	line(raid_usable && raid_affordable ? "string2" : "string", "5  " + raid_text);
+	trip("5", raid_text, raid_usable, Raid_InRaid() || Raid_OpenPrice() <= money);
 
-	// q2rpg: arena waves
-	bool arena_usable = false;
+	bool arena_usable = false; // q2rpg: arena waves
 	const std::string arena_text = Arena_VendorLine(ent, arena_usable);
-	const bool arena_affordable = Arena_InArena() || Arena_OpenPrice(ent) <= money;
-	line(arena_usable && arena_affordable ? "string2" : "string", "6  " + arena_text);
+	trip("6", arena_text, arena_usable, Arena_InArena() || Arena_OpenPrice(ent) <= money);
 
 	// q2rpg: 4 more stash slots (Lv 60); the stash itself opens with B
 	if (const int32_t stash_price = Vendor_StashBuyPrice(ent))
-		line(stash_price <= money ? "string2" : "string", G_Fmt("7  Stash: 4 more slots  ${}", stash_price).data());
+		page.item("7", GUI_NO_RARITY, Gui_Afford(stash_price, money), "Stash: 4 more slots", Gui_Money(stash_price));
 
-	y += 6;
-	line("string2", "[1-7] buy  [9] missions >  [V] close");
-	Loot_SendLayout(ent, s);
+	page.text(G_Fmt("^wGrenades: {}  (hand grenades are your ammo)", cl->pers.inventory[IT_AMMO_GRENADES]).data());
+	Loot_SendLayout(ent, page.finish("WORKSHOP", Gui_Money(money), 2, VENDOR_TABS, "1-7|buy|9|next tab|V|close"));
 }
 
 static int32_t Vendor_CountGuns(gclient_t *cl);
@@ -496,6 +472,22 @@ static std::string Vendor_StashLine(const loot_stash_slot_t &slot)
 	if (slot.relic.valid)
 		return G_Fmt("Relic   {}  {} {}", slot.relic.name, Loot_RarityName(slot.relic.rarity), Relic_TypeName(slot.relic)).data();
 	return "- empty -";
+}
+
+// rarity of whatever the slot holds, for the row color
+static int32_t Vendor_StashRarity(const loot_stash_slot_t &slot)
+{
+	if (slot.gun.valid)
+		return slot.gun.rarity;
+	if (slot.shield.valid)
+		return slot.shield.rarity;
+	if (slot.grenade.valid)
+		return slot.grenade.rarity;
+	if (slot.classmod.valid)
+		return slot.classmod.rarity;
+	if (slot.relic.valid)
+		return slot.relic.rarity;
+	return GUI_NO_RARITY;
 }
 
 // 4 slots at Lv 1, +4 every 10 levels: 28 at Lv 60, plus bought rows
@@ -531,42 +523,38 @@ static int32_t Vendor_StashPages(edict_t *ent)
 static void Vendor_SendStash(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
-	std::string s = "loot_dim xl 16 "; // dim backdrop first so text draws on top
-	int32_t y = 24;
-	auto line = [&](const char *kind, const std::string &text)
-	{
-		s += G_Fmt("yv {} {} \"{}\" ", y, kind, text).data();
-		y += 10;
-	};
-	// x carries over; one line per slot keeps this well under the 1024-char layout limit
-
 	const int32_t open_slots = Vendor_StashOpenSlots(ent);
 	const int32_t pages = Vendor_StashPages(ent);
-	const int32_t page = std::clamp(cl->loot_stash_page, 0, pages - 1);
-	line("string2", G_Fmt("STASH  page {}/{}   {} slots (+4 every 10 levels)", page + 1, pages, open_slots).data());
-	y += 6;
+	const int32_t page_index = std::clamp(cl->loot_stash_page, 0, pages - 1);
+	gui_page_t page;
 	for (int32_t key = 1; key <= LOOT_STASH_PAGE_SLOTS; key++)
 	{
-		const int32_t index = page * LOOT_STASH_PAGE_SLOTS + key - 1;
+		const int32_t index = page_index * LOOT_STASH_PAGE_SLOTS + key - 1;
 		if (index == open_slots && Vendor_StashBuyPrice(ent))
 		{
 			const int32_t price = Vendor_StashBuyPrice(ent);
-			line(price <= cl->pers.loot_money ? "string2" : "string", G_Fmt("{}  Buy 4 more slots  ${}", key, price).data());
+			page.item(G_Fmt("{}", key).data(), GUI_NO_RARITY, Gui_Afford(price, cl->pers.loot_money), "Buy 4 more slots", Gui_Money(price));
 			break;
 		}
 		if (index >= open_slots)
 			break;
 		const loot_stash_slot_t &slot = cl->pers.loot_stash[index];
-		line(Vendor_StashSlotUsed(slot) ? "string2" : "string", G_Fmt("{}  {}", key, Vendor_StashLine(slot)).data());
+		if (!Vendor_StashSlotUsed(slot))
+			page.item(G_Fmt("{}", key).data(), GUI_NO_RARITY, GUI_OFF, "- empty -", "");
+		else
+			page.item(G_Fmt("{}", key).data(), Vendor_StashRarity(slot), GUI_AFFORD, Vendor_StashLine(slot), "");
 	}
-	y += 6;
-	line("string", "Empty: store floor item, else held gun. Full: take out");
-	y += 6;
-	const char *next = page + 1 < pages ? "next page" : cl->loot_stash_only ? "page 1"
-	                                                                        : "missions";
-	line("string2", cl->loot_stash_only ? G_Fmt("[1-8] store / take  [9] {}  [B] close", next).data()
-	                                    : G_Fmt("[1-8] store / take  [9] {}  [B] shop  [V] close", next).data());
-	Loot_SendLayout(ent, s);
+	page.gap();
+	page.text("Empty slot: store the floor item, else the held gun");
+	page.text("Full slot: take it out");
+
+	const char *next = page_index + 1 < pages ? "next page" : cl->loot_stash_only ? "page 1"
+	                                                                              : "missions";
+	const std::string title = G_Fmt("STASH  {}/{}", page_index + 1, pages).data();
+	const std::string right = G_Fmt("{} slots", open_slots).data();
+	const std::string keys = cl->loot_stash_only ? G_Fmt("1-8|store / take|9|{}|B|close", next).data()
+	                                             : G_Fmt("1-8|store / take|9|{}|B|shop|V|close", next).data();
+	Loot_SendLayout(ent, page.finish(title, right, -1, "", keys));
 }
 
 // Moves a floor loot item into a stash slot and removes it from the world.
@@ -762,62 +750,37 @@ static void Vendor_SendShop(edict_t *ent)
 		return;
 	}
 	const int32_t money = cl->pers.loot_money;
-	std::string s;
-	int32_t y = 24;
-
-	// x carries over between layout commands, so set it once; keeps the shop under the 1024-char layout limit
-	s += "loot_dim xl 16 "; // dim backdrop first so text draws on top
-	auto line = [&](const char *kind, const std::string &text)
-	{
-		s += G_Fmt("yv {} {} \"{}\" ", y, kind, text).data();
-		y += 10;
-	};
-
-	line("string2", G_Fmt("VENDOR          You have ${}", money).data());
-	y += 6;
+	gui_page_t page;
 
 	for (int32_t i = 0; i < 4; i++)
 	{
 		const loot_weapon_t &g = level.loot_vendor_guns[i];
 		if (!g.valid)
 		{
-			line("string", G_Fmt("{}  - sold -", i + 1).data());
-			y += 10;
+			page.item(G_Fmt("{}", i + 1).data(), GUI_NO_RARITY, GUI_OFF, "Gun", "SOLD");
 			continue;
 		}
 		const int32_t price = Vendor_GunValue(g);
-		line(price <= money ? "string2" : "string", G_Fmt("{}  {}  ${}", i + 1, g.name, price).data());
-		line("loot_str", "   " + Loot_GunBriefCompare(g, Loot_Active(ent)));
+		page.item(G_Fmt("{}", i + 1).data(), g.rarity, Gui_Afford(price, money), g.name, Gui_Money(price), Loot_GunBriefCompare(g, Loot_Active(ent)));
 	}
 
 	const loot_shield_t &sh = level.loot_vendor_shield;
 	if (sh.valid)
 	{
 		const int32_t price = Vendor_ShieldValue(sh);
-		line(price <= money ? "string2" : "string", G_Fmt("5  {} [{}]  ${}", sh.name, Loot_RarityName(sh.rarity), price).data());
-		line("loot_str", "   " + Loot_ShieldBriefCompare(sh, cl->pers.loot_shield));
+		page.item("5", sh.rarity, Gui_Afford(price, money), sh.name, Gui_Money(price), Loot_ShieldBriefCompare(sh, cl->pers.loot_shield));
 	}
 	else if (Loot_ShieldsAvailable())
-	{
-		line("string", "5  - sold -");
-		y += 10;
-	}
+		page.item("5", GUI_NO_RARITY, GUI_OFF, "Shield", "SOLD");
 
-	y += 4;
-	line(Vendor_AmmoPrice(ent) <= money ? "string2" : "string", G_Fmt("6  Ammo refill (guns, grenades)  ${}", Vendor_AmmoPrice(ent)).data());
+	page.gap();
+	page.item("6", GUI_NO_RARITY, Gui_Afford(Vendor_AmmoPrice(ent), money), "Ammo refill (guns, grenades)", Gui_Money(Vendor_AmmoPrice(ent)));
 	if (cl->pers.loot_tree)
-		line(Vendor_RespecPrice(ent) <= money ? "string2" : "string", G_Fmt("7  Respec skills  ${}", Vendor_RespecPrice(ent)).data());
+		page.item("7", GUI_NO_RARITY, Gui_Afford(Vendor_RespecPrice(ent), money), "Respec skills", Gui_Money(Vendor_RespecPrice(ent)));
+	page.item("8", GUI_NO_RARITY, Gui_Afford(Vendor_RerollPrice(ent), money), "Reroll stock", Gui_Money(Vendor_RerollPrice(ent)));
+	page.text(G_Fmt("^wX sells floor item / held gun.  Reopen: {}", Gui_Money(Vendor_OpenPrice(ent))).data());
 
-	line(Vendor_RerollPrice(ent) <= money ? "string2" : "string", G_Fmt("8  Reroll stock  ${}", Vendor_RerollPrice(ent)).data());
-
-	line("string2", "9  Upgrades >");
-
-	y += 6;
-	line("string2", G_Fmt("[1-9] buy  [X] sell  [V] close (reopen ${})", Vendor_OpenPrice(ent)).data());
-
-	if (s.size() > 1000) // engine layout limit is 1024; warn before lines get cut
-		gi.Com_PrintFmt("vendor: shop layout {} chars, near limit\n", s.size());
-	Loot_SendLayout(ent, s);
+	Loot_SendLayout(ent, page.finish("VENDOR", Gui_Money(money), 0, VENDOR_TABS, "1-8|buy|9|next tab|X|sell|V|close"));
 }
 
 // Shop stays up until the vendor command closes it (or death / map end).
