@@ -205,7 +205,7 @@ def build():
 
         # lights
         for lx in (x0 + ROOM_W // 4, x0 + 3 * ROOM_W // 4):
-            ents.append(entity({"classname": "light", "origin": f"{lx} 0 {HEIGHT - 32}", "light": "350"}))
+            ents.append(entity({"classname": "light", "origin": f"{lx} 0 {HEIGHT - 32}", "light": "260"}))
 
         for cls, ix, iy, keys in room["items"]:
             z = 24 if cls.startswith("monster_") else 16
@@ -230,7 +230,7 @@ def build():
         "classname": "worldspawn",
         "message": "Q2ARPG Tutorial",
         "sky": "unit1_",
-        "_minlight": "24",
+        "_minlight": "16",
         "loot_start_level": "3",      # a couple of skill points for the skills room
         "loot_nochests": "1",         # only the tutorial's own chest
         "loot_nomodifier": "1",

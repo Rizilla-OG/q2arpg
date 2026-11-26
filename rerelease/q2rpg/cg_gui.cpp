@@ -781,3 +781,21 @@ void CG_Gui_DrawHud(const player_state_t *ps, const vrect_t &hud_vrect, const vr
 	if (const int cs = ps->stats[STAT_LOOT_ACTION]; cs > 0 && cs < MAX_CONFIGSTRINGS)
 		DrawAction(x, (hud_vrect.y + 46) * u + hud_safe.y, cgi.get_configstring(cs), ps->stats[STAT_LOOT_ACTION_TIME]);
 }
+
+// Centerprints: one dark box behind all lines (sized to the full text, so it doesn't grow
+// while the message types out). Only in SP/coop, like the rest of the q2rpg HUD.
+void CG_Gui_CenterBackdrop(const std::vector<std::string> &lines, int y, int line_height, int center_x, int scale)
+{
+	const char *enabled = cgi.get_configstring(CONFIG_LOOT_ENABLED);
+	if (!enabled || enabled[0] != '1' || lines.empty())
+		return;
+	int widest = 0;
+	for (const std::string &line : lines)
+		widest = std::max(widest, (int)cgi.SCR_MeasureFontString(line.c_str(), scale).x);
+	if (!widest)
+		return;
+	const int pad = 6 * scale;
+	const int w = widest + 2 * pad;
+	const int h = (int)lines.size() * line_height + pad;
+	cgi.SCR_DrawColorPic(center_x - w / 2, y - pad / 2 - scale, w, h, "_white", {0, 0, 0, 170});
+}

@@ -4,7 +4,7 @@
 "classname" "worldspawn"
 "message" "Q2ARPG Tutorial"
 "sky" "unit1_"
-"_minlight" "24"
+"_minlight" "16"
 "loot_start_level" "3"
 "loot_nochests" "1"
 "loot_nomodifier" "1"
@@ -427,12 +427,12 @@
 {
 "classname" "light"
 "origin" "160 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "480 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "trigger_once"
@@ -462,12 +462,12 @@
 {
 "classname" "light"
 "origin" "800 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "1120 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "item_loot_gun"
@@ -512,12 +512,12 @@
 {
 "classname" "light"
 "origin" "1440 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "1760 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "item_loot_shield"
@@ -585,12 +585,12 @@
 {
 "classname" "light"
 "origin" "2080 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "2400 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "monster_soldier_light"
@@ -661,12 +661,12 @@
 {
 "classname" "light"
 "origin" "2720 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "3040 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "monster_gunner"
@@ -711,12 +711,12 @@
 {
 "classname" "light"
 "origin" "3360 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "3680 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "item_loot_chest"
@@ -751,12 +751,12 @@
 {
 "classname" "light"
 "origin" "4000 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "4320 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "trigger_multiple"
@@ -805,12 +805,12 @@
 {
 "classname" "light"
 "origin" "4640 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "4960 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "func_door"
@@ -863,12 +863,12 @@
 {
 "classname" "light"
 "origin" "5280 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "5600 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "monster_soldier"
@@ -933,12 +933,12 @@
 {
 "classname" "light"
 "origin" "5920 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "6240 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "monster_gladiator"
@@ -983,10 +983,10 @@
 {
 "classname" "light"
 "origin" "6560 0 224"
-"light" "350"
+"light" "260"
 }
 {
 "classname" "light"
 "origin" "6880 0 224"
-"light" "350"
+"light" "260"
 }
