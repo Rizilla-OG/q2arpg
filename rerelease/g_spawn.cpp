@@ -45,6 +45,7 @@ void SP_trigger_counter(edict_t *ent);
 void SP_trigger_elevator(edict_t *ent);
 void SP_trigger_gravity(edict_t *ent);
 void SP_trigger_monsterjump(edict_t *ent);
+void SP_trigger_safe_fall(edict_t *ent); // [Paril-KEX] (PSX update)
 void SP_trigger_flashlight(edict_t *self); // [Paril-KEX]
 void SP_trigger_fog(edict_t *self); // [Paril-KEX]
 void SP_trigger_coop_relay(edict_t *self); // [Paril-KEX]
@@ -262,6 +263,7 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "trigger_elevator", SP_trigger_elevator },
 	{ "trigger_gravity", SP_trigger_gravity },
 	{ "trigger_monsterjump", SP_trigger_monsterjump },
+	{ "trigger_safe_fall", SP_trigger_safe_fall }, // [Paril-KEX] (PSX update)
 	{ "trigger_flashlight", SP_trigger_flashlight }, // [Paril-KEX]
 	{ "trigger_fog", SP_trigger_fog }, // [Paril-KEX]
 	{ "trigger_coop_relay", SP_trigger_coop_relay }, // [Paril-KEX]

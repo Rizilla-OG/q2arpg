@@ -1737,6 +1737,8 @@ monster_gekk : "Gekk"
 [
 ]
 
+@SolidClass base(EditorFlags) color(128 128 128) = trigger_safe_fall : "Safe fall: a player already in the air takes no damage on their next landing" []
+
 @SolidClass base(EditorFlags) = trigger_flashlight : "Enable/Disable Flashlight"
 [
     spawnflags(Flags) =
@@ -1826,8 +1828,18 @@ monster_gekk : "Gekk"
 	wait(float) : "1.0" : "Time in seconds for auto-fire triggers to check bounds"
 ]
 
-@PointClass base(Monsters) size(-96 -96 -66, 96 96 62) model({ "path": ":models/monsters/guardian/tris.md2" }) = monster_guardian : "Guardian (PSX)" []
-@PointClass base(Monsters) size(-48 -48 -20, 48 48 48) model({ "path": ":models/monsters/arachnid/tris.md2" }) = monster_arachnid : "Arachnid (PSX)" []
+@PointClass base(Monsters) size(-78 -78 -66, 78 78 76) model({ "path": ":models/monsters/guardian/tris.md2" }) = monster_guardian : "Guardian (PSX)"
+[
+    spawnflags(Flags) =
+    [
+        8 : "Sleepy (sleeps until triggered)" : 0
+    ]
+]
+@PointClass base(Monsters) size(-40 -40 -20, 40 40 48) model({ "path": ":models/monsters/arachnid/tris.md2" }) = monster_arachnid : "Arachnid (PSX)"
+[
+    reinforcements(string) : "Nightmare only: monsters it calls in (default: monster_stalker 1)"
+    monster_slots(integer) : "Nightmare only: reinforcement slots (default 2)"
+]
 
 @PointClass base(EditorFlags, Targetable, Teamable) color(255 0 0) size(-4 -4 -4, 4 4 4) = target_poi : "Compass POI"
 [

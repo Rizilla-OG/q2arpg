@@ -45,15 +45,16 @@ void monster_fire_shotgun(edict_t *self, const vec3_t &start, const vec3_t &aimd
 	monster_muzzleflash(self, start, flashtype);
 }
 
-void monster_fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
+edict_t *monster_fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
 						  monster_muzzleflash_id_t flashtype, effects_t effect)
 {
 	// q2rpg: badass variants swap their attack
 	if (Loot_EliteFire(self, start, dir, flashtype, LOOT_EFIRE_BLASTER))
-		return;
+		return nullptr;
 
-	fire_blaster(self, start, dir, damage, speed, effect, MOD_BLASTER);
+	edict_t *bolt = fire_blaster(self, start, dir, damage, speed, effect, MOD_BLASTER);
 	monster_muzzleflash(self, start, flashtype);
+	return bolt;
 }
 
 void monster_fire_flechette(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
@@ -89,19 +90,21 @@ void monster_fire_rocket(edict_t *self, const vec3_t &start, const vec3_t &dir, 
 	monster_muzzleflash(self, start, flashtype);
 }
 
-void monster_fire_railgun(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick,
+bool monster_fire_railgun(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick,
 						  monster_muzzleflash_id_t flashtype)
 {
 	if (gi.pointcontents(start) & MASK_SOLID)
-		return;
+		return false;
 
-	// q2rpg: badass variants swap their attack
+	// q2rpg: badass variants swap their attack; count it as a hit so the Arachnid doesn't get "annoyed" by misses
 	if (Loot_EliteFire(self, start, aimdir, flashtype, LOOT_EFIRE_RAIL))
-		return;
+		return true;
 
-	fire_rail(self, start, aimdir, damage, kick);
+	const bool hit = fire_rail(self, start, aimdir, damage, kick);
 
 	monster_muzzleflash(self, start, flashtype);
+
+	return hit;
 }
 
 void monster_fire_bfg(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int speed, int kick,
@@ -760,7 +763,9 @@ void M_ProcessPain(edict_t *e)
 		{
 			if (e->monsterinfo.aiflags & AI_SPAWNED_MEDIC_C)
 			{
-				if (e->monsterinfo.commander && e->monsterinfo.commander->inuse && !strcmp(e->monsterinfo.commander->classname, "monster_medic_commander"))
+				// (the PSX update's Nightmare Arachnid calls in Stalkers the same way)
+				if (e->monsterinfo.commander && e->monsterinfo.commander->inuse &&
+					(!strcmp(e->monsterinfo.commander->classname, "monster_medic_commander") || !strcmp(e->monsterinfo.commander->classname, "monster_arachnid")))
 					e->monsterinfo.commander->monsterinfo.monster_used -= e->monsterinfo.monster_slots;
 
 				e->monsterinfo.commander = nullptr;

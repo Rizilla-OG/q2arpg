@@ -2286,16 +2286,16 @@ void monster_fire_bullet(edict_t *self, const vec3_t &start, const vec3_t &dir, 
 						 int vspread, monster_muzzleflash_id_t flashtype);
 void monster_fire_shotgun(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick, int hspread,
 						  int vspread, int count, monster_muzzleflash_id_t flashtype);
-void monster_fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-						  monster_muzzleflash_id_t flashtype, effects_t effect);
+edict_t *monster_fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
+						  monster_muzzleflash_id_t flashtype, effects_t effect); // nullptr when an elite swapped the shot
 void monster_fire_flechette(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
 						    monster_muzzleflash_id_t flashtype);
 void monster_fire_grenade(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int speed,
 						  monster_muzzleflash_id_t flashtype, float right_adjust, float up_adjust);
 void monster_fire_rocket(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
 						 monster_muzzleflash_id_t flashtype);
-void monster_fire_railgun(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick,
-						  monster_muzzleflash_id_t flashtype);
+bool monster_fire_railgun(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick,
+						  monster_muzzleflash_id_t flashtype); // true if it hit something
 void monster_fire_bfg(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int speed, int kick,
 					  float damage_radius, monster_muzzleflash_id_t flashtype);
 bool M_CheckClearShot(edict_t *self, const vec3_t &offset);
@@ -2333,6 +2333,8 @@ void monster_fire_ionripper(edict_t *self, const vec3_t &start, const vec3_t &di
 							monster_muzzleflash_id_t flashtype, effects_t effect);
 void monster_fire_heat(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
 					   monster_muzzleflash_id_t flashtype, float lerp_factor);
+constexpr spawnflags_t SPAWNFLAG_DABEAM_SECONDARY = 1_spawnflag;
+constexpr spawnflags_t SPAWNFLAG_DABEAM_SPAWNED = 2_spawnflag; // [Paril-KEX] set between monster_fire_dabeam calls
 void monster_fire_dabeam(edict_t *self, int damage, bool secondary, void(*update_func)(edict_t *self));
 void dabeam_update(edict_t *self, bool damage);
 void monster_fire_blueblaster(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
@@ -2413,6 +2415,7 @@ float range_to(edict_t *self, edict_t *other);
 void FoundTarget(edict_t *self);
 void HuntTarget(edict_t *self, bool animate_state = true);
 bool infront(edict_t *self, edict_t *other);
+bool infront_cone(edict_t *self, edict_t *other, float cone); // [Paril-KEX] (from the PSX update)
 bool visible(edict_t *self, edict_t *other, bool through_glass = true);
 bool FacingIdeal(edict_t *self);
 // [Paril-KEX] generic function
@@ -2427,7 +2430,7 @@ void fire_bullet(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int d
 void fire_shotgun(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick, int hspread,
 				  int vspread, int count, mod_t mod);
 void blaster_touch(edict_t *self, edict_t *other, const trace_t &tr, bool other_touching_self);
-void fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int speed, effects_t effect,
+edict_t *fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int speed, effects_t effect,
 				  mod_t mod);
 void Grenade_Explode(edict_t *ent);
 void fire_grenade(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int speed, gtime_t timer,
@@ -2437,7 +2440,7 @@ void fire_grenade2(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int
 void rocket_touch(edict_t *ent, edict_t *other, const trace_t &tr, bool other_touching_self);
 edict_t *fire_rocket(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, float damage_radius,
 				 int radius_damage);
-void fire_rail(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick);
+bool fire_rail(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick);
 void fire_bfg(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, float damage_radius);
 // RAFAEL
 void fire_ionripper(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int speed, effects_t effect);

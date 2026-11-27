@@ -2,6 +2,11 @@
 
 ## Unreleased (next update)
 
+### Added
+
+- Arachnid and Guardian behavior from Paril's PSX update. The Arachnid walks with a heavier gait, aims its railguns ahead of you, chains its melee, and after missing you a few times gets angry and fires a rapid rail volley; on Nightmare it calls in Stalkers (these count toward the reinforcement pay cap). The Guardian leads its shots, kicks from farther away, launches homing rockets (which can be shot down) and blind-fires at where it last saw you; it gets a power shield when you carry a Quad, Double Damage or Invulnerability, and has more health on Hard and above and in co-op. Mappers can set the Guardian's new Sleepy flag (it sleeps until triggered). The PSX update's new sounds and damaged skins need its asset pack, so they're left out.
+- Mapping: `trigger_safe_fall`, from the PSX update. A player already in the air who touches it takes no damage on their next landing. In the TrenchBroom config.
+
 ### Changed
 
 - Your key binds stick. The mod used to re-bind its keys in `autoexec.cfg` every time the game started, undoing any change you made. It now sets its default keys once, the first time you play, and only for commands that have no key yet, so the keys you have now stay as they are. Type `q2rpg_resetbinds` in the console to put the defaults back. Your own `autoexec.cfg` in Saved Games no longer breaks hold-to-zoom or the `tutorial` command.

@@ -444,6 +444,18 @@ infront
 returns 1 if the entity is in front (in sight) of self
 =============
 */
+// [Paril-KEX] (PSX update) true if other is within the cone (dot product) in front of self
+bool infront_cone(edict_t *self, edict_t *other, float cone)
+{
+    vec3_t forward;
+
+    AngleVectors(self->s.angles, forward, nullptr, nullptr);
+
+    vec3_t vec = (other->s.origin - self->s.origin).normalized();
+
+    return vec.dot(forward) > cone;
+}
+
 bool infront(edict_t *self, edict_t *other)
 {
     vec3_t vec;

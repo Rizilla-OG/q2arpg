@@ -396,7 +396,7 @@ TOUCH(blaster_touch) (edict_t *self, edict_t *other, const trace_t &tr, bool oth
 	G_FreeEdict(self);
 }
 
-void fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, effects_t effect, mod_t mod)
+edict_t *fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, effects_t effect, mod_t mod)
 {
 	edict_t *bolt;
 	trace_t	 tr;
@@ -432,6 +432,8 @@ void fire_blaster(edict_t *self, const vec3_t &start, const vec3_t &dir, int dam
 		bolt->s.origin = tr.endpos + (tr.plane.normal * 1.f);
 		bolt->touch(bolt, tr.ent, tr, false);
 	}
+
+	return bolt;
 }
 
 constexpr spawnflags_t SPAWNFLAG_GRENADE_HAND = 1_spawnflag;
@@ -851,7 +853,7 @@ uint32_t GetUnicastKey()
 fire_rail
 =================
 */
-void fire_rail(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick)
+bool fire_rail(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int damage, int kick)
 {
 	fire_rail_pierce_t args = {
 		self,
@@ -891,6 +893,8 @@ void fire_rail(edict_t *self, const vec3_t &start, const vec3_t &aimdir, int dam
 
 	if (self->client)
 		PlayerNoise(self, args.tr.endpos, PNOISE_IMPACT);
+
+	return args.num_pierced; // [Paril-KEX] (PSX update) whether it hit anything
 }
 
 static vec3_t bfg_laser_pos(vec3_t p, float dist)

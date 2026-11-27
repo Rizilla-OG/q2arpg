@@ -1331,3 +1331,26 @@ void SP_trigger_coop_relay(edict_t *self)
 	self->svflags |= SVF_NOCLIENT;
 	gi.linkentity(self);
 }
+
+/*QUAKED trigger_safe_fall (.5 .5 .5) ?
+[Paril-KEX] (from the PSX update)
+Players that touch this trigger are granted one (1)
+free safe fall damage exemption.
+
+They must already be in the air to get this ability.
+*/
+
+TOUCH(trigger_safe_fall_touch) (edict_t *self, edict_t *other, const trace_t &tr, bool other_touching_self) -> void
+{
+	if (other->client && !other->groundentity)
+		other->client->landmark_free_fall = true;
+}
+
+void SP_trigger_safe_fall(edict_t *self)
+{
+	InitTrigger(self);
+	self->touch = trigger_safe_fall_touch;
+	self->svflags |= SVF_NOCLIENT;
+	self->solid = SOLID_TRIGGER;
+	gi.linkentity(self);
+}
