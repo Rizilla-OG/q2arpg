@@ -837,7 +837,7 @@ static void Skill_UseAction(edict_t *ent)
 		return;
 	if (!tree)
 	{
-		gi.Center_Print(ent, "Pick a skill tree first [K]");
+		gi.Center_Print(ent, "Pick a skill tree first [^kK]");
 		return;
 	}
 	if (cl->loot_action_ready > level.time)
@@ -1024,7 +1024,7 @@ static void Skill_SendScreen(edict_t *ent)
 		{
 			const tree_def_t &d = tree_defs[t];
 			page.item(G_Fmt("{}", t).data(), GUI_NO_RARITY, GUI_AFFORD, d.name, "", d.blurb);
-			page.text(G_Fmt("^aAction [F]:^w {} ({:.0f}s cooldown)", d.action, d.cooldown).data());
+			page.text(G_Fmt("^aAction [^kF]:^w {} ({:.0f}s cooldown)", d.action, d.cooldown).data());
 			page.text(G_Fmt("^a{}", tree_grenade_text[t]).data());
 			page.gap();
 		}
@@ -1037,7 +1037,7 @@ static void Skill_SendScreen(edict_t *ent)
 	page.width = GUI_W_WIDE; // three columns: name, effect, rank
 	const std::string right = Skill_TreeFull(ent) ? G_Fmt("Mastery {}: +{}% {}", Skill_Mastery(ent), Skill_Mastery(ent), tree_mastery_text[tree]).data()
 	                                              : G_Fmt("Points: {}", unspent).data();
-	page.text(G_Fmt("^aAction [F]:^w {} ({:.0f}s cooldown)   ^aSpent:^w {}", d.action, d.cooldown, spent).data());
+	page.text(G_Fmt("^aAction [^kF]:^w {} ({:.0f}s cooldown)   ^aSpent:^w {}", d.action, d.cooldown, spent).data());
 	page.text(G_Fmt("^a{}", tree_grenade_text[tree]).data());
 
 	// page 0: tiers 1-3 and capstone, keys 1-9; page 1 (NG+): tier 4, keys 1-3
@@ -1117,7 +1117,7 @@ static void Skill_PickTree(edict_t *ent, int32_t tree)
 	cl->loot_action_ready = 0_ms;
 	cl->loot_skills_time = 0_ms;
 	gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/secret.wav"), 1, ATTN_NORM, 0);
-	gi.Center_Print(ent, G_Fmt("{}\nAction skill: {} [F]", tree_defs[tree].name, tree_defs[tree].action).data());
+	gi.Center_Print(ent, G_Fmt("{}\nAction skill: {} [^kF]", tree_defs[tree].name, tree_defs[tree].action).data());
 }
 
 static void Skill_AddPoint(edict_t *ent, int32_t skill)

@@ -2,6 +2,10 @@
 
 ## Unreleased (next update)
 
+### Changed
+
+- Key hints follow your binds. Rebind a key and every screen shows the new one: footer hints, number keys on vendor and skill rows, the `K +N` skill-point chip and `F` action badge, on-screen messages ("Press X again") and the tutorial and example map notes. A command with no key shows `--`.
+
 ### Fixed
 
 - `monster_loot_random` with a `delay` dropped its guaranteed gun at the map origin instead of where the monster died.

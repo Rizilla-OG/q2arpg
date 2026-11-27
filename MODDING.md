@@ -159,6 +159,13 @@ light -basedir "<game>/rerelease" -gamedir baseq2 maps/mymap.bsp
 Copy `mymap.bsp` to `<game>/rerelease/q2rpg/maps/` and run `map mymap` from
 the console with the mod loaded.
 
+### Key hints in messages
+
+To name a key in a `message`, write `^k` and the default key, e.g.
+`Press ^kV to shop`. Players see the key they bound to that command, so
+`^kV` shows `N` for someone who moved the vendor to N. Works for `E G I X B L
+V K J F Q Z M H R` and `^k1`–`^k9` (weapon slots).
+
 ## Example map
 
 The mod comes with a walk-through map: run `map q2rpg_example` from the console.

@@ -785,7 +785,7 @@
 {
 "classname" "trigger_multiple"
 "wait" "5"
-"message" "Supplies. Press V for the vendor,\nK for skills. Turn worldspawn\nloot_novendor 1 on to close the vendor."
+"message" "Supplies. Press ^kV for the vendor,\n^kK for skills. Turn worldspawn\nloot_novendor 1 on to close the vendor."
 {
 ( 192 -176 0 ) ( 192 -175 0 ) ( 192 -176 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 192 -176 0 ) ( 192 -176 1 ) ( 193 -176 0 ) e1u1/trigger 0 0 0 1 1 0 0 0

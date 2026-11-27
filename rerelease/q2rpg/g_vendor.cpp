@@ -1089,7 +1089,7 @@ static void Vendor_Sell(edict_t *ent)
 	{
 		cl->loot_sell_confirm_id = id;
 		cl->loot_sell_confirm_time = level.time + 2_sec;
-		gi.Center_Print(ent, G_Fmt("Sell {} for ${}?\nPress X again", name, price).data());
+		gi.Center_Print(ent, G_Fmt("Sell {} for ${}?\nPress ^kX again", name, price).data());
 		return;
 	}
 

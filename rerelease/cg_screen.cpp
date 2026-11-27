@@ -28,6 +28,7 @@ void CG_Loot_SetTabs(const char *list);
 // q2rpg: q2rpg/cg_gui.cpp; drawn menu widgets (gpanel, gitem, ...)
 void CG_Gui_CenterBackdrop(const std::vector<std::string> &lines, int y, int line_height, int center_x, int scale,
                            bool kfont, bool alt_typeface, int extra_height);
+std::string CG_Gui_ResolveKeys(const char *text); // q2rpg: ^kV -> the key bound to vendor now
 bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bool skip, bool use_kfont, int y_offset, int screen_left, int screen_width);
 
 static cvar_t *scr_centertime;
@@ -348,7 +349,7 @@ size_t FindEndOfUTF8Codepoint(const std::string &str, size_t pos)
 
 void CG_NotifyMessage(int32_t isplit, const char *msg, bool is_chat)
 {
-    CG_AddNotify(hud_data[isplit], msg, is_chat);
+    CG_AddNotify(hud_data[isplit], is_chat ? msg : CG_Gui_ResolveKeys(msg).c_str(), is_chat); // q2rpg: ^k key hints
 }
 
 // centerprint stuff
@@ -405,7 +406,7 @@ void CG_ParseCenterPrint (const char *str, int isplit, bool instant) // [Sam-KEX
     // split the string into lines
     size_t line_start = 0;
 
-    std::string string(str);
+    std::string string = CG_Gui_ResolveKeys(str); // q2rpg: ^k key hints follow the player's binds
 
     center.binds.clear();
 
@@ -794,6 +795,14 @@ CG_ExecuteLayoutString
 */
 static void CG_ExecuteLayoutString (const char *s, vrect_t hud_vrect, vrect_t hud_safe, int32_t scale, int32_t playernum, const player_state_t *ps)
 {
+    // q2rpg: key hints in the text follow the player's binds
+    std::string resolved_keys;
+    if (strstr(s, "^k"))
+    {
+        resolved_keys = CG_Gui_ResolveKeys(s);
+        s = resolved_keys.c_str();
+    }
+
     int     x, y;
     int     w, h;
     int     hx, hy;

@@ -7,6 +7,89 @@
 
 void CG_Loot_DrawColorString(int x, int y, int scale, const char *text, bool kfont, int font_y_offset);
 
+// q2rpg: key hints follow the player's binds. The server writes the default key (the one
+// autoexec.cfg binds); the HUD looks up what the command is bound to now and shows that.
+// Key badges resolve on their own (a letter, or digits like "1-8" / "1/2" for slot N);
+// other text marks a key as ^k plus the default letter ("Press ^kX again").
+namespace
+{
+struct default_key_t
+{
+	char key;
+	const char *command;
+};
+constexpr default_key_t default_keys[] = {
+    {'E', "loot_take"}, {'G', "loot_drop"},   {'I', "loot_inv"}, {'X', "loot_sell"},  {'B', "loot_stash"},
+    {'L', "loot_filter"}, {'V', "vendor"},    {'K', "skills"},   {'J', "challenges"}, {'F', "action"},
+    {'Q', "grenade"},   {'Z', "loot_melee"}, {'M', "loot_map"}, {'H', "loot_give"},  {'R', "reload"},
+};
+
+// what `command` is bound to, cleaned up for drawing; "" when unbound
+std::string BoundKey(const char *command)
+{
+	const char *bound = cgi.CL_GetKeyBinding(command);
+	std::string out;
+	for (const char *c = bound ? bound : ""; *c; c++)
+	{
+		if ((unsigned char)*c < ' ' || *c == '"' || *c == '|' || *c == '^' || *c == '%')
+			continue;
+		out += (char)toupper((unsigned char)*c);
+	}
+	return out;
+}
+
+// the key now doing what default key `key` does; the default itself if it isn't one of ours,
+// and "--" if the player unbound the command
+std::string ResolveDefaultKey(char key)
+{
+	key = (char)toupper((unsigned char)key);
+	if (key >= '1' && key <= '9')
+	{
+		const std::string bound = BoundKey(G_Fmt("slot {}", key - '0').data());
+		return bound.empty() ? "--" : bound;
+	}
+	for (const default_key_t &k : default_keys)
+		if (k.key == key)
+		{
+			const std::string bound = BoundKey(k.command);
+			return bound.empty() ? "--" : bound;
+		}
+	return std::string(1, key);
+}
+} // namespace
+
+// a key badge's label: "V" -> the vendor key, "1-8" / "1/2" -> the slot keys; anything else as is
+std::string CG_Gui_KeyLabel(const char *key)
+{
+	const size_t len = strlen(key);
+	if (len == 1 && isalpha((unsigned char)key[0]))
+		return ResolveDefaultKey(key[0]);
+	if (!len || len > 3 || !(key[0] >= '1' && key[0] <= '9'))
+		return key;
+	if (len == 1)
+		return ResolveDefaultKey(key[0]);
+	if (len == 3 && (key[1] == '-' || key[1] == '/') && key[2] >= '1' && key[2] <= '9')
+		return ResolveDefaultKey(key[0]) + key[1] + ResolveDefaultKey(key[2]);
+	return key;
+}
+
+// replaces each ^k<default key> in text with the key bound now
+std::string CG_Gui_ResolveKeys(const char *text)
+{
+	std::string out;
+	for (const char *c = text; *c; c++)
+	{
+		if (c[0] == '^' && c[1] == 'k' && c[2])
+		{
+			out += ResolveDefaultKey(c[2]);
+			c += 2;
+			continue;
+		}
+		out += *c;
+	}
+	return out;
+}
+
 namespace
 {
 constexpr rgba_t col_shadow{0, 0, 0, 120};
@@ -165,17 +248,18 @@ std::vector<std::string> SplitBars(const std::string &list)
 	return out;
 }
 
-// key in a small box; returns its width
+// key in a small box (shows the player's bound key, see CG_Gui_KeyLabel); returns its width
 int BadgeWidth(const char *key)
 {
-	return std::max(10 * u, TextWidth(key) + 4 * u);
+	return std::max(10 * u, TextWidth(CG_Gui_KeyLabel(key).c_str()) + 4 * u);
 }
 
 int Badge(int x, int y, const char *key)
 {
+	const std::string label = CG_Gui_KeyLabel(key);
 	const int w = BadgeWidth(key);
 	Fill(x, y, w, 10 * u, col_badge);
-	Text(x + (w - TextWidth(key)) / 2, y + u, key, rgba_white);
+	Text(x + (w - TextWidth(label.c_str())) / 2, y + u, label.c_str(), rgba_white);
 	return w;
 }
 
@@ -488,9 +572,10 @@ void Skill(const std::string &key, int state, const std::string &name, const std
 
 	if (!key.empty())
 	{
+		const std::string label = CG_Gui_KeyLabel(key.c_str());
 		const int bw = BadgeWidth(key.c_str());
 		Fill(x + 5 * u, y + u, bw, 10 * u, state == GUI_SKILL_CAN_ADD ? col_tab_on : col_badge);
-		Text(x + 5 * u + (bw - TextWidth(key.c_str())) / 2, y + 2 * u, key.c_str(), locked ? col_off : rgba_white);
+		Text(x + 5 * u + (bw - TextWidth(label.c_str())) / 2, y + 2 * u, label.c_str(), locked ? col_off : rgba_white);
 	}
 
 	const int desc_x = x + columns.skill_desc_x;
@@ -714,7 +799,7 @@ void DrawXP(int x, int y, const char *cs)
 	if (unspent > 0) // skill points waiting: blinking chip
 	{
 		const bool lit = (cgi.CL_ClientTime() % 1000) < 600;
-		const std::string chip = G_Fmt("K +{}", unspent).data();
+		const std::string chip = G_Fmt("{} +{}", CG_Gui_KeyLabel("K"), unspent).data();
 		const int w = TextWidth(chip.c_str()) + 6 * u;
 		Fill(x, y, w, 10 * u, lit ? rgba_t{40, 120, 40, 255} : col_badge);
 		Text(x + 3 * u, y + u, chip.c_str(), lit ? rgba_white : col_green);

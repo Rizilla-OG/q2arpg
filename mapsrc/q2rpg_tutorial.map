@@ -414,7 +414,7 @@
 {
 "classname" "trigger_multiple"
 "wait" "6"
-"message" "YOUR HUD (top left)\nGun name, level badge and XP bar,\nyour cash, and the F action meter.\nM: minimap, full map or off."
+"message" "YOUR HUD (top left)\nGun name, level badge and XP bar,\nyour cash, and the ^kF action meter.\n^kM: minimap, full map or off."
 {
 ( 96 -288 2 ) ( 96 -287 2 ) ( 96 -288 3 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 96 -288 2 ) ( 96 -288 3 ) ( 97 -288 2 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -449,7 +449,7 @@
 {
 "classname" "trigger_multiple"
 "wait" "6"
-"message" "TAKING GUNS\nGreen stats beat your gun, red lose.\nE takes it. You carry 4 guns: keys 1-4.\nI: loadout   G: drop   R: reload\nHold right mouse to zoom."
+"message" "TAKING GUNS\nGreen stats beat your gun, red lose.\n^kE takes it. You carry 4 guns: keys ^k1-^k4.\n^kI: loadout   ^kG: drop   ^kR: reload\nHold right mouse to zoom."
 {
 ( 736 -288 2 ) ( 736 -287 2 ) ( 736 -288 3 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 736 -288 2 ) ( 736 -288 3 ) ( 737 -288 2 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -486,7 +486,7 @@
 }
 {
 "classname" "trigger_once"
-"message" "GEAR\nShields soak damage first and recharge:\nthe blue bar above your health.\nGrenade mods change what Q throws."
+"message" "GEAR\nShields soak damage first and recharge:\nthe blue bar above your health.\nGrenade mods change what ^kQ throws."
 {
 ( 1288 -312 0 ) ( 1288 -311 0 ) ( 1288 -312 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 1288 -312 0 ) ( 1288 -312 1 ) ( 1289 -312 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -559,7 +559,7 @@
 }
 {
 "classname" "trigger_once"
-"message" "FIGHT\nMonsters drop XP, cash and loot.\nNumbers show your damage: aim for heads.\nCash flies to you. Z is a melee strike.\nClear the room to open the door."
+"message" "FIGHT\nMonsters drop XP, cash and loot.\nNumbers show your damage: aim for heads.\nCash flies to you. ^kZ is a melee strike.\nClear the room to open the door."
 {
 ( 1928 -312 0 ) ( 1928 -311 0 ) ( 1928 -312 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 1928 -312 0 ) ( 1928 -312 1 ) ( 1929 -312 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -725,7 +725,7 @@
 }
 {
 "classname" "trigger_once"
-"message" "TOO MUCH LOOT?\nStand on the pad for a free gun.\nStanding on an item:\nX sells it (press twice),\nB sends it to your stash."
+"message" "TOO MUCH LOOT?\nStand on the pad for a free gun.\nStanding on an item:\n^kX sells it (press twice),\n^kB sends it to your stash."
 {
 ( 3848 -312 0 ) ( 3848 -311 0 ) ( 3848 -312 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 3848 -312 0 ) ( 3848 -312 1 ) ( 3849 -312 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -738,7 +738,7 @@
 {
 "classname" "trigger_multiple"
 "wait" "6"
-"message" "STASH AND FILTER\nB on empty floor opens your stash.\nIt keeps items across maps and NG+.\nL hides low-rarity drops."
+"message" "STASH AND FILTER\n^kB on empty floor opens your stash.\nIt keeps items across maps and NG+.\n^kL hides low-rarity drops."
 {
 ( 3936 -288 2 ) ( 3936 -287 2 ) ( 3936 -288 3 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 3936 -288 2 ) ( 3936 -288 3 ) ( 3937 -288 2 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -779,7 +779,7 @@
 }
 {
 "classname" "trigger_once"
-"message" "THE VENDOR\nPress V anywhere to shop.\nFirst visit per map is free.\n9 switches tabs: Stock, Upgrades,\nWorkshop and Missions."
+"message" "THE VENDOR\nPress ^kV anywhere to shop.\nFirst visit per map is free.\n9 switches tabs: Stock, Upgrades,\nWorkshop and Missions."
 {
 ( 4488 -312 0 ) ( 4488 -311 0 ) ( 4488 -312 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 4488 -312 0 ) ( 4488 -312 1 ) ( 4489 -312 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -837,7 +837,7 @@
 }
 {
 "classname" "trigger_once"
-"message" "SKILLS\nEach level gives a skill point.\nPress K and pick a class:\nGunner, Juggernaut or Elementalist.\nThen press 1-9 to spend points."
+"message" "SKILLS\nEach level gives a skill point.\nPress ^kK and pick a class:\nGunner, Juggernaut or Elementalist.\nThen press ^k1-^k9 to spend points."
 {
 ( 5128 -312 0 ) ( 5128 -311 0 ) ( 5128 -312 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 5128 -312 0 ) ( 5128 -312 1 ) ( 5129 -312 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -850,7 +850,7 @@
 {
 "classname" "trigger_multiple"
 "wait" "6"
-"message" "ACTION SKILL\nF fires your class's action skill.\nThe meter top left shows the cooldown.\nTry it on these monsters."
+"message" "ACTION SKILL\n^kF fires your class's action skill.\nThe meter top left shows the cooldown.\nTry it on these monsters."
 {
 ( 5216 -288 2 ) ( 5216 -287 2 ) ( 5216 -288 3 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 5216 -288 2 ) ( 5216 -288 3 ) ( 5217 -288 2 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -907,7 +907,7 @@
 }
 {
 "classname" "trigger_once"
-"message" "BOSS\nBosses drop a signature gun.\nJ: challenges pay XP and cash.\nPage 3 picks your look.\nBeat the boss to finish."
+"message" "BOSS\nBosses drop a signature gun.\n^kJ: challenges pay XP and cash.\nPage 3 picks your look.\nBeat the boss to finish."
 {
 ( 5768 -312 0 ) ( 5768 -311 0 ) ( 5768 -312 1 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 5768 -312 0 ) ( 5768 -312 1 ) ( 5769 -312 0 ) e1u1/trigger 0 0 0 1 1 0 0 0
@@ -920,7 +920,7 @@
 {
 "classname" "trigger_multiple"
 "wait" "6"
-"message" "CHALLENGES\nChallenge tiers unlock skins and auras.\nIn co-op, H hands your gun to a friend."
+"message" "CHALLENGES\nChallenge tiers unlock skins and auras.\nIn co-op, ^kH hands your gun to a friend."
 {
 ( 5856 -288 2 ) ( 5856 -287 2 ) ( 5856 -288 3 ) e1u1/trigger 0 0 0 1 1 0 0 0
 ( 5856 -288 2 ) ( 5856 -288 3 ) ( 5857 -288 2 ) e1u1/trigger 0 0 0 1 1 0 0 0

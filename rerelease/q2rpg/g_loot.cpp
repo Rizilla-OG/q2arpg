@@ -3282,7 +3282,7 @@ void Loot_GiveXP(edict_t *ent, int32_t xp)
 			ent->health = std::max(ent->health, ent->max_health);
 
 		gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/secret.wav"), 1, ATTN_NORM, 0);
-		gi.Center_Print(ent, G_Fmt("LEVEL UP!\nLevel {}  (+5 max health)\n[K] skill point", pers.loot_level).data());
+		gi.Center_Print(ent, G_Fmt("LEVEL UP!\nLevel {}  (+5 max health)\n[^kK] skill point", pers.loot_level).data());
 		Loot_LogEvent(ent, G_Fmt("LEVEL UP {}", pers.loot_level).data());
 	}
 }

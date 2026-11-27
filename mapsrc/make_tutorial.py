@@ -55,16 +55,16 @@ ROOMS = [
         title="welcome",
         message=msg("WELCOME TO Q2ARPG", "Every gun is rolled. Kill, loot,", "level up, gear up.",
                     "Walk on: each room teaches one thing."),
-        sign=msg("YOUR HUD (top left)", "Gun name, level badge and XP bar,", "your cash, and the F action meter.",
-                 "M: minimap, full map or off."),
+        sign=msg("YOUR HUD (top left)", "Gun name, level badge and XP bar,", "your cash, and the ^kF action meter.",
+                 "^kM: minimap, full map or off."),
         items=[],
     ),
     dict(
         title="loot",
         message=msg("LOOT", "Beams show rarity: white Common,", "green Uncommon, blue Rare,",
                     "purple Epic, gold Legendary.", "Walk over a gun to see its card."),
-        sign=msg("TAKING GUNS", "Green stats beat your gun, red lose.", "E takes it. You carry 4 guns: keys 1-4.",
-                 "I: loadout   G: drop   R: reload", "Hold right mouse to zoom."),
+        sign=msg("TAKING GUNS", "Green stats beat your gun, red lose.", "^kE takes it. You carry 4 guns: keys ^k1-^k4.",
+                 "^kI: loadout   ^kG: drop   ^kR: reload", "Hold right mouse to zoom."),
         items=[
             ("item_loot_gun", 320, -160, {"loot_rarity": "0"}),
             ("item_loot_gun", 320, 0, {"loot_rarity": "1"}),
@@ -74,7 +74,7 @@ ROOMS = [
     dict(
         title="gear",
         message=msg("GEAR", "Shields soak damage first and recharge:", "the blue bar above your health.",
-                    "Grenade mods change what Q throws."),
+                    "Grenade mods change what ^kQ throws."),
         sign=msg("MORE GEAR", "Class mods add skill ranks.", "Relics give one passive bonus.",
                  "Hand grenades are your grenade ammo."),
         items=[
@@ -86,7 +86,7 @@ ROOMS = [
     dict(
         title="fight",
         message=msg("FIGHT", "Monsters drop XP, cash and loot.", "Numbers show your damage: aim for heads.",
-                    "Cash flies to you. Z is a melee strike.", "Clear the room to open the door."),
+                    "Cash flies to you. ^kZ is a melee strike.", "Clear the room to open the door."),
         sign=msg("ELEMENTS", "Fire burns, shock staggers,", "corrosive melts armor, cryo freezes,",
                  "explosive blasts. Hit monsters glow."),
         items=[
@@ -118,15 +118,15 @@ ROOMS = [
     dict(
         title="stash",
         message=msg("TOO MUCH LOOT?", "Stand on the pad for a free gun.", "Standing on an item:",
-                    "X sells it (press twice),", "B sends it to your stash."),
-        sign=msg("STASH AND FILTER", "B on empty floor opens your stash.", "It keeps items across maps and NG+.",
-                 "L hides low-rarity drops."),
+                    "^kX sells it (press twice),", "^kB sends it to your stash."),
+        sign=msg("STASH AND FILTER", "^kB on empty floor opens your stash.", "It keeps items across maps and NG+.",
+                 "^kL hides low-rarity drops."),
         items=[],
         loot_pad=True,
     ),
     dict(
         title="vendor",
-        message=msg("THE VENDOR", "Press V anywhere to shop.", "First visit per map is free.",
+        message=msg("THE VENDOR", "Press ^kV anywhere to shop.", "First visit per map is free.",
                     "9 switches tabs: Stock, Upgrades,", "Workshop and Missions."),
         sign=msg("VENDOR TABS", "Upgrades are permanent boosts.", "The workshop levels your gun up to you.",
                  "Missions pay XP, cash and gear."),
@@ -134,9 +134,9 @@ ROOMS = [
     ),
     dict(
         title="skills",
-        message=msg("SKILLS", "Each level gives a skill point.", "Press K and pick a class:",
-                    "Gunner, Juggernaut or Elementalist.", "Then press 1-9 to spend points."),
-        sign=msg("ACTION SKILL", "F fires your class's action skill.", "The meter top left shows the cooldown.",
+        message=msg("SKILLS", "Each level gives a skill point.", "Press ^kK and pick a class:",
+                    "Gunner, Juggernaut or Elementalist.", "Then press ^k1-^k9 to spend points."),
+        sign=msg("ACTION SKILL", "^kF fires your class's action skill.", "The meter top left shows the cooldown.",
                  "Try it on these monsters."),
         items=[
             ("monster_soldier", 480, -128, {"angle": "180"}),
@@ -146,9 +146,9 @@ ROOMS = [
     ),
     dict(
         title="boss",
-        message=msg("BOSS", "Bosses drop a signature gun.", "J: challenges pay XP and cash.",
+        message=msg("BOSS", "Bosses drop a signature gun.", "^kJ: challenges pay XP and cash.",
                     "Page 3 picks your look.", "Beat the boss to finish."),
-        sign=msg("CHALLENGES", "Challenge tiers unlock skins and auras.", "In co-op, H hands your gun to a friend."),
+        sign=msg("CHALLENGES", "Challenge tiers unlock skins and auras.", "In co-op, ^kH hands your gun to a friend."),
         items=[
             ("monster_gladiator", 480, 0, {"angle": "180", "loot_boss": "1"}),
             ("item_health_large", 160, -224, {}),
