@@ -4639,7 +4639,7 @@ bool Loot_ClientCommand(edict_t *ent, const char *cmd)
 		Loot_SelectSlot(ent, atoi(gi.argv(1)) - 1);
 		return true;
 	}
-	// "+"/"-" commands are not forwarded by the engine; autoexec aliases +loot_zoom to these
+	// "+"/"-" commands are not forwarded by the engine; cg_binds.cpp aliases +loot_zoom to these
 	if (!Q_strcasecmp(cmd, "zoom_on"))
 	{
 		ent->client->loot_zoom_held = true;

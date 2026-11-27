@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Your key binds stick. The mod used to re-bind its keys in `autoexec.cfg` every time the game started, undoing any change you made. It now sets its default keys once, the first time you play, and only for commands that have no key yet, so the keys you have now stay as they are. Type `q2rpg_resetbinds` in the console to put the defaults back. Your own `autoexec.cfg` in Saved Games no longer breaks hold-to-zoom or the `tutorial` command.
 - Key hints follow your binds. Rebind a key and every screen shows the new one: footer hints, number keys on vendor and skill rows, the `K +N` skill-point chip and `F` action badge, on-screen messages ("Press X again") and the tutorial and example map notes. A command with no key shows `--`.
 
 ### Fixed

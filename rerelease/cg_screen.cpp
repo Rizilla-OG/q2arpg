@@ -28,6 +28,7 @@ void CG_Loot_SetTabs(const char *list);
 // q2rpg: q2rpg/cg_gui.cpp; drawn menu widgets (gpanel, gitem, ...)
 void CG_Gui_CenterBackdrop(const std::vector<std::string> &lines, int y, int line_height, int center_x, int scale,
                            bool kfont, bool alt_typeface, int extra_height);
+void CG_Binds_Frame(); // q2rpg/cg_binds.cpp: default binds once they're loaded
 std::string CG_Gui_ResolveKeys(const char *text); // q2rpg: ^kV -> the key bound to vendor now
 bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bool skip, bool use_kfont, int y_offset, int screen_left, int screen_width);
 
@@ -1789,6 +1790,8 @@ void CG_DrawHUD (int32_t isplit, const cg_server_data_t *data, vrect_t hud_vrect
             cgi.SCR_DrawFontString(cgi.Localize("$m_eou_press_button", nullptr, 0), hud_vrect.width * 0.5f * scale, (hud_vrect.height - 64.f) * scale, scale, rgba_green, true, text_align_t::CENTER);
         return;
     }
+
+    CG_Binds_Frame(); // q2rpg
 
     // draw HUD
     if (!cl_skipHud->integer && !(ps->stats[STAT_LAYOUTS] & LAYOUTS_HIDE_HUD))

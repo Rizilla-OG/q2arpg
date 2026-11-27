@@ -16,9 +16,12 @@ void CG_InitScreen();
 
 uint64_t cgame_init_time = 0;
 
+void CG_Binds_Init(); // q2rpg/cg_binds.cpp
+
 static void InitCGame()
 {
 	CG_InitScreen();
+	CG_Binds_Init(); // q2rpg: console aliases, default binds
 
 	cgame_init_time = cgi.CL_ClientRealTime();
 

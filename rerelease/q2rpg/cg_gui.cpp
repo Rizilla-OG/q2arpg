@@ -8,7 +8,7 @@
 void CG_Loot_DrawColorString(int x, int y, int scale, const char *text, bool kfont, int font_y_offset);
 
 // q2rpg: key hints follow the player's binds. The server writes the default key (the one
-// autoexec.cfg binds); the HUD looks up what the command is bound to now and shows that.
+// cg_binds.cpp binds); the HUD looks up what the command is bound to now and shows that.
 // Key badges resolve on their own (a letter, or digits like "1-8" / "1/2" for slot N);
 // other text marks a key as ^k plus the default letter ("Press ^kX again").
 namespace

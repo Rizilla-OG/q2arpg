@@ -70,7 +70,10 @@ and a boss, one room at a time.
 
 ### Controls
 
-The mod sets these binds in `q2rpg/autoexec.cfg`:
+The mod sets these keys the first time you play. Rebind them in the game's
+controls menu or the console like any other key; your binds stick. Type
+`q2rpg_resetbinds` in the console to put the defaults back. Screens and tips
+show the key you bound, not the default.
 
 | Key | Action |
 |-----|--------|
@@ -206,9 +209,11 @@ The setting is saved. Use `g_loot_logs 1` to turn logging back on.
   contains `game_x64.dll`.
 
 **Keys don't do anything**
-- Binds in `autoexec.cfg` apply after a full restart of the game, not a map
-  change. If you rebound keys yourself, re-bind them in the console, e.g.
-  `bind e "loot_take"`.
+- Type `q2rpg_resetbinds` in the console to put the mod's default keys back,
+  or bind one yourself, e.g. `bind e "loot_take"`.
+- Keep your own startup commands in an `autoexec.cfg` in your Saved Games
+  folder (`Saved Games\Nightdive Studios\Quake II\q2rpg\`), not in the
+  mod's folder, so updates don't overwrite them.
 
 **Lost skill points after going back to an older version**
 - Saves from a newer version can lose skill ranks in an older one. Keep the
