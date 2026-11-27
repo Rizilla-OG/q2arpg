@@ -75,11 +75,11 @@ the normal random XP, cash and loot.
 
 | Key | Values |
 |---|---|
-| `loot_monsters` | Monsters to pick from, separated by `;`, e.g. `monster_gunner;monster_berserk;monster_tank`. Leave out for the default pool: light soldier, soldier, SS soldier, infantry, gunner, berserker, parasite, iron maiden, brain and gladiator (ground monsters that fit most rooms). Names that aren't monsters are skipped with a console warning. |
+| `loot_monsters` | Monsters to pick from, separated by `;`, e.g. `monster_gunner;monster_berserk;monster_tank`. Leave out for the default pool: light soldier, soldier, SS soldier, infantry, gunner, berserker, parasite, iron maiden, brain and gladiator (ground monsters that fit most rooms). Names that aren't monsters, and cutscene props that can't die (`monster_commander_body`, `monster_boss3_stand`, `monster_tank_stand`), are skipped with a console warning. |
 | `loot_drop` | `1` also drops a guaranteed gun when it dies, on top of the normal loot. |
-| `loot_rarity`, `loot_weapon`, `loot_unique` | Shape the guaranteed gun, same values as `item_loot_gun`. Setting any of them turns the guaranteed gun on. |
+| `loot_rarity`, `loot_weapon`, `loot_unique` | Shape the guaranteed gun, same values as `item_loot_gun`. Setting any of them turns the guaranteed gun on. `loot_nodrop` turns it off. |
 
-Give it room for the biggest monster in its list. Flying monsters work if you
+Give it room for the biggest monster in its list (the editor box fits the default pool's biggest, the gladiator). Flying monsters work if you
 list them, but the default pool is ground-only.
 
 ## Map and campaign keys

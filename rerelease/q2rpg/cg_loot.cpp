@@ -275,9 +275,12 @@ void CG_Loot_DrawColorString(int x, int y, int scale, const char *text, bool kfo
 		}
 		else
 		{
-			// classic charset only has white and green: green for better and Omega, plain for worse
+			// classic charset only has white and green and can't be tinted: green for better and Omega,
+			// white on a red box for worse
 			const bool alt = (color.g == better_green.g && color.r == better_green.r) || (color.g == omega_red.g && color.r == omega_red.r) ||
 			                 (color.g == menu_green.g && color.r == menu_green.r);
+			if (color.g == worse_red.g && color.r == worse_red.r)
+				cgi.SCR_DrawColorPic(x - scale, y - scale, (int)segment.size() * 8 * scale + 2 * scale, 10 * scale, "_white", {200, 30, 30, 150});
 			for (char c : segment)
 			{
 				cgi.SCR_DrawChar(x, y, scale, c ^ (alt ? 0x80 : 0), true);

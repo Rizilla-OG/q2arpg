@@ -2,6 +2,15 @@
 
 ## Unreleased (next update)
 
+### Fixed
+
+- `monster_loot_random` with a `delay` dropped its guaranteed gun at the map origin instead of where the monster died.
+- `monster_loot_random` with `loot_nodrop` still dropped its guaranteed gun.
+- `monster_loot_random` no longer picks cutscene props that can't die (`monster_commander_body`, `monster_boss3_stand`, `monster_tank_stand`) from a `loot_monsters` list, which could leave its deathtarget unfired. Tabs and line breaks in the list are now ignored.
+- `monster_loot_random`'s box in the TrenchBroom config is now the size of the biggest default monster (the gladiator), so it can't be placed where a gladiator gets stuck in a wall.
+- The dark box behind on-screen messages now fits the text with the classic font (`scr_usekfont 0`) and the alternate typeface, and covers key-binding prompts under tutorial notes.
+- With the classic font, lower stats on loot cards now sit on a red box (the classic font can't be drawn in red), so they no longer look the same as unchanged stats.
+
 ## 0.9.8
 
 ### Added

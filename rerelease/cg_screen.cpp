@@ -26,7 +26,8 @@ static cvar_t *scr_usekfont;
 void CG_Loot_DrawColorString(int x, int y, int scale, const char *text, bool kfont, int font_y_offset);
 void CG_Loot_SetTabs(const char *list);
 // q2rpg: q2rpg/cg_gui.cpp; drawn menu widgets (gpanel, gitem, ...)
-void CG_Gui_CenterBackdrop(const std::vector<std::string> &lines, int y, int line_height, int center_x, int scale);
+void CG_Gui_CenterBackdrop(const std::vector<std::string> &lines, int y, int line_height, int center_x, int scale,
+                           bool kfont, bool alt_typeface, int extra_height);
 bool CG_Gui_Token(const char *token, const char **s, int x, int y, int scale, bool skip, bool use_kfont, int y_offset, int screen_left, int screen_width);
 
 static cvar_t *scr_centertime;
@@ -517,7 +518,10 @@ static void CG_DrawCenterString( const player_state_t *ps, const vrect_t &hud_vr
     if (ui_acc_alttypeface->integer) lineHeight *= 1.5f;
 
     // q2rpg: dark box behind the whole message so white text reads on bright walls
-    CG_Gui_CenterBackdrop(center.lines, y, lineHeight, (hud_vrect.x + hud_vrect.width / 2) * scale, scale);
+    // (bind prompts are only drawn in instant mode: each sits lineHeight * 2 below the last, plus its own row)
+    const int bindHeight = (center.instant && !center.binds.empty()) ? (int)center.binds.size() * lineHeight * 2 + lineHeight : 0;
+    CG_Gui_CenterBackdrop(center.lines, y, lineHeight, (hud_vrect.x + hud_vrect.width / 2) * scale, scale,
+                          scr_usekfont->integer != 0, ui_acc_alttypeface->integer != 0, bindHeight);
 
     // easy!
     if (center.instant)

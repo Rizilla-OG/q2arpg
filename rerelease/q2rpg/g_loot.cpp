@@ -2324,12 +2324,14 @@ void SP_target_loot_drop(edict_t *self)
 }
 
 // q2rpg: monster_loot_random's guaranteed gun: fired as the monster's deathtarget, drops where
-// it died, then passes on to the mapper's own deathtarget
+// it died, then passes on to the mapper's own deathtarget. The monster is kept in self->enemy, not
+// taken from `other`: with a mapper delay, `other` is the DelayedUse temp entity, which has no origin.
 USE(Loot_RandomMonsterDropUse)(edict_t *self, edict_t *other, edict_t *activator)->void
 {
-	if (other && other->inuse)
+	edict_t *monster = self->enemy;
+	if (monster && monster->inuse) // still at the death spot even if it was gibbed into a head
 	{
-		self->s.origin = other->s.origin;
+		self->s.origin = monster->s.origin;
 		gi.linkentity(self);
 	}
 	loot_drop_owner = nullptr;
@@ -2354,6 +2356,14 @@ static constexpr const char *random_monster_pool[] = {
 
 const char *ED_SpawnName(const char *classname);
 
+// monster_ classnames that are cutscene props, not fighters: they can't die, so a deathtarget
+// (and the guaranteed gun) on them would never fire
+static bool Loot_IsPropMonster(const char *classname)
+{
+	return !Q_strcasecmp(classname, "monster_commander_body") || !Q_strcasecmp(classname, "monster_boss3_stand") ||
+	       !Q_strcasecmp(classname, "monster_tank_stand");
+}
+
 // monster_loot_random: becomes a random monster when the map loads. Every other monster key
 // (loot_elite, loot_boss, loot_nodrop, angle, spawnflags, targetname, deathtarget...) carries
 // over. loot_drop 1 (or any of loot_rarity / loot_weapon / loot_unique) adds a guaranteed gun
@@ -2368,15 +2378,15 @@ void SP_monster_loot_random(edict_t *self)
 		{
 			const size_t end = std::min(list.find(';', start), list.size());
 			std::string name = list.substr(start, end - start);
-			name.erase(0, name.find_first_not_of(' '));
-			name.erase(name.find_last_not_of(' ') + 1);
+			name.erase(0, name.find_first_not_of(" \t\r\n"));
+			name.erase(name.find_last_not_of(" \t\r\n") + 1);
 			if (!name.empty())
 			{
 				const char *known = ED_SpawnName(name.c_str());
-				if (known && !Q_strncasecmp(known, "monster_", 8) && strcmp(known, "monster_loot_random"))
+				if (known && !Q_strncasecmp(known, "monster_", 8) && strcmp(known, "monster_loot_random") && !Loot_IsPropMonster(known))
 					pool.push_back(known);
 				else
-					gi.Com_PrintFmt("monster_loot_random: \"{}\" is not a monster, skipped\n", name);
+					gi.Com_PrintFmt("monster_loot_random: \"{}\" is not a monster that can fight, skipped\n", name);
 			}
 			start = end + 1;
 		}
@@ -2384,13 +2394,15 @@ void SP_monster_loot_random(edict_t *self)
 	if (pool.empty())
 		pool.assign(std::begin(random_monster_pool), std::end(random_monster_pool));
 
-	if (!deathmatch->integer && (st.loot_drop > 0 || st.loot_rarity >= 0 || (st.loot_weapon && *st.loot_weapon) || st.loot_unique > 0))
+	// loot_nodrop means no loot at all, the guaranteed gun included
+	if (!deathmatch->integer && !self->loot_map_nodrop && (st.loot_drop > 0 || st.loot_rarity >= 0 || (st.loot_weapon && *st.loot_weapon) || st.loot_unique > 0))
 	{
 		edict_t *drop = G_Spawn();
 		drop->classname = "loot_random_drop";
 		drop->s.origin = self->s.origin;
 		Loot_ReadPlacedKeys(drop);
 		drop->use = Loot_RandomMonsterDropUse;
+		drop->enemy = self; // the monster, so the gun drops where it died
 		drop->svflags |= SVF_NOCLIENT;
 		drop->targetname = G_CopyString(G_Fmt("loot_random_drop_{}", drop->s.number).data(), TAG_LEVEL);
 		drop->target = self->deathtarget; // chain the mapper's own deathtarget
