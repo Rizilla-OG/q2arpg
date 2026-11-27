@@ -2,6 +2,8 @@
 
 ## Unreleased (next update)
 
+## 0.9.9
+
 ### Added
 
 - Arachnid and Guardian behavior from Paril's PSX update. The Arachnid walks with a heavier gait, aims its railguns ahead of you, chains its melee, and after missing you a few times gets angry and fires a rapid rail volley; on Nightmare it calls in Stalkers (these count toward the reinforcement pay cap). The Guardian leads its shots, kicks from farther away, launches homing rockets (which can be shot down) and blind-fires at where it last saw you; it gets a power shield when you carry a Quad, Double Damage or Invulnerability, and has more health on Hard and above and in co-op. Mappers can set the Guardian's new Sleepy flag (it sleeps until triggered). The PSX update's new sounds and damaged skins need its asset pack, so they're left out.
