@@ -18,7 +18,7 @@
   <img class="logo" src="assets/logo.png" alt="Quake II ARPG" width="1605" height="247">
   <p class="tagline">Kill. Loot. Level up. Repeat.</p>
   <p class="sub">A free looter-boomer-shooter mod for the Quake II rerelease. Every gun is rolled with a rarity, a maker, parts and sometimes an element. Level up, pick a skill tree, shop at vendors, chase challenges and replay the campaign in New Game+.</p>
-  <div class="badge">v0.9.8 · PUBLIC ALPHA</div>
+  <div class="badge">v0.9.9 · PUBLIC ALPHA</div>
   <div class="buttons">
     <a class="btn primary" href="https://github.com/Rizilla-OG/q2arpg/releases/latest">Download</a>
     <a class="btn ghost" href="https://github.com/Rizilla-OG/q2arpg">View on GitHub</a>
@@ -131,6 +131,15 @@
 
 <section>
   <div class="wrap">
+    <h2>New in 0.9.9</h2>
+    <p><strong>Your binds stick.</strong> Rebind any key in the game's controls menu or the console and it stays that way: the mod sets its default keys once, the first time you play, instead of every launch. Every screen, tip and tutorial note shows the key you bound, not the default. Type <code>q2rpg_resetbinds</code> in the console to put the defaults back.</p>
+    <p><strong>Tougher Arachnids and Guardians,</strong> from Paril's PSX update. The Arachnid aims ahead of you, chains its melee and loses its temper after a few misses with a rapid rail volley; on Nightmare it calls in Stalkers. The Guardian leads its shots, launches homing rockets you can shoot down, blind-fires where it last saw you and raises a power shield when you carry a Quad. Mappers get <code>trigger_safe_fall</code> and a sleeping Guardian.</p>
+    <p>Plus fixes: on-screen messages fit their dark box with the classic font and the alternate typeface, worse stats show in red with the classic font, and <code>monster_loot_random</code> drops its guaranteed gun where the monster died.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <h2>New in 0.9.8</h2>
     <p>Every menu has been rebuilt. The plain text screens are gone: the vendor, skills, loadout, stash, missions, challenges and looks are now drawn panels with tabs, gun icons, rarity colors and prices that turn green when you can afford them. The HUD gets a real XP bar and an action skill meter that fills as it cools down. Keys stay the same. New players can type <code>tutorial</code> in the console for a short map that teaches everything, and mappers get <code>monster_loot_random</code> for random monsters with optional guaranteed loot.</p>
     <div class="gallery">
@@ -192,6 +201,7 @@
     </div>
     <div>
       <h2>Controls</h2>
+      <p class="note">Default keys. Rebind them like any other key; screens show the keys you pick.</p>
       <ul class="keys">
         <li><kbd>E</kbd> Take loot</li>
         <li><kbd>G</kbd> Drop gun</li>

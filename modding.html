@@ -73,6 +73,19 @@
       <tr><td><code>item_loot_grenade</code></td><td>A grenade mod. Keys: <code>loot_rarity</code>, <code>loot_grenade</code> (Frag, Cluster, Sticky, Vortex, Leech, Hopper, Airburst).</td></tr>
       <tr><td><code>target_loot_drop</code></td><td>Drops a gun each time it's triggered: buttons, secrets, puzzle rewards.</td></tr>
       <tr><td><code>target_ngplus</code></td><td>Ends the campaign like beating the final boss, then starts New Game+.</td></tr>
+      <tr><td><code>monster_loot_random</code></td><td>Becomes a random monster when the map loads. <code>loot_monsters</code> picks the pool (e.g. <code>monster_gunner;monster_berserk</code>); <code>loot_drop 1</code> or any of <code>loot_rarity</code>, <code>loot_weapon</code>, <code>loot_unique</code> adds a guaranteed gun. Every monster key works on it.</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>More for mappers</h2>
+    <table>
+      <tr><th>What</th><th>How</th></tr>
+      <tr><td><code>trigger_safe_fall</code></td><td>A player already in the air who touches it takes no damage on their next landing. Put it under long drops.</td></tr>
+      <tr><td>Sleeping Guardian</td><td>Spawn flag <code>8</code> on <code>monster_guardian</code>: it sleeps until triggered, then wakes up and fights.</td></tr>
+      <tr><td>Key hints in messages</td><td>Write <code>^k</code> and the default key in a <code>message</code>, e.g. <code>Press ^kV to shop</code>. Players see the key they bound.</td></tr>
     </table>
   </div>
 </section>
