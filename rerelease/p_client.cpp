@@ -2180,10 +2180,6 @@ void PutClientInServer(edict_t *ent)
 	// copy some data from the client to the entity
 	FetchClientEntData(ent);
 
-	// [Paril-KEX] (PSX) power armor from start_items; q2rpg: here, once FL_WANTS_POWER_ARMOR is on the entity
-	if (!(ent->flags & FL_POWER_ARMOR))
-		G_CheckPowerArmor(ent);
-
 	// clear entity values
 	ent->groundentity = nullptr;
 	ent->client = &game.clients[index];
@@ -2311,6 +2307,11 @@ void PutClientInServer(edict_t *ent)
 	}
 
 	gi.linkentity(ent);
+
+	// [Paril-KEX] (PSX) power armor from start_items; q2rpg: here, once FL_WANTS_POWER_ARMOR is
+	// on the entity and the player stands at the spawn point (the power-on sound plays here)
+	if (!(ent->flags & FL_POWER_ARMOR))
+		G_CheckPowerArmor(ent);
 
 	if (!KillBox(ent, true, MOD_TELEFRAG_SPAWN))
 	{ // could't spawn in?

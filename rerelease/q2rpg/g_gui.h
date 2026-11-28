@@ -91,7 +91,7 @@ struct gui_page_t
 };
 
 // vendor tabs, in the order 9 cycles through (stash is B only, so not a tab)
-constexpr const char *VENDOR_TABS = "Stock|Upgrades|Workshop|Missions";
+constexpr const char *VENDOR_TABS = "Stock|Upgrades|Workshop|Missions|Recycler";
 
 inline std::string Gui_Money(int32_t amount)
 {

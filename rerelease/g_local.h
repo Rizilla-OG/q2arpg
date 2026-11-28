@@ -3046,6 +3046,12 @@ struct gclient_t
 	bool loot_shop_open;
 	int32_t loot_shop_page; // q2rpg: shop page (vendor_page_t)
 	int32_t loot_stash_page; // q2rpg: page of the stash list (8 slots each)
+	// q2rpg: vendor Recycler picks (transient): where each picked gun is (loadout slot, or
+	// RECYCLE_STASH + stash slot) and its seed, so a gun that moved since doesn't count
+	int32_t loot_recycle_where[3];
+	uint32_t loot_recycle_seed[3];
+	int32_t loot_recycle_count;
+	int32_t loot_recycle_page; // page of the gun list
 	bool loot_stash_only;    // q2rpg: shop opened free with B, stash pages only
 	gtime_t loot_shop_time;
 	gtime_t loot_sell_confirm_time;

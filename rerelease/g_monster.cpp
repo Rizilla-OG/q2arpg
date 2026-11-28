@@ -1426,7 +1426,7 @@ bool monster_start(edict_t *self)
 
 	// [Paril-KEX] (PSX) vision_cone; q2rpg: 0 means "unset" in infront(), so a mapper's
 	// explicit 0 (180 degrees) is stored as a hair above 0
-	if (st.was_key_specified("vision_cone") && !self->vision_cone)
+	if (level.is_spawning && st.was_key_specified("vision_cone") && !self->vision_cone) // map load only: st is stale later
 		self->vision_cone = 0.0001f;
 
 	return true;

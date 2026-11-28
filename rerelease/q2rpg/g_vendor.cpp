@@ -122,8 +122,8 @@ static const vendor_upgrade_t vendor_upgrades[LOOT_UPGRADE_COUNT] = {
     {"Second Chance +4%", 5},
 };
 
-// Shop pages; 9 cycles stock -> upgrades -> workshop -> missions -> stock. The stash page is
-// only reached with B (free view); its extra rows are bought from the workshop (item 7).
+// Shop pages; 9 cycles stock -> upgrades -> workshop -> missions -> recycler -> stock. The stash
+// page is only reached with B (free view); its extra rows are bought from the workshop (item 7).
 enum vendor_page_t
 {
 	VENDOR_PAGE_STOCK,
@@ -131,6 +131,7 @@ enum vendor_page_t
 	VENDOR_PAGE_WORKSHOP,
 	VENDOR_PAGE_STASH,
 	VENDOR_PAGE_MISSIONS, // q2rpg: side missions (g_mission.cpp)
+	VENDOR_PAGE_RECYCLER, // q2rpg: three guns of one rarity -> one of the next
 	VENDOR_PAGE_COUNT
 };
 
@@ -726,9 +727,250 @@ static void Vendor_StashCommand(edict_t *ent)
 	gi.Center_Print(ent, G_Fmt("Stash full ({} slots)", open_slots).data());
 }
 
+//==========================================================================
+// Recycler page: pick three spare guns of one rarity (stash or loadout, never the held gun),
+// pay a fee and get one gun of the next rarity at your level. Its type matches when all
+// three match, else it's the type of one of them. Legendary gives Legendary (Mythic in NG+).
+//==========================================================================
+
+constexpr int32_t RECYCLE_MIN_LEVEL = 10;
+constexpr int32_t RECYCLE_PAGE_ROWS = 6; // keys 1-6; 7 pages the list, 8 recycles
+constexpr float RECYCLE_FEE_FRACTION = 0.25f; // of the output's shop value
+constexpr int32_t RECYCLE_STASH = 100;        // loot_recycle_where: RECYCLE_STASH + stash slot
+
+struct recycle_entry_t
+{
+	int32_t where;
+	const loot_weapon_t *gun;
+};
+
+// spare guns, lowest rarity first (stable, so loadout before stash within a rarity)
+static std::vector<recycle_entry_t> Recycle_Candidates(edict_t *ent)
+{
+	gclient_t *cl = ent->client;
+	std::vector<recycle_entry_t> list;
+	for (int32_t i = 0; i < LOOT_NUM_SLOTS; i++)
+		if (cl->pers.loot_slots[i].valid && i != cl->pers.loot_active_slot)
+			list.push_back({i, &cl->pers.loot_slots[i]});
+	const int32_t open = Vendor_StashOpenSlots(ent);
+	for (int32_t i = 0; i < open; i++)
+		if (cl->pers.loot_stash[i].gun.valid)
+			list.push_back({RECYCLE_STASH + i, &cl->pers.loot_stash[i].gun});
+	std::stable_sort(list.begin(), list.end(), [](const recycle_entry_t &a, const recycle_entry_t &b)
+	                 { return a.gun->rarity < b.gun->rarity; });
+	return list;
+}
+
+static loot_weapon_t *Recycle_Gun(edict_t *ent, int32_t where)
+{
+	gclient_t *cl = ent->client;
+	if (where >= 0 && where < LOOT_NUM_SLOTS)
+		return (where != cl->pers.loot_active_slot && cl->pers.loot_slots[where].valid) ? &cl->pers.loot_slots[where] : nullptr;
+	const int32_t stash = where - RECYCLE_STASH;
+	if (stash >= 0 && stash < Vendor_StashOpenSlots(ent) && cl->pers.loot_stash[stash].gun.valid)
+		return &cl->pers.loot_stash[stash].gun;
+	return nullptr;
+}
+
+// drops picks whose gun moved, sold or changed since; returns how many are left
+static int32_t Recycle_ValidatePicks(edict_t *ent)
+{
+	gclient_t *cl = ent->client;
+	int32_t kept = 0;
+	for (int32_t i = 0; i < std::clamp(cl->loot_recycle_count, 0, 3); i++)
+	{
+		const loot_weapon_t *gun = Recycle_Gun(ent, cl->loot_recycle_where[i]);
+		if (!gun || gun->seed != cl->loot_recycle_seed[i])
+			continue;
+		cl->loot_recycle_where[kept] = cl->loot_recycle_where[i];
+		cl->loot_recycle_seed[kept] = cl->loot_recycle_seed[i];
+		kept++;
+	}
+	cl->loot_recycle_count = kept;
+	return kept;
+}
+
+static int32_t Recycle_PickIndex(gclient_t *cl, int32_t where)
+{
+	for (int32_t i = 0; i < cl->loot_recycle_count; i++)
+		if (cl->loot_recycle_where[i] == where)
+			return i;
+	return -1;
+}
+
+static loot_rarity_t Recycle_OutRarity(loot_rarity_t in)
+{
+	if (in >= LOOT_RARITY_MYTHIC)
+		return LOOT_RARITY_MYTHIC;
+	if (in == LOOT_RARITY_LEGENDARY)
+		return game.loot_ngplus > 0 ? LOOT_RARITY_MYTHIC : LOOT_RARITY_LEGENDARY;
+	return (loot_rarity_t)(in + 1);
+}
+
+static int32_t Recycle_Fee(edict_t *ent, loot_rarity_t out)
+{
+	return std::max(1, (int32_t)(Vendor_LevelBase(Vendor_RelevelTarget(ent)) * vendor_prices.rarity_value[out] * RECYCLE_FEE_FRACTION));
+}
+
+static void Vendor_SendRecycler(edict_t *ent)
+{
+	gclient_t *cl = ent->client;
+	const int32_t money = cl->pers.loot_money;
+	gui_page_t page;
+	const std::string keys = "1-6|pick|7|more|8|recycle|9|next tab|V|close";
+
+	if (Vendor_PlayerLevel(ent) < RECYCLE_MIN_LEVEL)
+	{
+		page.text(G_Fmt("^wThe Recycler opens at Lv {}.", RECYCLE_MIN_LEVEL).data());
+		page.text("^wThree guns of one rarity in, one of the next out.");
+		Loot_SendLayout(ent, page.finish("RECYCLER", Gui_Money(money), 4, VENDOR_TABS, "9|next tab|V|close"));
+		return;
+	}
+
+	const int32_t picks = Recycle_ValidatePicks(ent);
+	const loot_weapon_t *first = picks ? Recycle_Gun(ent, cl->loot_recycle_where[0]) : nullptr;
+	const std::vector<recycle_entry_t> list = Recycle_Candidates(ent);
+	const int32_t pages = std::max(1, ((int32_t)list.size() + RECYCLE_PAGE_ROWS - 1) / RECYCLE_PAGE_ROWS);
+	cl->loot_recycle_page = std::clamp(cl->loot_recycle_page, 0, pages - 1);
+
+	if (list.empty())
+		page.text("^wNo spare guns. Stash some, or carry more than one.");
+	for (int32_t row = 0; row < RECYCLE_PAGE_ROWS; row++)
+	{
+		const int32_t index = cl->loot_recycle_page * RECYCLE_PAGE_ROWS + row;
+		if (index >= (int32_t)list.size())
+			break;
+		const recycle_entry_t &e = list[index];
+		const bool picked = Recycle_PickIndex(cl, e.where) >= 0;
+		const bool other_rarity = first && e.gun->rarity != first->rarity;
+		const std::string sub = G_Fmt("L{} {}  {}", Loot_GunLevel(*e.gun), Loot_ArchName(e.gun->archetype), e.where < RECYCLE_STASH ? "loadout" : "stash").data();
+		page.item(G_Fmt("{}", row + 1).data(), e.gun->rarity, other_rarity ? GUI_OFF : GUI_AFFORD, e.gun->name, picked ? "PICKED" : "", sub, Gui_GunIcon(*e.gun));
+	}
+
+	page.gap();
+	if (pages > 1)
+		page.item("7", GUI_NO_RARITY, GUI_AFFORD, G_Fmt("More guns  ({}/{})", cl->loot_recycle_page + 1, pages).data(), "");
+	if (picks == 3 && first)
+	{
+		const loot_rarity_t out = Recycle_OutRarity(first->rarity);
+		const loot_weapon_t *a = Recycle_Gun(ent, cl->loot_recycle_where[1]), *b = Recycle_Gun(ent, cl->loot_recycle_where[2]);
+		const bool same_type = a && b && a->archetype == first->archetype && b->archetype == first->archetype;
+		const int32_t fee = Recycle_Fee(ent, out);
+		page.item("8", out, Gui_Afford(fee, money), G_Fmt("Recycle into a {} {}", Loot_RarityName(out), same_type ? Loot_ArchName(first->archetype) : "gun").data(), Gui_Money(fee),
+		          same_type ? "" : "Mixed types: one of the three at random");
+	}
+	else
+		page.item("8", GUI_NO_RARITY, GUI_OFF, G_Fmt("Pick 3 guns of one rarity  ({}/3)", picks).data(), "");
+	page.text("^wPicked guns are used up. The held gun can't be picked.");
+	Loot_SendLayout(ent, page.finish("RECYCLER", Gui_Money(money), 4, VENDOR_TABS, keys));
+}
+
+static void Vendor_RecycleUse(edict_t *ent, int32_t n)
+{
+	gclient_t *cl = ent->client;
+	if (ent->health <= 0 || Vendor_PlayerLevel(ent) < RECYCLE_MIN_LEVEL)
+		return;
+	cl->loot_shop_time = 0_ms;
+	int32_t picks = Recycle_ValidatePicks(ent);
+
+	if (n >= 1 && n <= RECYCLE_PAGE_ROWS)
+	{
+		const std::vector<recycle_entry_t> list = Recycle_Candidates(ent);
+		const int32_t index = cl->loot_recycle_page * RECYCLE_PAGE_ROWS + n - 1;
+		if (index >= (int32_t)list.size())
+			return;
+		const recycle_entry_t &e = list[index];
+		const int32_t at = Recycle_PickIndex(cl, e.where);
+		if (at >= 0) // unpick
+		{
+			for (int32_t i = at; i + 1 < picks; i++)
+			{
+				cl->loot_recycle_where[i] = cl->loot_recycle_where[i + 1];
+				cl->loot_recycle_seed[i] = cl->loot_recycle_seed[i + 1];
+			}
+			cl->loot_recycle_count = picks - 1;
+			return;
+		}
+		const loot_weapon_t *first = picks ? Recycle_Gun(ent, cl->loot_recycle_where[0]) : nullptr;
+		if (first && first->rarity != e.gun->rarity)
+		{
+			gi.Center_Print(ent, G_Fmt("Picking {} guns: unpick them\nto start a {} set", Loot_RarityName(first->rarity), Loot_RarityName(e.gun->rarity)).data());
+			return;
+		}
+		if (picks >= 3)
+		{
+			gi.Center_Print(ent, "Three picked: press 8 to recycle,\nor unpick one first");
+			return;
+		}
+		cl->loot_recycle_where[picks] = e.where;
+		cl->loot_recycle_seed[picks] = e.gun->seed;
+		cl->loot_recycle_count = picks + 1;
+		return;
+	}
+
+	if (n == 7)
+	{
+		cl->loot_recycle_page++; // clamped (wraps to page 1) when the page is drawn
+		const int32_t pages = std::max(1, ((int32_t)Recycle_Candidates(ent).size() + RECYCLE_PAGE_ROWS - 1) / RECYCLE_PAGE_ROWS);
+		if (cl->loot_recycle_page >= pages)
+			cl->loot_recycle_page = 0;
+		return;
+	}
+
+	if (n != 8 || picks < 3)
+		return;
+
+	loot_weapon_t *guns[3];
+	for (int32_t i = 0; i < 3; i++)
+		guns[i] = Recycle_Gun(ent, cl->loot_recycle_where[i]);
+	const loot_rarity_t out = Recycle_OutRarity(guns[0]->rarity);
+	const bool same_type = guns[1]->archetype == guns[0]->archetype && guns[2]->archetype == guns[0]->archetype;
+	const loot_archetype_t arch = same_type ? guns[0]->archetype : guns[irandom(3)]->archetype;
+	if (!Vendor_Pay(ent, Recycle_Fee(ent, out)))
+		return;
+
+	const loot_weapon_t made = Loot_RollRecycled(arch, out, Vendor_RelevelTarget(ent));
+
+	// use up the three; the new gun takes the first freed loadout slot, else the first stash slot
+	int32_t loadout_slot = -1, stash_slot = -1;
+	for (int32_t i = 0; i < 3; i++)
+	{
+		const int32_t where = cl->loot_recycle_where[i];
+		if (where < RECYCLE_STASH)
+		{
+			cl->pers.loot_slots[where] = {};
+			if (loadout_slot < 0 || where < loadout_slot)
+				loadout_slot = where;
+		}
+		else
+		{
+			cl->pers.loot_stash[where - RECYCLE_STASH].gun = {};
+			if (stash_slot < 0 || where - RECYCLE_STASH < stash_slot)
+				stash_slot = where - RECYCLE_STASH;
+		}
+	}
+	cl->loot_recycle_count = 0;
+
+	if (loadout_slot >= 0)
+		cl->pers.loot_slots[loadout_slot] = made;
+	else
+		cl->pers.loot_stash[stash_slot].gun = made;
+	Loot_SyncInventory(ent);
+
+	gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/secret.wav"), 1, ATTN_NORM, 0);
+	gi.Center_Print(ent, G_Fmt("Recycled into {}\n({} {}, {})", made.name, Loot_RarityName(made.rarity), Loot_ArchName(made.archetype),
+	                           loadout_slot >= 0 ? "in your loadout" : "in your stash")
+	                         .data());
+}
+
 static void Vendor_SendShop(edict_t *ent)
 {
 	gclient_t *cl = ent->client;
+	if (cl->loot_shop_page == VENDOR_PAGE_RECYCLER)
+	{
+		Vendor_SendRecycler(ent);
+		return;
+	}
 	if (cl->loot_shop_page == VENDOR_PAGE_UPGRADES)
 	{
 		Vendor_SendUpgrades(ent);
@@ -820,7 +1062,7 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 {
 	gclient_t *cl = ent->client;
 
-	// 9 cycles stock -> upgrades -> workshop -> missions -> stock (stash pages only in the B view)
+	// 9 cycles stock -> upgrades -> workshop -> missions -> recycler -> stock (stash pages only in the B view)
 	if (n == 9 && cl->loot_shop_page == VENDOR_PAGE_STASH && cl->loot_stash_page + 1 < Vendor_StashPages(ent))
 	{
 		cl->loot_stash_page++;
@@ -852,6 +1094,11 @@ static void Vendor_Buy(edict_t *ent, int32_t n)
 	{
 		Mission_Take(ent, n);
 		cl->loot_shop_time = 0_ms;
+		return;
+	}
+	if (cl->loot_shop_page == VENDOR_PAGE_RECYCLER)
+	{
+		Vendor_RecycleUse(ent, n);
 		return;
 	}
 

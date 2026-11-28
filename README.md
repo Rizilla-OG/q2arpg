@@ -135,6 +135,10 @@ Controller binds exist for split-screen but are **beta**.
 - **Stash** (`B`, free, anywhere): store any item across maps and NG+. It
   grows with your level; at 60 you can buy more space (workshop item 7).
   `B` on floor loot sends it straight in.
+- **Recycler** (level 10, the vendor's last tab): pick three spare guns of
+  one rarity from your stash or loadout, pay a fee and get one gun of the
+  next rarity at your level. Three of one type give that type. Three
+  Legendaries give a fresh Legendary, or a Mythic in NG+.
 - **Loot filter** (`L`): hide Common, Uncommon or Rare-and-below drops.
 - **Challenges** (`J`) pay XP and cash for kill goals. In NG+ a fourth tier
   drops a Mythic reward and a permanent badge.

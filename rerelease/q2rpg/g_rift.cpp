@@ -273,7 +273,7 @@ static void Rift_ReturnPlayers()
 }
 
 // The Arachnid and Guardian are boss tier, which never become Omegas: they guard as they
-// are (boss-tier health already), if their box is clear where they stand.
+// are (boss-tier health already), if their box is clear and they have floor under them.
 static edict_t *Rift_SpawnBossTier(const vec3_t &spot, const vec3_t &angles, const char *classname)
 {
 	edict_t *monster = CreateMonster(spot, angles, classname);
@@ -283,7 +283,12 @@ static edict_t *Rift_SpawnBossTier(const vec3_t &spot, const vec3_t &angles, con
 	// stand the monster's feet there too (the Guardian reaches 66 below its origin)
 	monster->s.origin[2] = spot[2] - 40.f - monster->mins[2] + 1.f;
 	gi.linkentity(monster);
-	if (gi.trace(monster->s.origin, monster->mins, monster->maxs, monster->s.origin, monster, MASK_MONSTERSOLID).startsolid)
+	// clear box (monsters and players too), real floor within 32 below (not a ledge over a
+	// pit, not someone standing there) and no lava or slime at its feet
+	const bool blocked = gi.trace(monster->s.origin, monster->mins, monster->maxs, monster->s.origin, monster, MASK_MONSTERSOLID).startsolid;
+	const trace_t floor = gi.trace(monster->s.origin, monster->mins, monster->maxs, monster->s.origin - vec3_t{0, 0, 32}, monster, MASK_SOLID);
+	const vec3_t feet = floor.endpos + vec3_t{0, 0, monster->mins[2] + 1.f}; // just inside the box's bottom
+	if (blocked || floor.startsolid || floor.allsolid || floor.fraction >= 1.0f || (gi.pointcontents(feet) & (CONTENTS_LAVA | CONTENTS_SLIME)))
 	{
 		Loot_DiscardSpawnedMonster(monster);
 		return nullptr;

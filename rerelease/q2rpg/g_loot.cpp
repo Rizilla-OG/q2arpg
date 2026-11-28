@@ -828,6 +828,16 @@ static loot_archetype_t Loot_RollArchetype(loot_rarity_t rarity)
 	return arch;
 }
 
+// q2rpg: the vendor's Recycler output: a fresh roll of this type and rarity at `level`
+// (a type whose lowest rarity is higher, like alien tech, comes out at that rarity)
+loot_weapon_t Loot_RollRecycled(loot_archetype_t archetype, loot_rarity_t rarity, int32_t level)
+{
+	rarity = std::max(rarity, loot_archs[archetype].min_rarity);
+	loot_weapon_t gun = Loot_Roll(archetype, rarity, (uint32_t)mt_rand());
+	Loot_SetLevel(gun, level);
+	return gun;
+}
+
 loot_weapon_t Loot_RollRandom(float luck)
 {
 	const loot_rarity_t rarity = Loot_RollRarity(luck);

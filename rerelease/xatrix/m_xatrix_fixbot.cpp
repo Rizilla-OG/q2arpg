@@ -58,9 +58,10 @@ THINK(bot_goal_check) (edict_t *self) -> void
 		self->timestamp = level.time + 15_sec;
 	else if (level.time > self->timestamp)
 	{
-		self->owner->goalentity = self->owner->enemy = nullptr;
-		G_FreeEdict(self);
-		return;
+		// pick a fresh roam goal (the fixbot's moves assume it always has one); this goal
+		// frees itself next think, now that it isn't the owner's goal
+		self->timestamp = 0_ms;
+		roam_goal(self->owner);
 	}
 
 	self->nextthink = level.time + 1_ms;

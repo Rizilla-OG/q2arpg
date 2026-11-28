@@ -4,6 +4,8 @@
 
 ### Added
 
+- Recycler, a new vendor tab (from level 10). Pick three spare guns of the same rarity from your stash or loadout (never the one you're holding), pay a fee of about a quarter of the new gun's shop price, and get one gun of the next rarity at your level. If all three are the same type you get that type, otherwise the type of one of the three. Three Legendaries give a fresh Legendary, or a Mythic in New Game+. The new gun goes into a slot the recycled guns freed.
+
 - Mapping: more from Paril's PSX update, all opt-in so existing maps are unchanged. Additive `trigger_push` (wind tunnels and updrafts), passive `trigger_hurt` (hurts things standing still), `trigger_key` that becomes a relay, a `noise` sound for `trigger_once`/`trigger_multiple`, `target_laser` Reactor and No Protection flags plus harmless `dmg 0` beams and a `frame` width, `func_door_rotating` No Collision, `func_door_secret` `speed`, `func_wall` Safe Appear, `func_plat2` `wait`, a `vision_cone` that `func_eye` now reads, `misc_explobox` No Move, toggleable `misc_model`, floating items (No Drop) with `effects`/`renderfx` overrides, a No Idle Doors monster flag, a monster `vision_cone` key and an `info_player_start` Ride flag. See MODDING.md; all are in the TrenchBroom config.
 - The Arachnid and Guardian join the late game. From player level 30, and on every New Game+ map, a placed Gladiator, Tank or Gunner Commander can come in as an Arachnid (10%, 20% in NG+) and a Tank Commander or Supertank as a Guardian (10%, 25% in NG+), only where the bigger monster fits with floor under it. The Arachnid joins the arena's late waves (wave 8+), and both can be a rift's guardian.
 

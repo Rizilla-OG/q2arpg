@@ -233,7 +233,7 @@ void abortHeal(edict_t *self, bool gib, bool mark)
 		cleanupHeal(self);
 	}
 	// q2rpg: the corpse is gone (freed or gibbed) mid-heal: still go back to fighting
-	else if (self->monsterinfo.aiflags & AI_MEDIC)
+	else if ((self->monsterinfo.aiflags & AI_MEDIC) && (!self->enemy || !self->enemy->inuse))
 		fixHealerEnemy(self);
 
 	self->monsterinfo.aiflags &= ~AI_MEDIC;
@@ -1000,9 +1000,11 @@ void medic_cable_attack(edict_t *self)
 	tr = gi.traceline(start, self->enemy->s.origin, self, MASK_SOLID);
 	if (tr.fraction != 1.0f && tr.ent != self->enemy)
 	{
-		// q2rpg: a brush entity (func_wall, door) blocks like the world, so the corpse gets marked
-		// and the medic stops walking back to it; stock only marked on the world and looped
-		if (tr.ent == world || tr.ent->solid == SOLID_BSP)
+		// q2rpg: a brush entity that isn't moving right now (func_wall, a closed or locked door)
+		// blocks like the world, so the corpse gets marked and the medic stops walking back to
+		// it; stock only marked on the world and looped. A door or lift on the move doesn't count.
+		const bool brush_still = tr.ent->solid == SOLID_BSP && !tr.ent->velocity && !tr.ent->avelocity;
+		if (tr.ent == world || brush_still)
 		{
 			// give up on second try
 			if (self->monsterinfo.medicTries > 1)

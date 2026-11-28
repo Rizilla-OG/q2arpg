@@ -12,6 +12,7 @@ void Loot_InitCvars();
 
 // rolling
 loot_weapon_t Loot_Roll(loot_archetype_t archetype, loot_rarity_t rarity, uint32_t seed);
+loot_weapon_t Loot_RollRecycled(loot_archetype_t archetype, loot_rarity_t rarity, int32_t level); // vendor Recycler output
 loot_weapon_t Loot_RollRandom(float luck);
 loot_archetype_t Loot_ArchetypeForItem(item_id_t item);
 bool Loot_IsBaseWeapon(item_id_t item);
