@@ -35,7 +35,7 @@ constexpr gtime_t RAID_WAVE_INTERVAL = 12_sec;
 constexpr int32_t RAID_MAX_ADDS = 6;
 constexpr float RAID_SHIELD_OFF_ELEMENT_MULT = 0.5f;
 constexpr float RAID_LAST_STAND_MULT = 1.2f;
-static const char *const raid_add_classes[] = {"monster_gladiator", "monster_gunner", "monster_infantry", "monster_soldier_ss", "monster_berserk"};
+static const char *const raid_add_classes[] = {"monster_gladiator", "monster_gunner", "monster_infantry", "monster_soldier_ss", "monster_berserk", "monster_arachnid"};
 
 //==========================================================================
 // State
@@ -267,6 +267,8 @@ static void Raid_SpawnAdds(int32_t count)
 			const char *classname = raid_add_classes[irandom((int32_t)q_countof(raid_add_classes))];
 			vec3_t spot;
 			const bool big_box = attempt < 2; // Alpha-sized first, then a regular box on tight maps
+			if (!big_box && !strcmp(classname, "monster_arachnid"))
+				classname = "monster_gladiator"; // the Arachnid needs the big box
 			if (Raid_FindSpot(big_box ? vec3_t{-40, -40, -24} : vec3_t{-24, -24, -24}, big_box ? vec3_t{40, 40, 72} : vec3_t{24, 24, 40}, false, spot))
 				add = Loot_SpawnAlpha(spot, {0, frandom(360.f), 0}, classname);
 		}

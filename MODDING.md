@@ -96,6 +96,31 @@ list them, but the default pool is ground-only.
 | `worldspawn` | `loot_start_level` | Players below this level are raised to it when they enter: health, cash and skill points to match, and the starter pistol levels up. For standalone maps or campaigns that expect a set level. Never lowers anyone. |
 | `target_ngplus` (point) | `targetname` | When triggered, ends the campaign like beating the final boss: intermission, then New Game+ from your first map. For campaigns that don't end on a victory screen. |
 
+## More for mappers (from the PSX update)
+
+Paril's PSX update added these to the stock entities. All are opt-in, so
+existing maps behave as before. All are in the TrenchBroom config.
+
+| Entity | Key / flag | Effect |
+|---|---|---|
+| `trigger_safe_fall` (brush) | | A player already in the air who touches it takes no damage on their next landing. |
+| `trigger_push` | flag 32 Additive | Speeds things up toward `speed` instead of setting it, with no gravity while inside. Good for wind tunnels and updrafts. |
+| `trigger_hurt` | flag 65536 Passive | Hurts everything inside every 0.1 s (1 s with Slow), even things standing still. Works with Start Off / Toggle and Clipped. |
+| `trigger_key` | flag 1 Become Relay | After the key is used it fires its targets every time, like a `trigger_relay`. |
+| `trigger_once` / `trigger_multiple` | `noise` | Sound to play when it fires, instead of `sounds`. |
+| `target_laser` | flag 131072 Reactor, flag 262144 No Protection, `frame`, `dmg` `0` | Reactor is drawn as lightning. No Protection ignores armor. `frame` sets the beam width. `dmg` `0` is a harmless beam that passes through monsters and players. |
+| `func_door_rotating` | flag 262144 No Collision | Never pushes or gets blocked by anything in its way (for decorative doors and fans). Players still can't walk through it. |
+| `func_door_secret` | `speed` | Movement speed (default 500). |
+| `func_wall` | flag 32 Safe Appear | When it appears, pushes things out of the way instead of telefragging them. |
+| `func_plat2` | `wait` | Seconds it waits at the top or bottom (default 2). |
+| `func_eye` | `vision_cone` | How wide it looks (now read; it was ignored before). |
+| `misc_explobox` | flag 1 No Move | Can't be pushed or knocked around. |
+| `misc_model` | flag 1 Toggle, flag 2 Start On | Triggering shows or hides the model. |
+| Items | flag 8 No Drop, `effects`, `renderfx` | No Drop floats the item where it's placed instead of dropping it to the floor. `effects` and `renderfx` override the item's glow and spin. |
+| Monsters | flag 1048576 No Idle Doors | Only opens doors once it has an enemy, so patrolling monsters don't open doors on their own. |
+| Monsters | `vision_cone` | How wide the monster sees, as a dot product: `-1` all around, `0` 180 degrees, `0.5` 120 degrees. Leave it out for the stock cone. |
+| `info_player_start` | flag 1 Ride | The start drops onto whatever is under it at load, so players spawn riding a lift. |
+
 ## Data file: guns, makers, rarities and prices
 
 Gun stats, manufacturers, rarities and vendor prices can be changed without

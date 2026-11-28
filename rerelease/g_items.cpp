@@ -1143,32 +1143,35 @@ THINK(droptofloor) (edict_t *ent) -> void
 	else
 		gi.setmodel(ent, ent->item->world_model);
 	ent->solid = SOLID_TRIGGER;
-	ent->movetype = MOVETYPE_TOSS;
 	ent->touch = Touch_Item;
 
-	dest = ent->s.origin + vec3_t { 0, 0, -128 };
-
-	tr = gi.trace(ent->s.origin, ent->mins, ent->maxs, dest, ent, MASK_SOLID);
-	if (tr.startsolid)
+	if (!ent->spawnflags.has(SPAWNFLAG_ITEM_NO_DROP))
 	{
-		if (G_FixStuckObject(ent, ent->s.origin) == stuck_result_t::NO_GOOD_POSITION)
+		ent->movetype = MOVETYPE_TOSS;
+		dest = ent->s.origin + vec3_t { 0, 0, -128 };
+
+		tr = gi.trace(ent->s.origin, ent->mins, ent->maxs, dest, ent, MASK_SOLID);
+		if (tr.startsolid)
 		{
-			// RAFAEL
-			if (strcmp(ent->classname, "item_foodcube") == 0)
-				ent->velocity[2] = 0;
-			else
+			if (G_FixStuckObject(ent, ent->s.origin) == stuck_result_t::NO_GOOD_POSITION)
 			{
 				// RAFAEL
-				gi.Com_PrintFmt("{}: droptofloor: startsolid\n", *ent);
-				G_FreeEdict(ent);
-				return;
+				if (strcmp(ent->classname, "item_foodcube") == 0)
+					ent->velocity[2] = 0;
+				else
+				{
+					// RAFAEL
+					gi.Com_PrintFmt("{}: droptofloor: startsolid\n", *ent);
+					G_FreeEdict(ent);
+					return;
+					// RAFAEL
+				}
 				// RAFAEL
 			}
-			// RAFAEL
 		}
+		else
+			ent->s.origin = tr.endpos;
 	}
-	else
-		ent->s.origin = tr.endpos;
 
 	if (ent->team)
 	{
@@ -1468,8 +1471,11 @@ void SpawnItem(edict_t *ent, gitem_t *item)
 	ent->item = item;
 	ent->nextthink = level.time + 20_hz; // items start after other solids
 	ent->think = droptofloor;
-	ent->s.effects = item->world_model_flags;
-	ent->s.renderfx = RF_GLOW | RF_NO_LOD;
+	if (!(level.is_spawning && st.was_key_specified("effects")) && !ent->s.effects)
+		ent->s.effects = item->world_model_flags;
+	if (!(level.is_spawning && st.was_key_specified("renderfx")) && !ent->s.renderfx)
+		ent->s.renderfx = RF_GLOW;
+	ent->s.renderfx |= RF_NO_LOD;
 	if (ent->model)
 		gi.modelindex(ent->model);
 

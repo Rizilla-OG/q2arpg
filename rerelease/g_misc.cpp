@@ -83,7 +83,7 @@ TOUCH(gib_touch) (edict_t *self, edict_t *other, const trace_t &tr, bool other_t
 	}
 }
 
-edict_t *ThrowGib(edict_t *self, const char *gibname, int damage, gib_type_t type, float scale)
+edict_t *ThrowGib(edict_t *self, const char *gibname, int damage, gib_type_t type, float scale, int frame)
 {
 	edict_t *gib;
 	vec3_t	 vd;
@@ -153,7 +153,7 @@ edict_t *ThrowGib(edict_t *self, const char *gibname, int damage, gib_type_t typ
 		gib->s.skinnum = self->s.skinnum;
 	else
 		gib->s.skinnum = 0;
-	gib->s.frame = 0;
+	gib->s.frame = frame;
 	gib->mins = gib->maxs = {};
 	gib->s.sound = 0;
 	gib->monsterinfo.engine_sound = 0;
@@ -709,6 +709,7 @@ constexpr spawnflags_t SPAWNFLAG_WALL_TOGGLE = 2_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_WALL_START_ON = 4_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_WALL_ANIMATED = 8_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_WALL_ANIMATED_FAST = 16_spawnflag;
+constexpr spawnflags_t SPAWNFLAG_SAFE_APPEAR = 32_spawnflag;
 
 USE(func_wall_use) (edict_t *self, edict_t *other, edict_t *activator) -> void
 {
@@ -717,7 +718,7 @@ USE(func_wall_use) (edict_t *self, edict_t *other, edict_t *activator) -> void
 		self->solid = SOLID_BSP;
 		self->svflags &= ~SVF_NOCLIENT;
 		gi.linkentity(self);
-		KillBox(self, false);
+		KillBox(self, false, MOD_TELEFRAG, true, self->spawnflags.has(SPAWNFLAG_SAFE_APPEAR));
 	}
 	else
 	{
@@ -1188,6 +1189,8 @@ THINK(barrel_start) (edict_t *self) -> void
 // PGM
 //=========
 
+constexpr spawnflags_t SPAWNFLAG_EXPLOBOX_NO_MOVE = 1_spawnflag;
+
 void SP_misc_explobox(edict_t *self)
 {
 	if (deathmatch->integer)
@@ -1220,7 +1223,10 @@ void SP_misc_explobox(edict_t *self)
 	self->takedamage = true;
 	self->flags |= FL_TRAP;
 
-	self->touch = barrel_touch;
+	if (!self->spawnflags.has(SPAWNFLAG_EXPLOBOX_NO_MOVE))
+		self->touch = barrel_touch;
+	else
+		self->flags |= FL_NO_KNOCKBACK;
 
 	// PGM - change so barrels will think and hence, blow up
 	self->think = barrel_start;
@@ -2528,10 +2534,28 @@ void SP_misc_player_mannequin( edict_t * self ) {
 	gi.linkentity( self );
 }
 
+constexpr spawnflags_t SPAWNFLAG_MODEL_TOGGLE = 1_spawnflag;
+constexpr spawnflags_t SPAWNFLAG_MODEL_START_ON = 2_spawnflag;
+
+USE(misc_model_use) (edict_t *self, edict_t *other, edict_t *activator) -> void
+{
+	self->svflags ^= SVF_NOCLIENT;
+}
+
 /*QUAKED misc_model (1 0 0) (-8 -8 -8) (8 8 8)
 */
 void SP_misc_model(edict_t *ent)
 {
-	gi.setmodel(ent, ent->model);
+	if (ent->model && ent->model[0])
+		gi.setmodel(ent, ent->model);
+
+	if (ent->spawnflags.has(SPAWNFLAG_MODEL_TOGGLE))
+	{
+		ent->use = misc_model_use;
+
+		if (!ent->spawnflags.has(SPAWNFLAG_MODEL_START_ON))
+			ent->svflags |= SVF_NOCLIENT;
+	}
+
 	gi.linkentity(ent);
 }

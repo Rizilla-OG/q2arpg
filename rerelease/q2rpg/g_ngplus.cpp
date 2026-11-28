@@ -462,10 +462,68 @@ static void NGPlus_MixMonster(edict_t *ent)
 	}
 }
 
+// Big swaps: from player level 30 on a first playthrough, and on every NG+ map, some big
+// placed monsters come in as the PSX-update Arachnid or Guardian, but only where the new one
+// fits with floor under it. Monster-specific spawnflags are dropped (a Supertank's power-shield
+// flag is the Guardian's Sleepy flag); Ambush, Trigger Spawn and the editor flags stay.
+struct ngplus_big_swap_t
+{
+	const char *to;
+	std::vector<const char *> from;
+	vec3_t mins, maxs;
+	float late_chance, ngplus_chance;
+};
+
+static const ngplus_big_swap_t big_swaps[] = {
+    {"monster_guardian", {"monster_tank_commander", "monster_supertank"}, {-78, -78, -66}, {78, 78, 76}, 0.10f, 0.25f},
+    {"monster_arachnid", {"monster_gladiator", "monster_tank", "monster_guncmdr"}, {-40, -40, -20}, {40, 40, 48}, 0.10f, 0.20f},
+};
+
+constexpr int32_t NGPLUS_BIG_SWAP_LEVEL = 30; // first playthrough: from this player level
+
+// places `ent` on the floor below its origin if a `mins`..`maxs` box fits there
+static bool NGPlus_FitsOnFloor(edict_t *ent, const vec3_t &mins, const vec3_t &maxs)
+{
+	const vec3_t start = ent->s.origin + vec3_t{0, 0, 8};
+	const trace_t tr = gi.trace(start, mins, maxs, ent->s.origin - vec3_t{0, 0, 128}, nullptr, MASK_MONSTERSOLID);
+	if (tr.startsolid || tr.allsolid || tr.fraction >= 1.0f)
+		return false;
+	ent->s.origin = tr.endpos + vec3_t{0, 0, 1};
+	return true;
+}
+
+static bool NGPlus_BigSwap(edict_t *ent)
+{
+	if (ent->spawnflags.has(SPAWNFLAG_MONSTER_DEAD))
+		return false;
+
+	const bool ngplus = game.loot_ngplus > 0;
+	if (!ngplus && Loot_ZoneLevel() < NGPLUS_BIG_SWAP_LEVEL)
+		return false;
+
+	for (const ngplus_big_swap_t &swap : big_swaps)
+	{
+		if (!NGPlus_InList(swap.from, ent->classname))
+			continue;
+		if (frandom() >= (ngplus ? swap.ngplus_chance : swap.late_chance) || !NGPlus_FitsOnFloor(ent, swap.mins, swap.maxs))
+			return false;
+		ent->classname = swap.to;
+		ent->spawnflags &= ~spawnflags_t(0xF8); // monster-specific flags 8..128
+		return true;
+	}
+	return false;
+}
+
 void NGPlus_RemixMonster(edict_t *ent)
 {
 	// map load only (level.time 0): death spawns and Summoner adds keep their kind
-	if (deathmatch->integer || game.loot_ngplus <= 0 || level.time > 0_ms || !ent->classname)
+	if (deathmatch->integer || level.time > 0_ms || !ent->classname)
+		return;
+
+	if (NGPlus_BigSwap(ent))
+		return;
+
+	if (game.loot_ngplus <= 0)
 		return;
 
 	// first a chance at one kind tougher, else a chance at a random kind of the same size

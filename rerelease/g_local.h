@@ -1199,6 +1199,7 @@ constexpr size_t MAX_HEALTH_BARS = 2;
 struct level_locals_t
 {
 	bool in_frame;
+	bool is_spawning; // [Paril-KEX] (PSX) whether we're still doing SpawnEntities
 	gtime_t time;
 
 	char level_name[MAX_QPATH]; // the descriptive name (Outer Base, etc)
@@ -1709,6 +1710,9 @@ struct reinforcement_list_t
 
 constexpr size_t MAX_REINFORCEMENTS = 5; // max number of spawns we can do at once.
 
+void M_SetupReinforcements(const char *reinforcements, reinforcement_list_t &list);
+std::array<uint8_t, MAX_REINFORCEMENTS> M_PickReinforcements(edict_t *self, int32_t &num_chosen, int32_t max_slots = 0);
+
 constexpr gtime_t HOLD_FOREVER = gtime_t::from_ms(std::numeric_limits<int64_t>::max());
 
 struct monsterinfo_t
@@ -2103,7 +2107,8 @@ uint32_t GetUnicastKey();
 constexpr spawnflags_t SPAWNFLAG_ITEM_TRIGGER_SPAWN = 0x00000001_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_ITEM_NO_TOUCH = 0x00000002_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_ITEM_TOSS_SPAWN = 0x00000004_spawnflag;
-constexpr spawnflags_t SPAWNFLAG_ITEM_MAX = 0x00000008_spawnflag;
+constexpr spawnflags_t SPAWNFLAG_ITEM_NO_DROP = 0x00000008_spawnflag; // [Paril-KEX] (PSX) floats where placed
+constexpr spawnflags_t SPAWNFLAG_ITEM_MAX = 0x00000010_spawnflag;
 // 8 bits reserved for editor flags & power cube bits
 // (see SPAWNFLAG_NOT_EASY above)
 constexpr spawnflags_t SPAWNFLAG_ITEM_DROPPED = 0x00010000_spawnflag;
@@ -2148,7 +2153,7 @@ void      Compass_Update(edict_t *ent, bool first);
 //
 // g_utils.c
 //
-bool KillBox(edict_t *ent, bool from_spawning, mod_id_t mod = MOD_TELEFRAG, bool bsp_clipping = true);
+bool KillBox(edict_t *ent, bool from_spawning, mod_id_t mod = MOD_TELEFRAG, bool bsp_clipping = true, bool allow_safety = false);
 edict_t *G_Find(edict_t *from, std::function<bool(edict_t *e)> matcher);
 
 // utility template for getting the type of a field
@@ -2212,6 +2217,8 @@ constexpr spawnflags_t SPAWNFLAG_LASER_ORANGE = 0x0020_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_LASER_FAT = 0x0040_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_LASER_ZAP = 0x80000000_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_LASER_LIGHTNING = 0x10000_spawnflag;
+constexpr spawnflags_t SPAWNFLAG_LASER_REACTOR = 0x20000_spawnflag; // [Paril-KEX] (PSX) reactor beam; drawn as lightning
+constexpr spawnflags_t SPAWNFLAG_LASER_NO_PROTECTION = 0x40000_spawnflag; // [Paril-KEX] (PSX) ignores armor
 
 constexpr spawnflags_t SPAWNFLAG_HEALTHBAR_PVS_ONLY = 1_spawnflag;
 
@@ -2364,6 +2371,7 @@ constexpr spawnflags_t SPAWNFLAG_MONSTER_DEAD = 16_spawnflag_bit;
 constexpr spawnflags_t SPAWNFLAG_MONSTER_SUPER_STEP = 17_spawnflag_bit;
 constexpr spawnflags_t SPAWNFLAG_MONSTER_NO_DROP = 18_spawnflag_bit;
 constexpr spawnflags_t SPAWNFLAG_MONSTER_SCENIC = 19_spawnflag_bit;
+constexpr spawnflags_t SPAWNFLAG_MONSTER_NO_IDLE_DOORS = 20_spawnflag_bit; // [Paril-KEX] (PSX) doesn't open doors without an enemy
 
 // fixbot spawnflags
 constexpr spawnflags_t SPAWNFLAG_FIXBOT_FIXIT = 4_spawnflag;
@@ -2376,7 +2384,7 @@ constexpr spawnflags_t SPAWNFLAG_FIXBOT_WORKING = 32_spawnflag;
 //
 void ThrowClientHead(edict_t *self, int damage);
 void gib_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t &point, const mod_t &mod);
-edict_t *ThrowGib(edict_t *self, const char *gibname, int damage, gib_type_t type, float scale);
+edict_t *ThrowGib(edict_t *self, const char *gibname, int damage, gib_type_t type, float scale, int frame = 0);
 void BecomeExplosion1(edict_t *self);
 void misc_viper_use(edict_t *self, edict_t *other, edict_t *activator);
 void misc_strogg_ship_use(edict_t *self, edict_t *other, edict_t *activator);
@@ -3489,6 +3497,8 @@ struct edict_t
 	mod_t	lastMOD;
 	const char	*style_on, *style_off;
 	uint32_t crosslevel_flags;
+	gtime_t no_gravity_time; // [Paril-KEX] (PSX) additive trigger_push: no gravity until this time
+	float vision_cone; // [Paril-KEX] (PSX) mapper "vision_cone" (dot product); 0 = the stock cone
 	// NOTE: if adding new elements, make sure to add them
 	// in g_save.cpp too!
 };

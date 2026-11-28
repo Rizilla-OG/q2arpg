@@ -47,6 +47,7 @@ constexpr spawnflags_t SPAWNFLAG_DOOR_ROTATING_X_AXIS = 64_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_DOOR_ROTATING_Y_AXIS = 128_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_DOOR_ROTATING_INACTIVE = 0x10000_spawnflag; // Paril: moved to non-reserved
 constexpr spawnflags_t SPAWNFLAG_DOOR_ROTATING_SAFE_OPEN = 0x20000_spawnflag;
+constexpr spawnflags_t SPAWNFLAG_DOOR_ROTATING_NO_COLLISION = 0x40000_spawnflag;
 
 // support routine for setting moveinfo sounds
 inline int32_t G_GetMoveinfoSoundIndex(edict_t *self, const char *default_value, const char *wanted_value)
@@ -736,16 +737,18 @@ void SP_func_plat(edict_t *ent)
 	if (!ent->dmg)
 		ent->dmg = 2;
 
-	if (!st.lip)
-		st.lip = 8;
+	float lip = st.lip;
+
+	if (!st.was_key_specified("lip"))
+		lip = 8;
 
 	// pos1 is the top position, pos2 is the bottom
 	ent->pos1 = ent->s.origin;
-	ent->pos2 = ent->s.origin;
+	ent->pos2 = ent->s.origin; 
 	if (st.height)
 		ent->pos2[2] -= st.height;
 	else
-		ent->pos2[2] -= (ent->maxs[2] - ent->mins[2]) - st.lip;
+		ent->pos2[2] -= (ent->maxs[2] - ent->mins[2]) - lip;
 
 	ent->use = Use_Plat;
 
@@ -1157,14 +1160,17 @@ void SP_func_button(edict_t *ent)
 
 	if (!ent->wait)
 		ent->wait = 3;
-	if (!st.lip)
-		st.lip = 4;
+
+	float lip = st.lip;
+
+	if (!lip)
+		lip = 4;
 
 	ent->pos1 = ent->s.origin;
 	abs_movedir[0] = fabsf(ent->movedir[0]);
 	abs_movedir[1] = fabsf(ent->movedir[1]);
 	abs_movedir[2] = fabsf(ent->movedir[2]);
-	dist = abs_movedir[0] * ent->size[0] + abs_movedir[1] * ent->size[1] + abs_movedir[2] * ent->size[2] - st.lip;
+	dist = abs_movedir[0] * ent->size[0] + abs_movedir[1] * ent->size[1] + abs_movedir[2] * ent->size[2] - lip;
 	ent->pos2 = ent->pos1 + (ent->movedir * dist);
 
 	ent->use = button_use;
@@ -1532,8 +1538,15 @@ TOUCH(Touch_DoorTrigger) (edict_t *self, edict_t *other, const trace_t &tr, bool
 	if (!(other->svflags & SVF_MONSTER) && (!other->client))
 		return;
 
-	if (self->owner->spawnflags.has(SPAWNFLAG_DOOR_NOMONSTER) && (other->svflags & SVF_MONSTER))
-		return;
+	if (other->svflags & SVF_MONSTER)
+	{
+		if (self->owner->spawnflags.has(SPAWNFLAG_DOOR_NOMONSTER))
+			return;
+		// [Paril-KEX] this is for PSX; the scale is so small that monsters walking
+		// around to path_corners often initiate doors unintentionally.
+		else if (other->spawnflags.has(SPAWNFLAG_MONSTER_NO_IDLE_DOORS) && !other->enemy)
+			return;
+	}
 
 	if (level.time < self->touch_debounce_time)
 		return;
@@ -1731,7 +1744,7 @@ void SP_func_door(edict_t *ent)
 		ent->speed = 100;
 	if (deathmatch->integer)
 		ent->speed *= 2;
-
+	
 	if (!ent->accel)
 		ent->accel = ent->speed;
 	if (!ent->decel)
@@ -1739,8 +1752,9 @@ void SP_func_door(edict_t *ent)
 
 	if (!ent->wait)
 		ent->wait = 3;
-	if (!st.lip)
-		st.lip = 8;
+	float lip = st.lip;
+	if (!lip)
+		lip = 8;
 	if (!ent->dmg)
 		ent->dmg = 2;
 
@@ -1750,7 +1764,7 @@ void SP_func_door(edict_t *ent)
 	abs_movedir[1] = fabsf(ent->movedir[1]);
 	abs_movedir[2] = fabsf(ent->movedir[2]);
 	ent->moveinfo.distance =
-		abs_movedir[0] * ent->size[0] + abs_movedir[1] * ent->size[1] + abs_movedir[2] * ent->size[2] - st.lip;
+		abs_movedir[0] * ent->size[0] + abs_movedir[1] * ent->size[1] + abs_movedir[2] * ent->size[2] - lip;
 	ent->pos2 = ent->pos1 + (ent->movedir * ent->moveinfo.distance);
 
 	// if it starts open, switch the positions
@@ -1881,16 +1895,18 @@ void SP_func_door_rotating(edict_t *ent)
 	if (ent->spawnflags.has(SPAWNFLAG_DOOR_REVERSE))
 		ent->movedir = -ent->movedir;
 
-	if (!st.distance)
+	int distance = st.distance;
+
+	if (!distance)
 	{
 		gi.Com_PrintFmt("{}: no distance set\n", *ent);
-		st.distance = 90;
+		distance = 90;
 	}
 
 	ent->pos1 = ent->s.angles;
-	ent->pos2 = ent->s.angles + (ent->movedir * st.distance);
-	ent->pos3 = ent->s.angles + (ent->movedir * -st.distance);
-	ent->moveinfo.distance = (float) st.distance;
+	ent->pos2 = ent->s.angles + (ent->movedir * distance);
+	ent->pos3 = ent->s.angles + (ent->movedir * -distance);
+	ent->moveinfo.distance = (float) distance;
 
 	ent->movetype = MOVETYPE_PUSH;
 	ent->solid = SOLID_BSP;
@@ -1947,6 +1963,9 @@ void SP_func_door_rotating(edict_t *ent)
 		ent->pos1 = ent->s.angles;
 		ent->movedir = -ent->movedir;
 	}
+
+	if (ent->spawnflags.has(SPAWNFLAG_DOOR_ROTATING_NO_COLLISION))
+		ent->clipmask = CONTENTS_AREAPORTAL; // just because zero is automatic
 
 	if (ent->health)
 	{
@@ -2336,6 +2355,23 @@ void train_resume(edict_t *self)
 		if (self->spawnflags.has(SPAWNFLAG_TRAIN_FIX_OFFSET))
 			dest -= vec3_t{1.f, 1.f, 1.f};
 	}
+
+	// PGM (Paril)
+	if (ent->speed)
+	{
+		self->speed = ent->speed;
+		self->moveinfo.speed = ent->speed;
+		if (ent->accel)
+			self->moveinfo.accel = ent->accel;
+		else
+			self->moveinfo.accel = ent->speed;
+		if (ent->decel)
+			self->moveinfo.decel = ent->decel;
+		else
+			self->moveinfo.decel = ent->speed;
+		self->moveinfo.current_speed = 0;
+	}
+	// PGM
 
 	self->s.sound = self->moveinfo.sound_middle;
 
@@ -2768,7 +2804,10 @@ void SP_func_door_secret(edict_t *ent)
 	if (!ent->wait)
 		ent->wait = 5;
 
-	ent->moveinfo.accel = ent->moveinfo.decel = ent->moveinfo.speed = 50;
+	if (!ent->speed)
+		ent->moveinfo.accel = ent->moveinfo.decel = ent->moveinfo.speed = 50;
+	else
+		ent->moveinfo.accel = ent->moveinfo.decel = ent->moveinfo.speed = ent->speed * 0.1f;
 
 	// calculate positions
 	AngleVectors(ent->s.angles, forward, right, up);
@@ -2971,6 +3010,10 @@ void SP_func_eye(edict_t *ent)
 
 	if (!ent->speed)
 		ent->speed = 45;
+
+	// set vision cone
+	if (st.was_key_specified("vision_cone"))
+		ent->yaw_speed = ent->vision_cone;
 
 	if (!ent->yaw_speed)
 		ent->yaw_speed = 0.5f;

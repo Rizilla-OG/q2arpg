@@ -1409,6 +1409,8 @@ SAVE_STRUCT_START
 	FIELD_AUTO(loot_mshield_max), // q2rpg
 	FIELD_AUTO(loot_mshield_hit), // q2rpg
 	FIELD_AUTO(crosslevel_flags),
+	FIELD_AUTO(no_gravity_time),
+	FIELD_AUTO(vision_cone),
 
 	// moveinfo_t
 	FIELD_AUTO(moveinfo.start_origin),

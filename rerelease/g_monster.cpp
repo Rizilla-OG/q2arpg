@@ -173,6 +173,10 @@ void M_CheckGround(edict_t *ent, contents_t mask)
 	vec3_t	point;
 	trace_t trace;
 
+	// [Paril-KEX] (PSX) additive trigger_push
+	if (ent->no_gravity_time > level.time)
+		return;
+
 	if (ent->flags & (FL_SWIM | FL_FLY))
 		return;
 
@@ -1267,8 +1271,10 @@ void monster_death_use(edict_t *self)
 	// [Paril-KEX] fire health target
 	if (self->healthtarget)
 	{
+		const char *target = self->target; // [Paril-KEX] (PSX) keep the real target
 		self->target = self->healthtarget;
 		G_UseTargets(self, self->enemy);
+		self->target = target;
 	}
 }
 

@@ -895,6 +895,9 @@ void InitClientPersistant(edict_t *ent, gclient_t *client)
 			if (level.start_items && *level.start_items)
 				Player_GiveStartItems(ent, level.start_items);
 
+			// [Paril-KEX] (PSX) power armor from start items
+			G_CheckPowerArmor(ent);
+
 			if (!deathmatch->integer)
 				client->pers.inventory[IT_ITEM_COMPASS] = 1;
 
@@ -927,7 +930,7 @@ void InitClientPersistant(edict_t *ent, gclient_t *client)
 		client->pers.lives = g_coop_num_lives->integer + 1;
 
 	if (ent->client->pers.autoshield >= AUTO_SHIELD_AUTO)
-		ent->flags |= FL_WANTS_POWER_ARMOR;
+		client->pers.savedFlags |= FL_WANTS_POWER_ARMOR; // [Paril-KEX] (PSX) ent->flags gets reset from savedFlags
 
 	client->pers.connected = true;
 	client->pers.spawned = true;
@@ -3278,7 +3281,17 @@ void ClientThink(edict_t *ent, usercmd_t *ucmd)
 			client->ps.pmove.pm_flags &= ~PMF_IGNORE_PLAYER_COLLISION;
 
 		// PGM	trigger_gravity support
-		client->ps.pmove.gravity = (short) (level.gravity * ent->gravity);
+		// [Paril-KEX] (PSX) additive trigger_push: no gravity or ground seek while pushed
+		if (ent->no_gravity_time > level.time)
+		{
+			client->ps.pmove.gravity = 0;
+			client->ps.pmove.pm_flags |= PMF_NO_GROUND_SEEK;
+		}
+		else
+		{
+			client->ps.pmove.gravity = (short) (level.gravity * ent->gravity);
+			client->ps.pmove.pm_flags &= ~PMF_NO_GROUND_SEEK;
+		}
 		// q2rpg: Second Chance crawl flag; Pmove reads it (server and prediction)
 		if (Loot_SecondChanceActive(ent))
 			client->ps.pmove.pm_flags |= PMF_LOOT_CRAWL;

@@ -151,6 +151,10 @@ Controller binds exist for split-screen but are **beta**.
   better loot, Mythic gear, Alpha traits, map modifiers, a level cap of 60
   and a fourth skill row. Each map rolls a modifier, shown when you enter;
   reloading keeps it.
+- **PSX monsters:** from level 30, and on every New Game+ map, some
+  Gladiators, Tanks and Gunner Commanders come in as Arachnids, and some
+  Tank Commanders and Supertanks as Guardians (only where they fit). Both
+  also turn up in the arena's late waves, raids and rifts.
 - **Side missions** (the vendor's Missions page, `9` past the workshop): two
   per map, such as killing a monster kind, Alphas, headshots or a spree.
   They pay XP, cash and gear.

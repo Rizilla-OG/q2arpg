@@ -176,7 +176,10 @@ THINK(latched_trigger_think) (edict_t *self) -> void
 
 void SP_trigger_multiple(edict_t *ent)
 {
-	if (ent->sounds == 1)
+	// [Paril-KEX] PSX
+	if (st.noise && *st.noise)
+		ent->noise_index = gi.soundindex(st.noise);
+	else if (ent->sounds == 1)
 		ent->noise_index = gi.soundindex("misc/secret.wav");
 	else if (ent->sounds == 2)
 		ent->noise_index = gi.soundindex("misc/talk.wav");
@@ -198,7 +201,7 @@ void SP_trigger_multiple(edict_t *ent)
 		ent->use = Use_Multi;
 		return;
 	}
-	else
+	else if (ent->model || ent->mins || ent->maxs)
 		ent->touch = Touch_Multi;
 
 	// PGM
@@ -278,6 +281,8 @@ trigger_key
 
 ==============================================================================
 */
+
+constexpr spawnflags_t SPAWNFLAGS_TRIGGER_KEY_BECOME_RELAY = 1_spawnflag;
 
 /*QUAKED trigger_key (.5 .5 .5) (-8 -8 -8) (8 8 8)
 A relay trigger that only fires it's targets if player has the proper key.
@@ -362,7 +367,10 @@ USE(trigger_key_use) (edict_t *self, edict_t *other, edict_t *activator) -> void
 
 	G_UseTargets(self, activator);
 
-	self->use = nullptr;
+	if (self->spawnflags.has(SPAWNFLAGS_TRIGGER_KEY_BECOME_RELAY))
+		self->use = trigger_relay_use;
+	else
+		self->use = nullptr;
 }
 
 void SP_trigger_key(edict_t *self)
@@ -478,6 +486,7 @@ constexpr spawnflags_t SPAWNFLAG_PUSH_PLUS = 0x02_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_PUSH_SILENT = 0x04_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_PUSH_START_OFF = 0x08_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_PUSH_CLIP = 0x10_spawnflag;
+constexpr spawnflags_t SPAWNFLAG_PUSH_ADDITIVE = 0x20_spawnflag;
 // PGM
 
 static cached_soundindex windsound;
@@ -492,13 +501,23 @@ TOUCH(trigger_push_touch) (edict_t *self, edict_t *other, const trace_t &tr, boo
 			return;
 	}
 
-	if (strcmp(other->classname, "grenade") == 0)
+	if (strcmp(other->classname, "grenade") == 0 || other->health > 0)
 	{
-		other->velocity = self->movedir * (self->speed * 10);
-	}
-	else if (other->health > 0)
-	{
-		other->velocity = self->movedir * (self->speed * 10);
+		// [Paril-KEX]
+		if (self->spawnflags.has(SPAWNFLAG_PUSH_ADDITIVE))
+		{
+			vec3_t velocity_in_dir = other->velocity.scaled(self->movedir);
+			float max_speed = (self->speed * 10);
+
+			if (velocity_in_dir.normalized().dot(self->movedir) < 0 || velocity_in_dir.length() < max_speed)
+			{
+				float speed_adjust = (max_speed * gi.frame_time_s) * 2;
+				other->velocity += self->movedir * speed_adjust;
+				other->no_gravity_time = level.time + 100_ms;
+			}
+		}
+		else
+			other->velocity = self->movedir * (self->speed * 10);
 
 		if (other->client)
 		{
@@ -650,7 +669,7 @@ trigger_hurt
 ==============================================================================
 */
 
-/*QUAKED trigger_hurt (.5 .5 .5) ? START_OFF TOGGLE SILENT NO_PROTECTION SLOW NO_PLAYERS NO_MONSTERS
+/*QUAKED trigger_hurt (.5 .5 .5) ? START_OFF TOGGLE SILENT NO_PROTECTION SLOW NO_PLAYERS NO_MONSTERS PASSIVE
 Any entity that touches this will be hurt.
 
 It does dmg points of damage each server frame
@@ -671,6 +690,7 @@ constexpr spawnflags_t SPAWNFLAG_HURT_SLOW = 16_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_HURT_NO_PLAYERS = 32_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_HURT_NO_MONSTERS = 64_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_HURT_CLIPPED = 128_spawnflag;
+constexpr spawnflags_t SPAWNFLAG_HURT_PASSIVE = 16_spawnflag_bit;
 
 USE(hurt_use) (edict_t *self, edict_t *other, edict_t *activator) -> void
 {
@@ -682,12 +702,87 @@ USE(hurt_use) (edict_t *self, edict_t *other, edict_t *activator) -> void
 
 	if (!(self->spawnflags & SPAWNFLAG_HURT_TOGGLE))
 		self->use = nullptr;
+
+	if (self->spawnflags.has(SPAWNFLAG_HURT_PASSIVE))
+	{
+		if (self->solid == SOLID_TRIGGER)
+		{
+			if (self->spawnflags.has(SPAWNFLAG_HURT_SLOW))
+				self->nextthink = level.time + 1_sec;
+			else
+				self->nextthink = level.time + 10_hz;
+		}
+		else
+			self->nextthink = 0_ms;
+	}
+}
+
+struct hurt_filter_data_t
+{
+	edict_t *self;
+	std::vector<edict_t *> hurt;
+};
+
+static BoxEdictsResult_t hurt_filter(edict_t *other, void *self_ptr)
+{
+	hurt_filter_data_t *data = (hurt_filter_data_t *) self_ptr;
+	edict_t *self = data->self;
+
+	if (!other->takedamage)
+		return BoxEdictsResult_t::Skip;
+	else if (!(other->svflags & SVF_MONSTER) && !(other->flags & FL_DAMAGEABLE) && (!other->client) && (strcmp(other->classname, "misc_explobox") != 0))
+		return BoxEdictsResult_t::Skip;
+	else if (self->spawnflags.has(SPAWNFLAG_HURT_NO_MONSTERS) && (other->svflags & SVF_MONSTER))
+		return BoxEdictsResult_t::Skip;
+	else if (self->spawnflags.has(SPAWNFLAG_HURT_NO_PLAYERS) && (other->client))
+		return BoxEdictsResult_t::Skip;
+
+	if (self->spawnflags.has(SPAWNFLAG_HURT_CLIPPED))
+	{
+		trace_t clip = gi.clip(self, other->s.origin, other->mins, other->maxs, other->s.origin, G_GetClipMask(other));
+
+		if (clip.fraction == 1.0f)
+			return BoxEdictsResult_t::Skip;
+	}
+
+	data->hurt.push_back(other);
+	return BoxEdictsResult_t::Skip;
+}
+
+THINK(hurt_think) (edict_t *self) -> void
+{
+	hurt_filter_data_t data { self };
+	gi.BoxEdicts(self->absmin, self->absmax, nullptr, 0, AREA_SOLID, hurt_filter, &data);
+	
+	damageflags_t dflags;
+
+	if (self->spawnflags.has(SPAWNFLAG_HURT_NO_PROTECTION))
+		dflags = DAMAGE_NO_PROTECTION;
+	else
+		dflags = DAMAGE_NONE;
+
+	for (auto &other : data.hurt)
+	{
+		if (!(self->spawnflags & SPAWNFLAG_HURT_SILENT))
+		{
+			if (self->fly_sound_debounce_time < level.time)
+			{
+				gi.sound(other, CHAN_AUTO, self->noise_index, 1, ATTN_NORM, 0);
+				self->fly_sound_debounce_time = level.time + 1_sec;
+			}
+		}
+
+		T_Damage(other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, self->dmg, dflags, MOD_TRIGGER_HURT);
+	}
+
+	if (self->spawnflags.has(SPAWNFLAG_HURT_SLOW))
+		self->nextthink = level.time + 1_sec;
+	else
+		self->nextthink = level.time + 10_hz;
 }
 
 TOUCH(hurt_touch) (edict_t *self, edict_t *other, const trace_t &tr, bool other_touching_self) -> void
 {
-	damageflags_t dflags;
-
 	if (!other->takedamage)
 		return;
 	else if (!(other->svflags & SVF_MONSTER) && !(other->flags & FL_DAMAGEABLE) && (!other->client) && (strcmp(other->classname, "misc_explobox") != 0))
@@ -722,6 +817,8 @@ TOUCH(hurt_touch) (edict_t *self, edict_t *other, const trace_t &tr, bool other_
 		}
 	}
 
+	damageflags_t dflags;
+
 	if (self->spawnflags.has(SPAWNFLAG_HURT_NO_PROTECTION))
 		dflags = DAMAGE_NO_PROTECTION;
 	else
@@ -735,7 +832,21 @@ void SP_trigger_hurt(edict_t *self)
 	InitTrigger(self);
 
 	self->noise_index = gi.soundindex("world/electro.wav");
-	self->touch = hurt_touch;
+
+	if (self->spawnflags.has(SPAWNFLAG_HURT_PASSIVE))
+	{
+		self->think = hurt_think;
+
+		if (!self->spawnflags.has(SPAWNFLAG_HURT_START_OFF))
+		{
+			if (self->spawnflags.has(SPAWNFLAG_HURT_SLOW))
+				self->nextthink = level.time + 1_sec;
+			else
+				self->nextthink = level.time + 10_hz;
+		}
+	}
+	else
+		self->touch = hurt_touch;
 
 	if (!self->dmg)
 		self->dmg = 5;
@@ -892,13 +1003,14 @@ void SP_trigger_monsterjump(edict_t *self)
 {
 	if (!self->speed)
 		self->speed = 200;
-	if (!st.height)
-		st.height = 200;
+	float height = st.height;
+	if (!height)
+		height = 200;
 	if (self->s.angles[YAW] == 0)
 		self->s.angles[YAW] = 360;
 	InitTrigger(self);
 	self->touch = trigger_monsterjump_touch;
-	self->movedir[2] = (float) st.height;
+	self->movedir[2] = height;
 
 	if (self->spawnflags.has(SPAWNFLAG_MONSTERJUMP_TOGGLE))
 		self->use = trigger_monsterjump_use;
@@ -965,7 +1077,7 @@ void SP_trigger_flashlight(edict_t *self)
 		self->s.angles[YAW] = 360;
 	InitTrigger(self);
 	self->touch = trigger_flashlight_touch;
-	self->movedir[2] = (float) st.height;
+	self->movedir[2] = st.height;
 
 	if (self->spawnflags.has(SPAWNFLAG_FLASHLIGHT_CLIPPED))
 		self->svflags |= SVF_HULL;

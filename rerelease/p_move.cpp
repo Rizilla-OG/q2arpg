@@ -978,7 +978,7 @@ void PM_CatagorizePosition()
 	point[1] = pml.origin[1];
 	point[2] = pml.origin[2] - 0.25f;
 
-	if (pml.velocity[2] > 180 || pm->s.pm_type == PM_GRAPPLE) //!!ZOID changed from 100 to 180 (ramp accel)
+	if ((pm->s.pm_flags & PMF_NO_GROUND_SEEK) || pml.velocity[2] > 180 || pm->s.pm_type == PM_GRAPPLE) //!!ZOID changed from 100 to 180 (ramp accel)
 	{
 		pm->s.pm_flags &= ~PMF_ON_GROUND;
 		pm->groundentity = nullptr;

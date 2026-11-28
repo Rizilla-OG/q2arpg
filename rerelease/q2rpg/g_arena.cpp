@@ -20,7 +20,7 @@ constexpr gtime_t ARENA_STALL_TIME = 45_sec; // no spawn, kill or damage this lo
 // monster pools by wave: each wave draws from its pool and the ones before it
 static const char *const arena_pool_early[] = {"monster_soldier_light", "monster_soldier", "monster_infantry", "monster_flyer", "monster_parasite"};
 static const char *const arena_pool_mid[] = {"monster_soldier_ss", "monster_gunner", "monster_berserk", "monster_chick", "monster_brain", "monster_floater"};
-static const char *const arena_pool_late[] = {"monster_gladiator", "monster_tank", "monster_medic", "monster_mutant", "monster_hover", "monster_guncmdr"};
+static const char *const arena_pool_late[] = {"monster_gladiator", "monster_tank", "monster_medic", "monster_mutant", "monster_hover", "monster_guncmdr", "monster_arachnid"};
 static const char *const arena_omegas[] = {"monster_gladiator", "monster_tank", "monster_berserk", "monster_guncmdr"};
 
 bool Arena_InArena()
@@ -122,11 +122,12 @@ static void Arena_SpawnOne(bool omega)
 	const float min_player_distance = arena_failed_spawns >= 15 ? 0.f : arena_failed_spawns >= 5 ? 96.f
 	                                                                                             : 256.f;
 	edict_t *monster = nullptr;
-	if (Raid_FindSpot({-24, -24, -24}, {24, 24, 40}, false, spot, min_player_distance))
+	const char *classname = omega ? arena_omegas[irandom((int32_t)q_countof(arena_omegas))] : Arena_PickMonster(level.loot_arena_wave);
+	const bool wide = !strcmp(classname, "monster_arachnid"); // 80 wide: needs a bigger spot
+	if (Raid_FindSpot(wide ? vec3_t{-40, -40, -24} : vec3_t{-24, -24, -24}, wide ? vec3_t{40, 40, 48} : vec3_t{24, 24, 40}, false, spot, min_player_distance))
 	{
 		const vec3_t angles = {0, frandom(360.f), 0};
-		monster = omega ? Loot_SpawnOmega(spot, angles, arena_omegas[irandom((int32_t)q_countof(arena_omegas))])
-		                : CreateMonster(spot, angles, Arena_PickMonster(level.loot_arena_wave));
+		monster = omega ? Loot_SpawnOmega(spot, angles, classname) : CreateMonster(spot, angles, classname);
 	}
 	if (!monster || !monster->inuse)
 	{

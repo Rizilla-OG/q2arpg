@@ -727,6 +727,7 @@ static const std::initializer_list<field_t> entity_fields = {
 	FIELD_AUTO(style_on),
 	FIELD_AUTO(style_off),
 	FIELD_AUTO(crosslevel_flags),
+	FIELD_AUTO(vision_cone), // [Paril-KEX] (PSX)
 	FIELD_AUTO(count),
 	FIELD_AUTO(health),
 	FIELD_AUTO(sounds),
@@ -1241,6 +1242,8 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 	// reserve some spots for dead player bodies for coop / deathmatch
 	InitBodyQue();
 
+	level.is_spawning = true; // [Paril-KEX] (PSX)
+
 	// parse ents
 	while (1)
 	{
@@ -1282,6 +1285,8 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 
 		ent->s.renderfx |= RF_IR_VISIBLE; // PGM
 	}
+
+	level.is_spawning = false;
 
 	gi.Com_PrintFmt("{} entities inhibited\n", inhibit);
 

@@ -181,7 +181,13 @@
 
 @baseclass base(EditorFlags, Angleable) size(-16 -16 -24, 16 16 32) color(0 255 0) model({ "path": ":models/monsters/insane/tris.md2", "frame":209, "skin":1}) = PlayerClass []
 
-@PointClass base(PlayerClass) = info_player_start : "Player start" []
+@PointClass base(PlayerClass) = info_player_start : "Player start"
+[
+    spawnflags(Flags) =
+    [
+        1 : "Ride (drop onto lifts so respawns follow them)" : 0
+    ]
+]
 @PointClass base(PlayerClass) = info_player_deathmatch : "Player deathmatch start" []
 @PointClass base(PlayerClass) = info_player_coop : "Player cooperative start" [
     targetname(string) : "Spawn point name, to be matched to previous levels' target_changelevel"
@@ -210,7 +216,10 @@
         1 : "Trigger Spawn" : 0
         2 : "Disable Pickup" : 0
         4 : "Toss Item On Spawn" : 0
+        8 : "No Drop (floats where placed)" : 0
     ]
+    effects(integer) : "Override effects"
+    renderfx(integer) : "Override renderfx"
 ]
 
 @BaseClass base(Item) color(76 76 255) = Ammo []
@@ -526,6 +535,7 @@
         128 : "Y Axis" : 0
         65536 : "Inactive (must be triggered)" : 0
 		131072 : "Safe Open (opens opposite dir. if activator facing 'angles')" : 0
+        262144 : "No Collision (never pushes or gets blocked)" : 0
     ]
     team(string) : "Team"
     distance(float) : "Degrees of rotation" : "90"
@@ -551,6 +561,7 @@
         2 : "1st Left" : 0
         4 : "1st Down" : 0
     ]
+    speed(float) : "Speed (default 500)"
     dmg(float) : "Damage when blocked" : "2"
     wait(choices) : "Wait before close" : 5 =
     [
@@ -658,6 +669,7 @@
         4 : "Start On" : 0
         8 : "Animated" : 0
         16 : "Animated Fast" : 0
+        32 : "Safe Appear (push things out instead of telefragging)" : 0
     ]
 ]
 
@@ -758,6 +770,10 @@
 
 @PointClass base(EditorFlags) color(0 128 204) size(-16 -16 0, 16 16 40) model({ "path": ":models/objects/barrels/tris.md2" }) = misc_explobox : "Large exploding box"
 [
+    spawnflags(Flags) =
+    [
+        1 : "No Move (can't be pushed)" : 0
+    ]
     mass(float) : "Mass" : "100"
     health(float) : "Health" : "80"
     dmg(float) : "Damage" : "150"
@@ -839,7 +855,9 @@ misc_satellite_dish : "Satellite Dish"
         65536 : "Spawn Dead" : 0
         131072 : "Super Step" : 0
 		262144 : "drop to ground" : 0
+        1048576 : "No Idle Doors (only opens doors when it has an enemy)" : 0
     ]
+    vision_cone(float) : "Vision cone (dot product: -1 all around, 0 = 180 degrees, 0.5 = 120 degrees); blank = stock"
     combattarget(target_destination) : "Point combat target"
     deathtarget(target_destination) : "Entity to trigger at death"
     healthtarget(target_destination) : "Entity to trigger when health hits target"
@@ -1361,8 +1379,11 @@ monster_gekk : "Gekk"
         64 : "Fat" : 0
         128 : "Stop on windows" : 0
 		65536 : "Lightning" : 0
+        131072 : "Reactor (drawn as lightning)" : 0
+        262144 : "No Protection (ignores armor)" : 0
     ]
-    dmg(float) : "Damage"
+    dmg(float) : "Damage (0 = harmless beam that passes through monsters and players)" : "1"
+    frame(integer) : "Beam width (default 4, 16 when Fat)"
 	rgba(integer) : "Laser colors; four palette indices separated by spaces"
 ]
 
@@ -1514,12 +1535,17 @@ monster_gekk : "Gekk"
         32 : "No Players" : 0
         64 : "No Monsters" : 0
 		128 : "Clipped (must touch brushes, not just aabb)" : 0
+        65536 : "Passive (hurts anything inside, even when standing still)" : 0
     ]
     dmg(float) : "Damage" : "5"
 ]
 
 @PointClass base(EditorFlags, Targetable, UseTargets) color(128 128 128) size(-8 -8 -8, 8 8 8) = trigger_key : "Triggers with key"
 [
+    spawnflags(Flags) =
+    [
+        1 : "Become Relay (after the key is used it fires like a trigger_relay)" : 0
+    ]
     item(string) : "Item classname" : "key_blue_key"
 ]
 
@@ -1545,6 +1571,7 @@ monster_gekk : "Gekk"
         4 : "Triggered" : 0
         32 : "Clipped (must exactly touch brushes, not just aabb)" : 0
     ]
+    noise(string) : "Sound to play when fired (overrides sounds)"
 ]
 
 @SolidClass base(trigger_once) = trigger_multiple : "Multiple fire trigger"
@@ -1570,6 +1597,7 @@ monster_gekk : "Gekk"
         4 : "Silent" : 0
         8 : "Start Off" : 0
         16 : "Clipped (must exactly touch brushes, not just aabb)" : 0
+        32 : "Additive (accelerates up to speed instead of setting it)" : 0
     ]
     speed(float) : "Speed of push" : "1000"
     wait(float) : "Time to wait between pushes" : "10"
@@ -1706,6 +1734,19 @@ monster_gekk : "Gekk"
     lip(float) : "Lip remaining after move" : "0"
     height(float) : "Movement distance"
     dmg(float) : "Damage" : "2"
+    wait(float) : "Wait at top/bottom (seconds)" : "2"
+]
+
+@PointClass base(EditorFlags, Targetable, Angleable, Scale) color(255 0 0) size(-8 -8 -8, 8 8 8) model({ "path": model }) = misc_model : "Static model"
+[
+    spawnflags(Flags) =
+    [
+        1 : "Toggle (triggering shows/hides it)" : 0
+        2 : "Start On (with Toggle)" : 0
+    ]
+    model(studio) : "Model"
+    frame(integer) : "Frame"
+    skin(integer) : "Skin"
 ]
 
 @PointClass base(EditorFlags) = misc_flare : "(N64) Light Flare"

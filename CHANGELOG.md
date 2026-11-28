@@ -2,6 +2,24 @@
 
 ## Unreleased (next update)
 
+### Added
+
+- Mapping: more from Paril's PSX update, all opt-in so existing maps are unchanged. Additive `trigger_push` (wind tunnels and updrafts), passive `trigger_hurt` (hurts things standing still), `trigger_key` that becomes a relay, a `noise` sound for `trigger_once`/`trigger_multiple`, `target_laser` Reactor and No Protection flags plus harmless `dmg 0` beams and a `frame` width, `func_door_rotating` No Collision, `func_door_secret` `speed`, `func_wall` Safe Appear, `func_plat2` `wait`, a `vision_cone` that `func_eye` now reads, `misc_explobox` No Move, toggleable `misc_model`, floating items (No Drop) with `effects`/`renderfx` overrides, a No Idle Doors monster flag, a monster `vision_cone` key and an `info_player_start` Ride flag. See MODDING.md; all are in the TrenchBroom config.
+- The Arachnid and Guardian join the late game. From player level 30, and on every New Game+ map, a placed Gladiator, Tank or Gunner Commander can come in as an Arachnid (10%, 20% in NG+) and a Tank Commander or Supertank as a Guardian (10%, 25% in NG+), only where the bigger monster fits with floor under it. The Arachnid joins the arena's late waves (wave 8+) and raid adds, and both can be a rift's guardian.
+
+### Changed
+
+- Monster AI from the PSX update. Medics and the Xatrix fixbot share one revive routine, so fixbots actually bring monsters back now (and back off to do it), and revived monsters go after whoever the healer was fighting. Soldiers: shotgun guards take a beat before firing on the run, machinegun and laser guards duck more often on Hard and above, and blind fire aims around corners like the other monsters. Monsters can't see or splash you through projectile-clip brushes, can't see you through windows for the "had sight" check, and pause 50-200 ms before firing when they regain sight of you. Icarus keeps more distance, the Hornet flies with the newer flight code, the Berserker jumps lower and its quick swing knocks you back harder, flying monsters hover higher around you and follow paths more smoothly, and walking monsters are better at reaching path points.
+
+### Fixed
+
+- Monsters a fixbot revived paid out a second time.
+- A monster with a `healthtarget` lost its own `target` after firing it.
+- The Gunner Commander could stay standing at exactly 0 health after certain pain animations.
+- Medics reviving a `turret_driver` that fell out of its turret now bring it back as a proper infantry.
+- `target_spawner` no longer telefrags anything when it spawns a non-solid entity (an item trigger, a light).
+- Power armor given by a map's `start_items` wasn't switched on, and the "auto" power-shield setting didn't take effect.
+
 ## 0.9.9
 
 ### Added

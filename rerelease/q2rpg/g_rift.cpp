@@ -45,7 +45,7 @@ constexpr float RIFT_ELITE_PER_TIER = 0.10f; // Alpha chance x(1 + 0.1 per tier)
 
 // guardians: tough single monsters that fit most rooms; none boss tier (1000+ health), which
 // can't become Omegas
-static const char *const rift_guardians[] = {"monster_tank", "monster_gladiator", "monster_guncmdr", "monster_berserk", "monster_chick_heat"};
+static const char *const rift_guardians[] = {"monster_tank", "monster_gladiator", "monster_guncmdr", "monster_berserk", "monster_chick_heat", "monster_arachnid", "monster_guardian"};
 
 //==========================================================================
 // State
@@ -276,8 +276,12 @@ static void Rift_ReturnPlayers()
 static edict_t *Rift_SpawnGuardian(edict_t *ent)
 {
 	const char *classname = rift_guardians[irandom((int32_t)q_countof(rift_guardians))];
-	for (int32_t attempt = 0; attempt < 8; attempt++)
+	for (int32_t attempt = 0; attempt < 16; attempt++)
 	{
+		// the Arachnid and Guardian are big: after a lap of tries without room, a tank
+		if (attempt == 8)
+			classname = "monster_tank";
+
 		const float yaw = ent->client->v_angle[YAW] + 45.f * attempt;
 		const vec3_t spot = Loot_SpotAhead(ent, yaw, 256.f, 64.f);
 		if ((spot - ent->s.origin).length() < 96.f)
