@@ -2,27 +2,45 @@
 
 ## Unreleased (next update)
 
+## 0.9.10
+
 ### Added
 
-- Recycler, a new vendor tab (from level 10). Pick three spare guns of the same rarity from your stash or loadout (never the one you're holding), pay a fee of about a quarter of the new gun's shop price, and get one gun of the next rarity at your level. If all three are the same type you get that type, otherwise the type of one of the three. Three Legendaries give a fresh Legendary, or a Mythic in New Game+. The new gun goes into a slot the recycled guns freed.
-
-- Mapping: more from Paril's PSX update, all opt-in so existing maps are unchanged. Additive `trigger_push` (wind tunnels and updrafts), passive `trigger_hurt` (hurts things standing still), `trigger_key` that becomes a relay, a `noise` sound for `trigger_once`/`trigger_multiple`, `target_laser` Reactor and No Protection flags plus harmless `dmg 0` beams and a `frame` width, `func_door_rotating` No Collision, `func_door_secret` `speed`, `func_wall` Safe Appear, `func_plat2` `wait`, a `vision_cone` that `func_eye` now reads, `misc_explobox` No Move, toggleable `misc_model`, floating items (No Drop) with `effects`/`renderfx` overrides, a No Idle Doors monster flag, a monster `vision_cone` key and an `info_player_start` Ride flag. See MODDING.md; all are in the TrenchBroom config.
-- The Arachnid and Guardian join the late game. From player level 30, and on every New Game+ map, a placed Gladiator, Tank or Gunner Commander can come in as an Arachnid (10%, 20% in NG+) and a Tank Commander or Supertank as a Guardian (10%, 25% in NG+), only where the bigger monster fits with floor under it. The Arachnid joins the arena's late waves (wave 8+), and both can be a rift's guardian.
+- **Recycler.** The vendor's new fifth tab, open from level 10. The quartermaster finally found a use for that pile of guns in the back. Pick three spare guns of the same rarity from your stash or loadout (never the one in your hands), pay a fee of about a quarter of the new gun's shop price, and get one gun of the next rarity at your level. Three of one type give that type; a mixed set gives the type of one of the three. Three Legendaries give a fresh Legendary (sometimes a named unique), or a Mythic in New Game+. The new gun lands in a slot the old three freed up.
+- **The Arachnid and Guardian join the late game.** Paril's PSX update gave them new tricks in 0.9.9; now they come looking for you. From player level 30, and on every New Game+ map, a placed Gladiator, Tank or Gunner Commander can come in as an Arachnid (10%, 20% in NG+), and a Tank Commander or Supertank as a Guardian (10%, 25% in NG+), but only where the bigger monster fits with floor under it. The Arachnid joins the arena's late waves (wave 8+), and either one can be a rift's guardian.
+- **Mapping: the rest of the PSX update's toolbox.** All opt-in, so existing maps play the same. In the TrenchBroom config and MODDING.md:
+  - `trigger_push` Additive: speeds things up toward `speed` with no gravity inside. Wind tunnels and updrafts.
+  - `trigger_hurt` Passive: hurts everything inside, even things standing still.
+  - `trigger_key` Become Relay: after the key is used, it fires every time like a `trigger_relay`.
+  - `trigger_once` / `trigger_multiple` `noise`: your own sound when it fires.
+  - `target_laser`: Reactor (drawn as lightning), No Protection (ignores armor), `frame` for beam width, and `dmg 0` for a harmless beam you can walk through.
+  - `func_door_rotating` No Collision, `func_door_secret` `speed`, `func_plat2` `wait`.
+  - `func_wall` Safe Appear: pushes things aside instead of telefragging them.
+  - `func_eye` `vision_cone` (it was in the config but ignored).
+  - `misc_explobox` No Move, and a toggleable `misc_model`.
+  - Items: No Drop (floats where placed), plus `effects` and `renderfx` overrides.
+  - Monsters: No Idle Doors (patrols stop opening doors on their own) and a `vision_cone` key.
+  - `info_player_start` Ride: players spawn riding the lift under it.
 
 ### Changed
 
-- Monster AI from the PSX update. Medics and the Xatrix fixbot share one revive routine, so fixbots actually bring monsters back now (and back off to do it), and revived monsters go after whoever the healer was fighting. Soldiers: shotgun guards take a beat before firing on the run, machinegun and laser guards duck more often on Hard and above, and blind fire aims around corners like the other monsters. Monsters can't see or splash you through projectile-clip brushes, can't see you through windows for the "had sight" check, and pause 50-200 ms before firing when they regain sight of you. Icarus keeps more distance, the Hornet flies with the newer flight code, the Berserker jumps lower and its quick swing knocks you back harder, flying monsters hover higher around you and follow paths more smoothly, and walking monsters are better at reaching path points.
+- **Monster AI from the PSX update.**
+  - Medics and the Xatrix fixbot share one revive routine. Fixbots finally bring monsters back (backing off to do it), and revived monsters go straight for whoever the healer was fighting.
+  - Soldiers: shotgun guards take a beat before firing on the run, machinegun and laser guards duck more often on Hard and up, and blind fire aims around corners like the other monsters.
+  - Monsters can't see or splash you through projectile-clip brushes or see you through windows, and wait 50-200 ms before firing when they regain sight of you. A breath to duck back into cover.
+  - The Icarus keeps more distance, the Hornet flies with the newer flight code, and the Berserker jumps lower but its quick swing knocks you back harder. Flying monsters hover higher around you and follow paths more smoothly, and walking monsters are better at reaching path points.
+- **No more moonwalking into walls.** A monster chasing you that hasn't moved in a second sidesteps for a moment, then picks the chase back up. This covers walls its pathing doesn't know about: a `func_wall` that just appeared, a pillar it can see you past, or a community map without navigation data. It doesn't kick in while the monster is next to you, riding a lift or waiting at a door.
 
 ### Fixed
 
-- Monsters a fixbot revived paid out a second time.
-- Monsters no longer run in place against a wall their pathing doesn't know about (a `func_wall` that appeared, a pillar they can see you past, maps without navigation data). After a second without getting anywhere they sidestep for a moment, then chase again.
-- Medics no longer walk back and forth trying to revive a body behind a `func_wall` or door. A cable blocked by a brush entity now counts like one blocked by the world, so after a couple of tries the medic gives up on that body.
+- Monsters revived by a fixbot paid out a second time.
+- Medics paced back and forth forever trying to revive a body behind a wall or closed door. After a couple of blocked cables they now give up on that body and get back to the fight.
+- A fixbot heading for a repair spot it couldn't reach hovered there forever. It now gives up after 15 seconds and looks again later.
 - A monster with a `healthtarget` lost its own `target` after firing it.
 - The Gunner Commander could stay standing at exactly 0 health after certain pain animations.
 - Medics reviving a `turret_driver` that fell out of its turret now bring it back as a proper infantry.
-- `target_spawner` no longer telefrags anything when it spawns a non-solid entity (an item trigger, a light).
-- Power armor given by a map's `start_items` wasn't switched on, and the "auto" power-shield setting didn't take effect.
+- `target_spawner` no longer telefrags anything when it spawns something non-solid (an item trigger, a light).
+- Power armor from a map's `start_items` wasn't switched on, and the "auto" power-shield setting didn't take effect.
 
 ## 0.9.9
 
