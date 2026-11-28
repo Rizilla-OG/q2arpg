@@ -3439,6 +3439,7 @@ struct edict_t
 	vec3_t loot_stuck_origin;	// where it was at the last check
 	gtime_t loot_detour_end;	// sidestepping around something until then
 	float loot_detour_yaw;
+	gtime_t loot_goal_giveup; // q2rpg: fixbot gives up on an object_repair it can't reach (transient)
 	gtime_t loot_mshield_flash; // hit flash until
 
 	// common data blocks

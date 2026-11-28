@@ -498,8 +498,6 @@ void ED_CallSpawn(edict_t *ent)
 		ent->classname = GetItemByIndex(IT_WEAPON_PLASMABEAM)->classname;
 	// pmm
 
-	NGPlus_RemixMonster(ent); // q2rpg: NG+ swaps some weak monsters for tougher kinds
-
 	// check item spawn functions
 	for (i = 0, item = itemlist; i < IT_TOTAL; i++, item++)
 	{
@@ -1281,6 +1279,9 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 		ent->gravityVector[1] = 0.0;
 		ent->gravityVector[2] = -1.0;
 		// PGM
+		// q2rpg: NG+ / late-game monster swaps, for map-placed monsters only (not reinforcement
+		// prototypes, target_spawner or other spawns made while the map loads)
+		NGPlus_RemixMonster(ent);
 		ED_CallSpawn(ent);
 
 		ent->s.renderfx |= RF_IR_VISIBLE; // PGM

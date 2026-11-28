@@ -326,6 +326,7 @@ void use_scanner(edict_t *self)
 	{
 		if (strcmp(self->goalentity->classname, "object_repair") == 0)
 		{
+			self->loot_goal_giveup = 0_ms;
 			M_SetAnimation(self, &fixbot_move_weld_start);
 		}
 		else
@@ -337,6 +338,22 @@ void use_scanner(edict_t *self)
 		}
 		return;
 	}
+
+	// q2rpg: an object_repair it can't get within reach of in 15 s: stand, and look again later
+	// (bot_goals time out in bot_goal_check; the PSX source dropped stock's "hasn't moved" check)
+	if (!strcmp(self->goalentity->classname, "object_repair"))
+	{
+		if (!self->loot_goal_giveup)
+			self->loot_goal_giveup = level.time + 15_sec;
+		else if (level.time > self->loot_goal_giveup)
+		{
+			self->loot_goal_giveup = 0_ms;
+			self->goalentity = self->enemy = nullptr;
+			M_SetAnimation(self, &fixbot_move_stand);
+		}
+	}
+	else
+		self->loot_goal_giveup = 0_ms;
 }
 
 /*

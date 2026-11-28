@@ -596,8 +596,8 @@ void soldier_fire(edict_t *self, int flash_number, bool angle_limited)
 			return;
 		}
 
-		// PMM
-		if (self->monsterinfo.aiflags & AI_MANUAL_STEERING)
+		// PMM; q2rpg: blind fire by attack state, like stock (AI_MANUAL_STEERING can outlive a cut-short blind fire)
+		if (self->monsterinfo.attack_state == AS_BLIND)
 			end = self->monsterinfo.blind_fire_target;
 		else
 			end = self->enemy->s.origin;
@@ -609,7 +609,7 @@ void soldier_fire(edict_t *self, int flash_number, bool angle_limited)
 
 		// q2rpg: use the adjusted direction (the PSX source computed it into `dir`, which is overwritten below);
 		// a fully blocked shot still fires at the original spot, like stock blind fire
-		if (self->monsterinfo.aiflags & AI_MANUAL_STEERING)
+		if (self->monsterinfo.attack_state == AS_BLIND)
 		{
 			vec3_t adjusted;
 			if (M_AdjustBlindfireTarget(self, start, end, right, adjusted))
@@ -870,7 +870,8 @@ void soldier_attack2_refire2(edict_t *self)
 	// RAFAEL
 	if (
 		((self->radius_dmg || frandom() < 0.5f) && visible(self, self->enemy)) ||
-		range_to(self, self->enemy) <= RANGE_MELEE
+		// q2rpg: not for laser guards (stock left them out too), or the beam never stops up close
+		(range_to(self, self->enemy) <= RANGE_MELEE && !style.has_laser())
 	)
 	{
 		// RAFAEL

@@ -1417,7 +1417,8 @@ static bool AI_Unstick(edict_t *self, float dist)
     // also not while waiting on a nav route (a lift or door) or riding a mover
     const bool riding = self->groundentity && self->groundentity != world && self->groundentity->movetype == MOVETYPE_PUSH;
     if (dist <= 0 || (self->monsterinfo.aiflags & (AI_STAND_GROUND | AI_COMBAT_POINT | AI_ALTERNATE_FLY)) || !self->enemy || !self->enemy->inuse ||
-        self->enemy->health <= 0 || riding || self->monsterinfo.path_wait_time > level.time)
+        self->enemy->health <= 0 || riding || self->monsterinfo.path_wait_time > level.time ||
+        range_to(self, self->enemy) <= 64.f) // up against its enemy (melee cooldown): not stuck
     {
         self->loot_stuck_check = 0_ms;
         self->loot_detour_end = 0_ms;
@@ -1426,13 +1427,14 @@ static bool AI_Unstick(edict_t *self, float dist)
 
     if (self->loot_detour_end > level.time)
     {
-        // the way to the enemy opened up: back to the normal chase (and attacks). Flat, and only
-        // in the sidestep's last 600 ms, so an open line up to a ledge doesn't cancel it at once.
+        // the way to the enemy opened up: back to the normal chase (and attacks). Right away when
+        // the enemy is just ahead; otherwise a clear flat path ends it only in the sidestep's last
+        // 600 ms, so an open line toward a ledge doesn't cancel it at once.
         vec3_t to_enemy = self->enemy->s.origin - self->s.origin;
         to_enemy.z = 0;
         to_enemy.normalize();
         const trace_t ahead = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin + to_enemy * 64.f, self, MASK_MONSTERSOLID);
-        if (self->loot_detour_end - level.time < 600_ms && (ahead.fraction >= 1.0f || ahead.ent == self->enemy))
+        if (ahead.ent == self->enemy || (self->loot_detour_end - level.time < 600_ms && ahead.fraction >= 1.0f))
         {
             self->loot_detour_end = 0_ms;
             return false;

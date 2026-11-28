@@ -133,7 +133,10 @@ void M_SetupReinforcements(const char *reinforcements, reinforcement_list_t &lis
 	const char *p = reinforcements;
 	reinforcement_t *r = list.reinforcements;
 
-	st = {}; // q2rpg: global spawn temp (the PSX source passes one per call)
+	// q2rpg: global spawn temp (the PSX source passes one per call); the calling monster's own
+	// keys (vision_cone and the rest) come back afterwards, since its spawn isn't done yet
+	const spawn_temp_t saved_st = st;
+	st = {};
 
 	while (true)
 	{
@@ -163,6 +166,8 @@ void M_SetupReinforcements(const char *reinforcements, reinforcement_list_t &lis
 
 		r++;
 	}
+
+	st = saved_st;
 }
 
 void fixHealerEnemy(edict_t *self)
