@@ -85,6 +85,18 @@
       <tr><th>What</th><th>How</th></tr>
       <tr><td><code>trigger_safe_fall</code></td><td>A player already in the air who touches it takes no damage on their next landing. Put it under long drops.</td></tr>
       <tr><td>Sleeping Guardian</td><td>Spawn flag <code>8</code> on <code>monster_guardian</code>: it sleeps until triggered, then wakes up and fights.</td></tr>
+      <tr><td><code>trigger_push</code> Additive (flag 32)</td><td>Speeds things up toward <code>speed</code> with no gravity inside, instead of setting it. Wind tunnels and updrafts.</td></tr>
+      <tr><td><code>trigger_hurt</code> Passive (flag 65536)</td><td>Hurts everything inside every 0.1 s (1 s with Slow), even things standing still.</td></tr>
+      <tr><td><code>trigger_key</code> Become Relay (flag 1)</td><td>After the key is used, it fires its targets every time, like a <code>trigger_relay</code>.</td></tr>
+      <tr><td><code>trigger_once</code> / <code>trigger_multiple</code> <code>noise</code></td><td>Your own sound when it fires.</td></tr>
+      <tr><td><code>target_laser</code></td><td>Reactor (flag 131072, drawn as lightning), No Protection (flag 262144, ignores armor), <code>frame</code> for beam width, and <code>dmg 0</code> for a harmless beam you can walk through.</td></tr>
+      <tr><td>Doors and plats</td><td><code>func_door_rotating</code> No Collision (flag 262144), <code>func_door_secret</code> <code>speed</code>, <code>func_plat2</code> <code>wait</code>.</td></tr>
+      <tr><td><code>func_wall</code> Safe Appear (flag 32)</td><td>Pushes things out of the way when it appears instead of telefragging them.</td></tr>
+      <tr><td><code>func_eye</code> <code>vision_cone</code></td><td>How wide it looks (it was in the config but ignored before).</td></tr>
+      <tr><td><code>misc_explobox</code> No Move (flag 1), <code>misc_model</code> Toggle (flags 1, 2)</td><td>A barrel that can't be pushed; a model that triggering shows or hides.</td></tr>
+      <tr><td>Items: No Drop (flag 8), <code>effects</code>, <code>renderfx</code></td><td>Floats the item where it's placed; overrides its glow and spin.</td></tr>
+      <tr><td>Monsters: No Idle Doors (flag 1048576), <code>vision_cone</code></td><td>Only opens doors once it has an enemy; how wide it sees as a dot product (<code>-1</code> all around, <code>0</code> 180°, <code>0.5</code> 120°).</td></tr>
+      <tr><td><code>info_player_start</code> Ride (flag 1)</td><td>Drops onto the lift under it at load, so players spawn riding it.</td></tr>
       <tr><td>Key hints in messages</td><td>Write <code>^k</code> and the default key in a <code>message</code>, e.g. <code>Press ^kV to shop</code>. Players see the key they bound.</td></tr>
     </table>
   </div>
