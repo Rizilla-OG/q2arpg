@@ -154,7 +154,7 @@ Controller binds exist for split-screen but are **beta**.
 - **PSX monsters:** from level 30, and on every New Game+ map, some
   Gladiators, Tanks and Gunner Commanders come in as Arachnids, and some
   Tank Commanders and Supertanks as Guardians (only where they fit). Both
-  also turn up in the arena's late waves, raids and rifts.
+  turn up as rift guardians, and the Arachnid in the arena's late waves.
 - **Side missions** (the vendor's Missions page, `9` past the workshop): two
   per map, such as killing a monster kind, Alphas, headshots or a spree.
   They pay XP, cash and gear.

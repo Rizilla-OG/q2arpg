@@ -232,6 +232,9 @@ void abortHeal(edict_t *self, bool gib, bool mark)
 
 		cleanupHeal(self);
 	}
+	// q2rpg: the corpse is gone (freed or gibbed) mid-heal: still go back to fighting
+	else if (self->monsterinfo.aiflags & AI_MEDIC)
+		fixHealerEnemy(self);
 
 	self->monsterinfo.aiflags &= ~AI_MEDIC;
 	self->monsterinfo.medicTries = 0;
@@ -332,7 +335,7 @@ bool finishHeal(edict_t *self)
 		}
 	}
 
-	cleanupHeal(self);
+	cleanupHealTarget(healee); // q2rpg: self->enemy is already the healer's next target here
 	return true;
 }
 
@@ -997,7 +1000,9 @@ void medic_cable_attack(edict_t *self)
 	tr = gi.traceline(start, self->enemy->s.origin, self, MASK_SOLID);
 	if (tr.fraction != 1.0f && tr.ent != self->enemy)
 	{
-		if (tr.ent == world)
+		// q2rpg: a brush entity (func_wall, door) blocks like the world, so the corpse gets marked
+		// and the medic stops walking back to it; stock only marked on the world and looped
+		if (tr.ent == world || tr.ent->solid == SOLID_BSP)
 		{
 			// give up on second try
 			if (self->monsterinfo.medicTries > 1)

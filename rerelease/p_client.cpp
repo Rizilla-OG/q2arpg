@@ -27,7 +27,8 @@ void SP_info_player_start(edict_t *self)
 
 	// [Paril-KEX] on n64, since these can spawn riding elevators,
 	// allow them to "ride" the elevators so respawning works
-	if (level.is_n64)
+	// [Paril-KEX] (PSX) or when the mapper sets Ride
+	if (level.is_n64 || self->spawnflags.has(1_spawnflag))
 	{
 		self->think = info_player_start_drop;
 		self->nextthink = level.time + FRAME_TIME_S;
@@ -894,9 +895,6 @@ void InitClientPersistant(edict_t *ent, gclient_t *client)
 
 			if (level.start_items && *level.start_items)
 				Player_GiveStartItems(ent, level.start_items);
-
-			// [Paril-KEX] (PSX) power armor from start items
-			G_CheckPowerArmor(ent);
 
 			if (!deathmatch->integer)
 				client->pers.inventory[IT_ITEM_COMPASS] = 1;
@@ -2181,6 +2179,10 @@ void PutClientInServer(edict_t *ent)
 
 	// copy some data from the client to the entity
 	FetchClientEntData(ent);
+
+	// [Paril-KEX] (PSX) power armor from start_items; q2rpg: here, once FL_WANTS_POWER_ARMOR is on the entity
+	if (!(ent->flags & FL_POWER_ARMOR))
+		G_CheckPowerArmor(ent);
 
 	// clear entity values
 	ent->groundentity = nullptr;

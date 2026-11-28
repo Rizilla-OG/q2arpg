@@ -752,6 +752,7 @@ void SP_func_plat(edict_t *ent)
 
 	ent->use = Use_Plat;
 
+	st.lip = lip; // q2rpg: plat_spawn_inside_trigger reads the global spawn temp (stock wrote the default there)
 	plat_spawn_inside_trigger(ent); // the "start moving" trigger
 
 	if (ent->targetname)

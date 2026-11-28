@@ -52,6 +52,17 @@ THINK(bot_goal_check) (edict_t *self) -> void
 		return;
 	}
 
+	// q2rpg: give up on a goal the fixbot can't reach (the PSX source dropped stock's
+	// "hasn't moved" check, which misfires with the newer flight code)
+	if (!self->timestamp)
+		self->timestamp = level.time + 15_sec;
+	else if (level.time > self->timestamp)
+	{
+		self->owner->goalentity = self->owner->enemy = nullptr;
+		G_FreeEdict(self);
+		return;
+	}
+
 	self->nextthink = level.time + 1_ms;
 }
 

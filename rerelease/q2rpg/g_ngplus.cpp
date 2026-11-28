@@ -481,11 +481,22 @@ static const ngplus_big_swap_t big_swaps[] = {
 
 constexpr int32_t NGPLUS_BIG_SWAP_LEVEL = 30; // first playthrough: from this player level
 
-// places `ent` on the floor below its origin if a `mins`..`maxs` box fits there
+// feet height of a placed source monster below its origin (its mins z)
+static float NGPlus_SourceFeet(const char *classname)
+{
+	if (!strcmp(classname, "monster_supertank"))
+		return 0.f;
+	if (!strcmp(classname, "monster_tank") || !strcmp(classname, "monster_tank_commander"))
+		return -16.f;
+	return -24.f; // gladiator, gunner commander
+}
+
+// places `ent` on the floor below its origin if a `mins`..`maxs` box fits there. The box
+// starts with its feet 8 above the placed monster's feet, so a taller one isn't in the floor.
 static bool NGPlus_FitsOnFloor(edict_t *ent, const vec3_t &mins, const vec3_t &maxs)
 {
-	const vec3_t start = ent->s.origin + vec3_t{0, 0, 8};
-	const trace_t tr = gi.trace(start, mins, maxs, ent->s.origin - vec3_t{0, 0, 128}, nullptr, MASK_MONSTERSOLID);
+	const vec3_t start = ent->s.origin + vec3_t{0, 0, NGPlus_SourceFeet(ent->classname) - mins[2] + 8.f};
+	const trace_t tr = gi.trace(start, mins, maxs, start - vec3_t{0, 0, 128}, nullptr, MASK_MONSTERSOLID);
 	if (tr.startsolid || tr.allsolid || tr.fraction >= 1.0f)
 		return false;
 	ent->s.origin = tr.endpos + vec3_t{0, 0, 1};

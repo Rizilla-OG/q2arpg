@@ -272,6 +272,25 @@ static void Rift_ReturnPlayers()
 	game.loot_rift_return_pending = false;
 }
 
+// The Arachnid and Guardian are boss tier, which never become Omegas: they guard as they
+// are (boss-tier health already), if their box is clear where they stand.
+static edict_t *Rift_SpawnBossTier(const vec3_t &spot, const vec3_t &angles, const char *classname)
+{
+	edict_t *monster = CreateMonster(spot, angles, classname);
+	if (!monster || !monster->inuse)
+		return nullptr;
+	// Loot_SpotAhead is 16 above the player's origin, so the player's feet are 40 below it;
+	// stand the monster's feet there too (the Guardian reaches 66 below its origin)
+	monster->s.origin[2] = spot[2] - 40.f - monster->mins[2] + 1.f;
+	gi.linkentity(monster);
+	if (gi.trace(monster->s.origin, monster->mins, monster->maxs, monster->s.origin, monster, MASK_MONSTERSOLID).startsolid)
+	{
+		Loot_DiscardSpawnedMonster(monster);
+		return nullptr;
+	}
+	return monster;
+}
+
 // Spawns the guardian in front of the player, trying 8 directions until one fits.
 static edict_t *Rift_SpawnGuardian(edict_t *ent)
 {
@@ -283,11 +302,13 @@ static edict_t *Rift_SpawnGuardian(edict_t *ent)
 			classname = "monster_tank";
 
 		const float yaw = ent->client->v_angle[YAW] + 45.f * attempt;
-		const vec3_t spot = Loot_SpotAhead(ent, yaw, 256.f, 64.f);
-		if ((spot - ent->s.origin).length() < 96.f)
+		const bool boss_tier = !strcmp(classname, "monster_arachnid") || !strcmp(classname, "monster_guardian");
+		const vec3_t spot = Loot_SpotAhead(ent, yaw, boss_tier ? 384.f : 256.f, boss_tier ? 112.f : 64.f);
+		if ((spot - ent->s.origin).length() < (boss_tier ? 160.f : 96.f))
 			continue;
 
-		edict_t *guardian = Loot_SpawnOmega(spot, {0, yaw + 180.f, 0}, classname);
+		edict_t *guardian = boss_tier ? Rift_SpawnBossTier(spot, {0, yaw + 180.f, 0}, classname)
+		                              : Loot_SpawnOmega(spot, {0, yaw + 180.f, 0}, classname);
 		if (!guardian)
 			continue;
 		guardian->enemy = ent;

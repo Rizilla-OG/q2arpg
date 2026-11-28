@@ -3428,6 +3428,11 @@ struct edict_t
 	float loot_mshield;			// q2rpg: monster shield points
 	float loot_mshield_max;
 	gtime_t loot_mshield_hit;	// last hit (recharge delay)
+	// q2rpg: unstick (g_ai.cpp ai_run); transient, not saved
+	gtime_t loot_stuck_check;	// next progress check while running
+	vec3_t loot_stuck_origin;	// where it was at the last check
+	gtime_t loot_detour_end;	// sidestepping around something until then
+	float loot_detour_yaw;
 	gtime_t loot_mshield_flash; // hit flash until
 
 	// common data blocks

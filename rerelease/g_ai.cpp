@@ -1404,6 +1404,64 @@ bool ai_checkattack(edict_t *self, float dist)
     // PMM
 }
 
+// q2rpg: a running monster that has barely moved for a second (pressed against a wall that
+// pathing doesn't know about: a func_wall that appeared, a map without nav, a pillar it can
+// see past) sidesteps for 1-2 seconds, then goes back to the chase. Returns true while it
+// sidesteps (that frame's move is done).
+constexpr gtime_t LOOT_STUCK_INTERVAL = 1_sec;
+constexpr float LOOT_STUCK_DISTANCE = 24.f;
+
+static bool AI_Unstick(edict_t *self, float dist)
+{
+    // standing, holding or a flyer with its own steering: nothing to fix
+    if (dist <= 0 || (self->monsterinfo.aiflags & (AI_STAND_GROUND | AI_COMBAT_POINT | AI_ALTERNATE_FLY)) || !self->enemy || !self->enemy->inuse)
+    {
+        self->loot_stuck_check = 0_ms;
+        self->loot_detour_end = 0_ms;
+        return false;
+    }
+
+    if (self->loot_detour_end > level.time)
+    {
+        if (!M_walkmove(self, self->loot_detour_yaw, dist))
+        {
+            // that side is blocked too: try the other
+            self->loot_detour_yaw = anglemod(self->loot_detour_yaw + 180.f);
+            if (!M_walkmove(self, self->loot_detour_yaw, dist))
+            {
+                self->loot_detour_end = 0_ms;
+                return false;
+            }
+        }
+        self->ideal_yaw = self->loot_detour_yaw;
+        M_ChangeYaw(self);
+        return true;
+    }
+
+    // first run frame, or it hasn't been running (idle, attacking): start a fresh check
+    if (!self->loot_stuck_check || self->loot_stuck_check + 500_ms < level.time)
+    {
+        self->loot_stuck_origin = self->s.origin;
+        self->loot_stuck_check = level.time + LOOT_STUCK_INTERVAL;
+        return false;
+    }
+    if (level.time < self->loot_stuck_check)
+        return false;
+
+    const bool stuck = (self->s.origin - self->loot_stuck_origin).length() < LOOT_STUCK_DISTANCE;
+    self->loot_stuck_origin = self->s.origin;
+    self->loot_stuck_check = level.time + LOOT_STUCK_INTERVAL;
+    if (!stuck)
+        return false;
+
+    // sidestep left or right of the way to the enemy
+    const float to_enemy = vectoyaw(self->enemy->s.origin - self->s.origin);
+    self->loot_detour_yaw = anglemod(to_enemy + (brandom() ? 90.f : -90.f) + crandom() * 30.f);
+    self->loot_detour_end = level.time + random_time(1_sec, 2_sec);
+    self->monsterinfo.aiflags &= ~AI_CHARGING;
+    return false;
+}
+
 /*
 =============
 ai_run
@@ -1429,6 +1487,10 @@ void ai_run(edict_t *self, float dist)
     bool     gotcha = false;
     edict_t *realEnemy;
     // ROGUE
+
+    // q2rpg: pressed against a wall for a second: sidestep around it
+    if (AI_Unstick(self, dist))
+        return;
 
     // if we're going to a combat point, just proceed
     if (self->monsterinfo.aiflags & AI_COMBAT_POINT)

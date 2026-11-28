@@ -607,8 +607,14 @@ void soldier_fire(edict_t *self, int flash_number, bool angle_limited)
 		aim = end - start;
 		aim_good = end;
 
+		// q2rpg: use the adjusted direction (the PSX source computed it into `dir`, which is overwritten below);
+		// a fully blocked shot still fires at the original spot, like stock blind fire
 		if (self->monsterinfo.aiflags & AI_MANUAL_STEERING)
-			M_AdjustBlindfireTarget(self, start, end, right, dir);
+		{
+			vec3_t adjusted;
+			if (M_AdjustBlindfireTarget(self, start, end, right, adjusted))
+				aim = adjusted * aim.length();
+		}
 
 		// PMM
 		if (angle_limited)

@@ -5,7 +5,7 @@
 ### Added
 
 - Mapping: more from Paril's PSX update, all opt-in so existing maps are unchanged. Additive `trigger_push` (wind tunnels and updrafts), passive `trigger_hurt` (hurts things standing still), `trigger_key` that becomes a relay, a `noise` sound for `trigger_once`/`trigger_multiple`, `target_laser` Reactor and No Protection flags plus harmless `dmg 0` beams and a `frame` width, `func_door_rotating` No Collision, `func_door_secret` `speed`, `func_wall` Safe Appear, `func_plat2` `wait`, a `vision_cone` that `func_eye` now reads, `misc_explobox` No Move, toggleable `misc_model`, floating items (No Drop) with `effects`/`renderfx` overrides, a No Idle Doors monster flag, a monster `vision_cone` key and an `info_player_start` Ride flag. See MODDING.md; all are in the TrenchBroom config.
-- The Arachnid and Guardian join the late game. From player level 30, and on every New Game+ map, a placed Gladiator, Tank or Gunner Commander can come in as an Arachnid (10%, 20% in NG+) and a Tank Commander or Supertank as a Guardian (10%, 25% in NG+), only where the bigger monster fits with floor under it. The Arachnid joins the arena's late waves (wave 8+) and raid adds, and both can be a rift's guardian.
+- The Arachnid and Guardian join the late game. From player level 30, and on every New Game+ map, a placed Gladiator, Tank or Gunner Commander can come in as an Arachnid (10%, 20% in NG+) and a Tank Commander or Supertank as a Guardian (10%, 25% in NG+), only where the bigger monster fits with floor under it. The Arachnid joins the arena's late waves (wave 8+), and both can be a rift's guardian.
 
 ### Changed
 
@@ -14,6 +14,8 @@
 ### Fixed
 
 - Monsters a fixbot revived paid out a second time.
+- Monsters no longer run in place against a wall their pathing doesn't know about (a `func_wall` that appeared, a pillar they can see you past, maps without navigation data). After a second without getting anywhere they sidestep for a moment, then chase again.
+- Medics no longer walk back and forth trying to revive a body behind a `func_wall` or door. A cable blocked by a brush entity now counts like one blocked by the world, so after a couple of tries the medic gives up on that body.
 - A monster with a `healthtarget` lost its own `target` after firing it.
 - The Gunner Commander could stay standing at exactly 0 health after certain pain animations.
 - Medics reviving a `turret_driver` that fell out of its turret now bring it back as a proper infantry.
